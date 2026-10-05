@@ -1,5 +1,6 @@
 import { errorResponse } from "./http/json";
 import { createTweetGenerator } from "./generation/factory";
+import { corsPreflightResponse, withCors } from "./http/cors";
 import { createGenerateTweetRoute } from "./routes/generateTweet";
 import { healthRoute } from "./routes/health";
 
@@ -32,16 +33,28 @@ export async function handleRequest(
 
   const pathMatches = routes.filter((route) => route.path === pathname);
   if (pathMatches.length === 0) {
-    return errorResponse(404, "not_found", "Route not found.");
+    return withCors(
+      errorResponse(404, "not_found", "Route not found."),
+      request,
+      env,
+    );
   }
+
+  const allowedMethods = pathMatches.map((route) => route.method);
+  const preflight = corsPreflightResponse(request, env, allowedMethods);
+  if (preflight) return preflight;
 
   const route = pathMatches.find((r) => r.method === request.method);
   if (!route) {
-    const allow = pathMatches.map((r) => r.method).join(", ");
-    return errorResponse(405, "method_not_allowed", "Method not allowed.", {
-      allow,
-    });
+    const allow = allowedMethods.join(", ");
+    return withCors(
+      errorResponse(405, "method_not_allowed", "Method not allowed.", {
+        allow,
+      }),
+      request,
+      env,
+    );
   }
 
-  return route.handler(request, env, ctx);
+  return withCors(await route.handler(request, env, ctx), request, env);
 }

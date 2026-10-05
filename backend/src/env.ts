@@ -10,6 +10,8 @@
  *   OPENAI_REASONING_EFFORT   optional. Overrides the default ("none"); the value
  *                             "omit" drops the field for non-reasoning models.
  *   VTRRK_LINKS               optional JSON, e.g. {"photography":"https://..."}.
+ *   CORS_ALLOWED_ORIGINS      optional comma-separated browser origins allowed
+ *                             to call the API, e.g. chrome-extension://<id>.
  *   TWEETPILOT_GENERATOR      optional. "placeholder" selects the offline stub
  *                             (used by the test suite); anything else = OpenAI.
  *
@@ -21,6 +23,7 @@ export interface TweetPilotConfig {
   openaiModel: string | undefined;
   openaiReasoningEffort: string | undefined;
   vtrrkLinks: string | undefined;
+  corsAllowedOrigins: string | undefined;
   generatorMode: string | undefined;
 }
 
@@ -35,6 +38,7 @@ export function readConfig(env: Env): TweetPilotConfig {
     openaiModel: str("OPENAI_MODEL"),
     openaiReasoningEffort: str("OPENAI_REASONING_EFFORT"),
     vtrrkLinks: str("VTRRK_LINKS"),
+    corsAllowedOrigins: str("CORS_ALLOWED_ORIGINS"),
     generatorMode: str("TWEETPILOT_GENERATOR"),
   };
 }
