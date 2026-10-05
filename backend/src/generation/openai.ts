@@ -214,7 +214,7 @@ interface PromptParts {
 
 function buildPrompt({ input, maxLength, link, feedback }: PromptParts): string {
   const lines = [`Topic: ${clip(input.topic)}`];
-  if (input.location) lines.push(`Location (context only): ${clip(input.location)}`);
+  if (input.location) lines.push(`Location (optional context): ${clip(input.location)}`);
   if (input.style) lines.push(`Style: ${clip(input.style)}`);
   lines.push(
     `Limit: at most ${maxLength} characters in total${link ? ", including the link" : ""}.`,

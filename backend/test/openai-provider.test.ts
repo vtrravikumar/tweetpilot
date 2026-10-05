@@ -129,7 +129,9 @@ describe("OpenAIProvider - prompt", () => {
   it("keeps the instructions compact", async () => {
     const fetchMock = queueFetch(openaiOk("hi"));
     await provider(fetchMock).generate({ topic: "x" });
-    expect(capture(fetchMock).body.instructions.length).toBeLessThan(800);
+    // M2.4 raised this from 800 to make room for per-topic guidance. The
+    // tighter, authoritative budget lives in test/personalization.test.ts.
+    expect(capture(fetchMock).body.instructions.length).toBeLessThan(1800);
   });
 
   it("clips oversized fields so they cannot inflate token cost", async () => {
