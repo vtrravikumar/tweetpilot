@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import gitignore from "../.gitignore?raw";
 import { createTweetGenerator } from "../src/generation/factory";
 import { OpenAIProvider } from "../src/generation/openai";
 import { PlaceholderTweetGenerator } from "../src/generation/placeholder";
@@ -55,9 +56,21 @@ describe("createTweetGenerator (factory)", () => {
     expect(createTweetGenerator(env({ OPENAI_API_KEY: KEY }))).toBeInstanceOf(OpenAIProvider);
   });
 
+  it("selects the OpenAI provider when explicitly requested", () => {
+    expect(
+      createTweetGenerator(env({ TWEETPILOT_GENERATOR: "openai", OPENAI_API_KEY: KEY })),
+    ).toBeInstanceOf(OpenAIProvider);
+  });
+
   it("throws not_configured when the key is missing - it never falls back to the placeholder", () => {
     expect(() => createTweetGenerator(env())).toThrow(GenerationError);
     expect(() => createTweetGenerator(env({ OPENAI_API_KEY: "   " }))).toThrow(GenerationError);
+    expect(() => createTweetGenerator(env({ TWEETPILOT_GENERATOR: "openai" }))).toThrow(
+      GenerationError,
+    );
+    expect(() => createTweetGenerator(env({ TWEETPILOT_GENERATOR: "definitely-unsupported" }))).toThrow(
+      GenerationError,
+    );
   });
 
   it("uses the placeholder only when explicitly requested", () => {
@@ -82,6 +95,21 @@ describe("createTweetGenerator (factory)", () => {
     expect(call.body.model).toBe("configured-model");
     expect(call.body.reasoning).toEqual({ effort: "low" });
     expect(call.body.input).toContain("https://example.test/p");
+  });
+
+  it("does not pass through non-HTTPS configured VTRRK links", async () => {
+    const fetchMock = queueFetch(openaiOk("hi"));
+    await createTweetGenerator(
+      env({
+        OPENAI_API_KEY: KEY,
+        VTRRK_LINKS: JSON.stringify({ photography: "http://example.test/p" }),
+      }),
+      fetchMock,
+    ).generate({ topic: "Photography", maxLength: 140 });
+
+    const { input } = capture(fetchMock).body;
+    expect(input).not.toContain("http://example.test/p");
+    expect(input).toContain("Do not include any links");
   });
 
   it('OPENAI_REASONING_EFFORT="omit" drops the reasoning field', async () => {
@@ -141,6 +169,15 @@ describe("POST /v1/tweet/generate with the OpenAI provider (mocked fetch)", () =
     expect(text).not.toContain("Incorrect API key");
   });
 
+  it("also maps HTTP 403 credential failures to generation_unavailable", async () => {
+    stubFetch(openaiJson({ error: { message: `Forbidden for ${KEY}` } }, 403));
+    const response = await handleRequest(request(), env({ OPENAI_API_KEY: KEY }), ctx);
+    const text = await response.clone().text();
+    await expectApiError(response, 503, "generation_unavailable");
+    expect(text).not.toContain(KEY);
+    expect(text).not.toContain("Forbidden");
+  });
+
   it("returns 504 upstream_timeout on a timeout", async () => {
     const timeout = new Error("slow");
     timeout.name = "TimeoutError";
@@ -197,6 +234,15 @@ describe("POST /v1/tweet/generate with the OpenAI provider (mocked fetch)", () =
 describe("real network is blocked in tests", () => {
   it("fails loudly if a test forgets to mock fetch", async () => {
     await expect(fetch("https://api.openai.com/v1/responses")).rejects.toThrow(/blocked/i);
+  });
+});
+
+describe("secret file hygiene", () => {
+  it("keeps local Worker secret files ignored", () => {
+    expect(gitignore).toMatch(/^\.dev\.vars$/m);
+    expect(gitignore).toMatch(/^\.dev\.vars\.\*$/m);
+    expect(gitignore).toMatch(/^\.env$/m);
+    expect(gitignore).toMatch(/^\.env\.\*$/m);
   });
 });
 

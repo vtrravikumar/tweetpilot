@@ -1,6 +1,7 @@
 import { exports } from "cloudflare:workers";
 import { describe, expect, it } from "vitest";
 import { PLACEHOLDER_PREFIX } from "../src/generation/placeholder";
+import { validateGenerateTweetRequest } from "../src/validation/generateTweet";
 
 const URL_ = "https://example.com/v1/tweet/generate";
 
@@ -103,6 +104,15 @@ describe("POST /v1/tweet/generate - success", () => {
     const response = await post({ topic: "Photography", extra: true });
     expect(response.status).toBe(200);
   });
+
+  it("does not reject oversized fields at request validation time", async () => {
+    const response = await post({
+      topic: "Photography ".repeat(5_000),
+      location: "Chennai ".repeat(1_000),
+      style: "thoughtful ".repeat(1_000),
+    });
+    expect(response.status).toBe(200);
+  });
 });
 
 describe("POST /v1/tweet/generate - topic validation", () => {
@@ -148,6 +158,12 @@ describe("POST /v1/tweet/generate - location validation", () => {
       );
     },
   );
+
+  it("treats an empty optional location as omitted", async () => {
+    const response = await post({ topic: "Photography", location: "   " });
+    expect(response.status).toBe(200);
+    expect(await response.text()).not.toContain("Location:");
+  });
 });
 
 describe("POST /v1/tweet/generate - style validation", () => {
@@ -162,6 +178,12 @@ describe("POST /v1/tweet/generate - style validation", () => {
       );
     },
   );
+
+  it("treats an empty optional style as omitted", async () => {
+    const response = await post({ topic: "Photography", style: "   " });
+    expect(response.status).toBe(200);
+    expect(await response.text()).not.toContain("Style:");
+  });
 });
 
 describe("POST /v1/tweet/generate - maxLength validation", () => {
@@ -190,6 +212,14 @@ describe("POST /v1/tweet/generate - maxLength validation", () => {
     const response = await post({ topic: "Photography", maxLength: 1 });
     expect(response.status).toBe(200);
   });
+
+  it.each([2, 140, Number.MAX_SAFE_INTEGER])(
+    "accepts maxLength boundary value %i",
+    async (maxLength) => {
+      const result = validateGenerateTweetRequest({ topic: "Photography", maxLength });
+      expect(result).toEqual({ ok: true, value: { topic: "Photography", maxLength } });
+    },
+  );
 });
 
 describe("POST /v1/tweet/generate - malformed bodies", () => {
@@ -201,12 +231,38 @@ describe("POST /v1/tweet/generate - malformed bodies", () => {
     await expectError(await post(""), 400, "invalid_json");
   });
 
+  it("rejects a missing body with 400 invalid_json", async () => {
+    await expectError(await post(undefined), 400, "invalid_json");
+  });
+
   it.each(["null", "[]", '"Photography"', "42", "true"])(
     "rejects a non-object JSON body: %s",
     async (raw) => {
       await expectError(await post(raw), 400, "invalid_request", "JSON object");
     },
   );
+});
+
+describe("validateGenerateTweetRequest", () => {
+  it("trims supplied strings and ignores unexpected fields", () => {
+    expect(
+      validateGenerateTweetRequest({
+        topic: "  Photography  ",
+        location: "  Chennai  ",
+        style: "  thoughtful  ",
+        maxLength: 280,
+        unexpected: "ignored",
+      }),
+    ).toEqual({
+      ok: true,
+      value: {
+        topic: "Photography",
+        location: "Chennai",
+        style: "thoughtful",
+        maxLength: 280,
+      },
+    });
+  });
 });
 
 describe("POST /v1/tweet/generate - wrong HTTP method", () => {

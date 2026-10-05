@@ -55,6 +55,20 @@ describe("OpenAIProvider - interface and configuration", () => {
     expect(call.body.store).toBe(false);
   });
 
+  it("keeps the API key only in the authorization header, never in the request body", async () => {
+    const fetchMock = queueFetch(openaiOk("hi"));
+    await provider(fetchMock).generate({
+      topic: "Photography",
+      location: "Chennai",
+      style: "thoughtful",
+    });
+
+    const call = capture(fetchMock);
+    expect(call.headers.authorization).toBe(`Bearer ${KEY}`);
+    expect(JSON.stringify(call.body)).not.toContain(KEY);
+    expect(JSON.stringify(call.body)).not.toContain("sk-");
+  });
+
   it("passes a configured model through unchanged", async () => {
     const fetchMock = queueFetch(openaiOk("hi"));
     await provider(fetchMock, { model: "some-other-model" }).generate({ topic: "x" });
@@ -77,6 +91,12 @@ describe("OpenAIProvider - interface and configuration", () => {
 });
 
 describe("OpenAIProvider - prompt", () => {
+  it("labels the topic explicitly instead of relying on position", async () => {
+    const fetchMock = queueFetch(openaiOk("hi"));
+    await provider(fetchMock).generate({ topic: "Photography" });
+    expect(capture(fetchMock).body.input).toContain("Topic: Photography");
+  });
+
   it("includes topic, location and style", async () => {
     const fetchMock = queueFetch(openaiOk("hi"));
     await provider(fetchMock).generate({
@@ -88,6 +108,14 @@ describe("OpenAIProvider - prompt", () => {
     expect(input).toContain("Photography");
     expect(input).toContain("Chennai");
     expect(input).toContain("thoughtful");
+  });
+
+  it("omits optional location and style lines when they are not supplied", async () => {
+    const fetchMock = queueFetch(openaiOk("hi"));
+    await provider(fetchMock).generate({ topic: "Photography" });
+    const { input } = capture(fetchMock).body;
+    expect(input).not.toContain("Location");
+    expect(input).not.toContain("Style:");
   });
 
   it("passes the supplied maxLength into the generation prompt", async () => {
@@ -136,8 +164,16 @@ describe("OpenAIProvider - prompt", () => {
 
   it("clips oversized fields so they cannot inflate token cost", async () => {
     const fetchMock = queueFetch(openaiOk("hi"));
-    await provider(fetchMock).generate({ topic: "t".repeat(50_000) });
-    expect(capture(fetchMock).body.input.length).toBeLessThan(600);
+    await provider(fetchMock).generate({
+      topic: "t".repeat(50_000),
+      location: "l".repeat(50_000),
+      style: "s".repeat(50_000),
+    });
+    const { input } = capture(fetchMock).body;
+    expect(input.length).toBeLessThan(900);
+    expect(input).not.toContain("t".repeat(201));
+    expect(input).not.toContain("l".repeat(201));
+    expect(input).not.toContain("s".repeat(201));
   });
 });
 
@@ -317,6 +353,22 @@ describe("OpenAIProvider - malformed or empty responses", () => {
           output: [{ type: "message", content: [{ type: "output_text", text: "cut off mid" }] }],
         }),
     ],
+    [
+      "a message with non-array content",
+      () => openaiJson({ status: "completed", output: [{ type: "message", content: "hello" }] }),
+    ],
+    [
+      "a text part with a non-string text field",
+      () =>
+        openaiJson({
+          status: "completed",
+          output: [{ type: "message", content: [{ type: "output_text", text: 123 }] }],
+        }),
+    ],
+    [
+      "an unexpected provider shape",
+      () => openaiJson({ status: "completed", output: [{ type: "tool_call", content: [] }] }),
+    ],
   ];
 
   it.each(cases)("treats %s as invalid_output without retrying (no extra cost)", async (_name, make) => {
@@ -334,13 +386,16 @@ describe("OpenAIProvider - malformed or empty responses", () => {
 });
 
 describe("OpenAIProvider - provider API failures", () => {
-  it.each([400, 404, 429, 500, 502, 503])("maps HTTP %i to upstream_error without retrying", async (status) => {
+  it.each([400, 404, 418, 429, 451, 500, 502, 503, 504])(
+    "maps HTTP %i to upstream_error without retrying",
+    async (status) => {
     const fetchMock = queueFetch(openaiJson({ error: { message: "details" } }, status));
     const err = await failureOf(provider(fetchMock).generate({ topic: "x" }));
     expect(err.kind).toBe("upstream_error");
     expect(err.upstreamStatus).toBe(status);
     expect(fetchMock).toHaveBeenCalledTimes(1);
-  });
+    },
+  );
 
   it.each([401, 403])("maps HTTP %i (bad credentials) to not_configured", async (status) => {
     const fetchMock = queueFetch(openaiJson({ error: { message: "bad key" } }, status));
@@ -364,7 +419,7 @@ describe("OpenAIProvider - provider API failures", () => {
 
   it("passes an abort signal to fetch so requests cannot hang", async () => {
     const fetchMock = queueFetch(openaiOk("hi"));
-    await provider(fetchMock).generate({ topic: "x" });
+    await provider(fetchMock, { timeoutMs: 123 }).generate({ topic: "x" });
     expect(fetchMock.mock.calls[0]?.[1]?.signal).toBeInstanceOf(AbortSignal);
   });
 
@@ -408,6 +463,19 @@ describe("OpenAIProvider - over-length output", () => {
     const err = await failureOf(provider(fetchMock).generate({ topic: "x", maxLength: 140 }));
     expect(err.kind).toBe("invalid_output");
     expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it("does not exceed a configured retry limit greater than the default", async () => {
+    const fetchMock = queueFetch(
+      openaiOk("a".repeat(150)),
+      openaiOk("b".repeat(160)),
+      openaiOk("c".repeat(170)),
+    );
+    const err = await failureOf(
+      provider(fetchMock, { maxLengthRetries: 2 }).generate({ topic: "x", maxLength: 140 }),
+    );
+    expect(err.kind).toBe("invalid_output");
+    expect(fetchMock).toHaveBeenCalledTimes(3);
   });
 
   it("makes exactly one call when retries are disabled", async () => {
