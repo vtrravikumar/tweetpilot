@@ -1,4 +1,6 @@
 import { errorResponse } from "./http/json";
+import { PlaceholderTweetGenerator } from "./generation/placeholder";
+import { createGenerateTweetRoute } from "./routes/generateTweet";
 import { healthRoute } from "./routes/health";
 
 export type Handler = (
@@ -14,9 +16,14 @@ export interface Route {
 }
 
 /**
- * Route table. Add new endpoints here, e.g. POST /v1/tweet/generate in M2.2.
+ * Route table. Add new endpoints here.
  */
-export const routes: readonly Route[] = [healthRoute];
+const tweetGenerator = new PlaceholderTweetGenerator();
+
+export const routes: readonly Route[] = [
+  healthRoute,
+  createGenerateTweetRoute(tweetGenerator),
+];
 
 export async function handleRequest(
   request: Request,
