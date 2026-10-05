@@ -34,6 +34,7 @@ M0 is a short architecture/setup gate, not a large implementation phase.
 ### Security
 - OpenAI API key must never be bundled into the Chrome extension.
 - API credentials will be stored as Cloudflare Worker secrets.
+- Secrets will be managed through Wrangler and/or the Cloudflare dashboard; the Claude Cloudflare connector does not currently expose secret-management tools.
 - X credentials are not collected.
 - X API is not required for the initial product.
 - The backend will validate requests and eventually apply rate limiting/abuse protection.
@@ -101,7 +102,32 @@ Initial style:
 
 Location is configurable context, not precise location tracking.
 
-## 7. M2 backend scope
+## 7. Cloudflare/Claude tooling boundary
+
+The official Cloudflare Developer Platform connector is connected to Claude Desktop and has been verified read-only.
+
+Current observed capabilities include:
+- List and inspect Workers
+- Read Worker source/details
+- List/manage KV namespaces
+- List/query/create/delete D1 databases
+- Cloudflare documentation search
+
+Current observed limitations include:
+- No Worker deployment/update tool
+- No Worker deletion tool
+- No secret-management tool
+- No direct management of all Worker bindings/resources
+- GitHub repository access is separate from the Cloudflare connector
+- R2 is not enabled in the current Cloudflare account
+
+Therefore:
+- Claude Desktop may assist with coding, review and Cloudflare inspection.
+- Worker deployment will use Wrangler or a GitHub-connected Cloudflare build/deployment path.
+- Secrets will be configured through Wrangler or the Cloudflare dashboard.
+- D1, KV and R2 are not part of the initial TweetPilot backend unless a concrete requirement emerges.
+
+## 8. M2 backend scope
 
 M2 will implement and independently test:
 1. Worker foundation
@@ -118,7 +144,7 @@ M2 will implement and independently test:
 
 The backend must be usable independently before M1 begins.
 
-## 8. M1 extension scope
+## 9. M1 extension scope
 
 After M2 is working:
 - Detect the X compose experience.
@@ -131,7 +157,7 @@ After M2 is working:
 
 No automated final publishing.
 
-## 9. M3 scope
+## 10. M3 scope
 
 - Better personalisation
 - Duplicate/repetition avoidance
@@ -141,7 +167,7 @@ No automated final publishing.
 - Production hardening
 - Review current X platform/automation constraints before public release
 
-## 10. Claude-assisted development
+## 11. Claude-assisted development
 
 Claude may be used as a coding assistant for selected basic implementation tasks when useful.
 
@@ -154,7 +180,7 @@ However:
 
 Claude is therefore an optional development aid, not a runtime dependency of TweetPilot.
 
-## 11. M0 exit criteria
+## 12. M0 exit criteria
 
 M0 is complete when:
 - Architecture is documented.
@@ -165,7 +191,7 @@ M0 is complete when:
 - Testing approach is agreed.
 - M2 implementation can begin without further architectural decisions.
 
-## 12. Cost philosophy
+## 13. Cost philosophy
 
 TweetPilot should start with minimal recurring cost.
 
