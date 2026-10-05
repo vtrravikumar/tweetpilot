@@ -1,5 +1,5 @@
 import { errorResponse } from "./http/json";
-import { PlaceholderTweetGenerator } from "./generation/placeholder";
+import { createTweetGenerator } from "./generation/factory";
 import { createGenerateTweetRoute } from "./routes/generateTweet";
 import { healthRoute } from "./routes/health";
 
@@ -18,11 +18,9 @@ export interface Route {
 /**
  * Route table. Add new endpoints here.
  */
-const tweetGenerator = new PlaceholderTweetGenerator();
-
 export const routes: readonly Route[] = [
   healthRoute,
-  createGenerateTweetRoute(tweetGenerator),
+  createGenerateTweetRoute((env) => createTweetGenerator(env)),
 ];
 
 export async function handleRequest(

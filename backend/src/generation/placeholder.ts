@@ -1,7 +1,8 @@
-import type {
-  GenerateTweetInput,
-  GenerateTweetResult,
-  TweetGenerator,
+import {
+  DEFAULT_MAX_LENGTH,
+  type GenerateTweetInput,
+  type GenerateTweetResult,
+  type TweetGenerator,
 } from "./types";
 
 /**
@@ -14,8 +15,7 @@ import type {
  * Replace with the OpenAI provider in M2.3 (see ./types.ts).
  */
 
-/** Used only when the request omits maxLength. */
-export const DEFAULT_MAX_LENGTH = 140;
+export { DEFAULT_MAX_LENGTH };
 
 export const PLACEHOLDER_PREFIX = "[PLACEHOLDER - not AI generated]";
 

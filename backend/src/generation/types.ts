@@ -24,3 +24,9 @@ export interface GenerateTweetResult {
 export interface TweetGenerator {
   generate(input: GenerateTweetInput): Promise<GenerateTweetResult>;
 }
+
+/**
+ * Used only when a request omits maxLength. This is a default, not a limit:
+ * providers must honour whatever maxLength the caller supplies.
+ */
+export const DEFAULT_MAX_LENGTH = 140;
