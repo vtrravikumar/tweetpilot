@@ -1,7 +1,7 @@
 import { exports } from "cloudflare:workers";
 import { describe, expect, it } from "vitest";
 import { PLACEHOLDER_PREFIX } from "../src/generation/placeholder";
-import { validateGenerateTweetRequest } from "../src/validation/generateTweet";
+import { validateGenerateTweetRequest } from "../src/validation/generateTweet";\nimport { MIN_VICHAR_MAX_LENGTH } from "../src/generation/types";
 
 const URL_ = "https://example.com/v1/tweet/generate";
 
@@ -193,7 +193,7 @@ describe("POST /v1/tweet/generate - style validation", () => {
 });
 
 describe("POST /v1/tweet/generate - maxLength validation", () => {
-  it.each([0, -1, -140, 1.5, "140", null, true, [140], { a: 1 }])(
+  it.each([0, -1, 1, 1.5, 16, "140", null, true, [140], { a: 1 }])(
     "rejects an invalid maxLength: %j",
     async (maxLength) => {
       await expectError(
@@ -219,7 +219,7 @@ describe("POST /v1/tweet/generate - maxLength validation", () => {
     expect(response.status).toBe(200);
   });
 
-  it.each([2, 140, Number.MAX_SAFE_INTEGER])(
+  it.each([MIN_VICHAR_MAX_LENGTH, 140, Number.MAX_SAFE_INTEGER])(
     "accepts maxLength boundary value %i",
     async (maxLength) => {
       const result = validateGenerateTweetRequest({ topic: "Photography", maxLength });
