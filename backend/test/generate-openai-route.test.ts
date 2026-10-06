@@ -22,7 +22,7 @@ function request(body: unknown = { topic: "Photography" }, method = "POST"): Req
     method,
     headers: {
       "content-type": "application/json",
-      authorization: "Bearer test-route-usage-key-123456",
+      authorization: `Bearer test-route-usage-key-${crypto.randomUUID()}`,
     },
     body: method === "POST" ? JSON.stringify(body) : null,
   });
