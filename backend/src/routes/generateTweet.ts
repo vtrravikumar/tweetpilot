@@ -2,28 +2,28 @@ import { GenerationError } from "../generation/errors";
 import type { TweetGenerator } from "../generation/types";
 import { errorResponse, jsonResponse } from "../http/json";
 import type { Route } from "../router";
-import { allowAllUsageGuard, type UsageGuard } from "../usage/guard";
+import { createUsageGuard, type UsageGuard } from "../usage/guard";
 import { validateGenerateTweetRequest } from "../validation/generateTweet";
 
 /** A fixed generator, or a factory that picks one per request from the env. */
 export type GeneratorSource = TweetGenerator | ((env: Env) => TweetGenerator);
 
 export interface GenerateTweetRouteOptions {
-  /** Defaults to allow-all; M2.6 plugs a real limiter in here. */
   usageGuard?: UsageGuard;
 }
 
 /**
  * POST /v1/tweet/generate
  *
- * The route depends only on the TweetGenerator interface, so providers can be
- * swapped without touching this handler or the HTTP contract.
+ * Every accepted generation is charged against the Vichar installation usage
+ * key before OpenAI is called. The usage guard is deliberately server-side so
+ * changing extension code cannot reset the counter.
  */
 export function createGenerateTweetRoute(
   source: GeneratorSource,
   options: GenerateTweetRouteOptions = {},
 ): Route {
-  const usageGuard = options.usageGuard ?? allowAllUsageGuard;
+  const usageGuard = options.usageGuard ?? createUsageGuard();
 
   return {
     method: "POST",
@@ -45,12 +45,22 @@ export function createGenerateTweetRoute(
         return errorResponse(400, "invalid_request", validation.message);
       }
 
-      const decision = await usageGuard.check(request);
+      const decision = await usageGuard.check(request, env);
       if (!decision.allowed) {
+        if (decision.reason === "unauthorized") {
+          return errorResponse(
+            401,
+            "missing_usage_key",
+            "Vichar usage key is required.",
+          );
+        }
+
         return errorResponse(
           429,
           "rate_limited",
-          "Too many generation requests. Please try again later.",
+          decision.reason === "daily"
+            ? "Daily Vichar generation limit reached."
+            : "Too many Vichar generation requests. Please try again shortly.",
           decision.retryAfterSeconds === undefined
             ? {}
             : { "retry-after": String(decision.retryAfterSeconds) },
@@ -60,7 +70,14 @@ export function createGenerateTweetRoute(
       try {
         const generator = typeof source === "function" ? source(env) : source;
         const { tweet } = await generator.generate(validation.value);
-        return jsonResponse({ tweet });
+        return jsonResponse(
+          { tweet },
+          200,
+          {
+            "x-vichar-remaining": String(decision.remaining),
+            "x-vichar-daily-limit": String(decision.dailyLimit),
+          },
+        );
       } catch (err) {
         if (err instanceof GenerationError) return generationErrorResponse(err);
         throw err;
