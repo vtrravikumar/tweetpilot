@@ -76,6 +76,16 @@ describe("X composer detection", () => {
     expect(findComposer()).toBe(modalComposer);
   });
 
+  it("resolves a modal composer host to the dialog", () => {
+    const dialog = document.createElement("div");
+    dialog.setAttribute("role", "dialog");
+    const composer = document.createElement("div");
+    dialog.appendChild(composer);
+    document.body.appendChild(dialog);
+
+    expect(composerHost(composer)).toBe(dialog);
+  });
+
   it("resolves the composer host to its form", () => {
     const form = document.createElement("form");
     const composer = document.createElement("div");
