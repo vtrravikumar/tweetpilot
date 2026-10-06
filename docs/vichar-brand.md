@@ -72,4 +72,4 @@ These are infrastructure/implementation names, not the product identity.
 
 No UI implementation may invent its own logo or brand treatment. New Vichar surfaces must consume the approved artwork and palette defined here.
 
-Before public release, the approved logo artwork must be installed as the canonical asset set and reused across the website, extension, icons, favicon, and store listing.
+Current canonical logo asset: `extension/public/vichar-icon-128.png`. The website mirrors this approved artwork at `public/brand/vichar-icon-128.png` in the `vtrrk.in` repository. Before public release, derive the remaining 16/32/48/favicons and store assets from the same approved artwork; do not redraw them independently.
