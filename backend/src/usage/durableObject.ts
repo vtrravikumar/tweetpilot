@@ -1,12 +1,18 @@
 import { DurableObject } from "cloudflare:workers";
 
-export interface UsageDecision {
-  allowed: boolean;
-  remaining: number;
-  dailyLimit: number;
-  retryAfterSeconds?: number;
-  reason?: "daily" | "burst";
-}
+export type UsageDecision =
+  | {
+      allowed: true;
+      remaining: number;
+      dailyLimit: number;
+    }
+  | {
+      allowed: false;
+      remaining: number;
+      dailyLimit: number;
+      retryAfterSeconds?: number;
+      reason: "daily" | "burst" | "unauthorized";
+    };
 
 /**
  * One strongly-consistent usage counter per Vichar installation.
