@@ -4,8 +4,10 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
-    "build": "vite build",
-    "dev": "vite build --watch",
+    "build": "npm run build:content && npm run build:background",
+    "build:content": "vite build --mode content",
+    "build:background": "vite build --mode background",
+    "dev": "vite build --watch --mode content",
     "test": "vitest run",
     "typecheck": "tsc --noEmit"
   },
