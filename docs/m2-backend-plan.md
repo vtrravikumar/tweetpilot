@@ -1,8 +1,8 @@
-# TweetPilot — M2 Backend Plan
+# Vichar — M2 Backend Plan
 
 ## Goal
 
-Build and independently test the TweetPilot AI backend before starting the Chrome extension.
+Build and independently test the Vichar AI backend before starting the Chrome extension.
 
 ## M2.1 — Worker foundation
 
