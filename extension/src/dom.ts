@@ -172,47 +172,65 @@ export async function replaceComposerText(
 ): Promise<boolean> {
   composer = resolveEditableComposer(composer);
 
-  // Match TweetAI's proven X integration first: focus the native editor,
-  // select its contents, send Delete, then send textInput with the new text.
-  // Do not synthesize an extra "input" delete event here; X's editor owns the
-  // state transition and the extra event can leave its internal state stale.
+  // X does not mutate the editor for an untrusted synthetic Delete keydown.
+  // That is why the old implementation could append the new text to an
+  // existing draft. Use Chromium's editing command to perform a real delete,
+  // then insert the replacement through the same editing pipeline.
   composer.focus();
   selectAllComposerText(composer);
-  composer.dispatchEvent(
-    new KeyboardEvent("keydown", {
-      key: "Delete",
-      bubbles: true
-    })
-  );
 
-  await wait(100);
-
-  composer.dispatchEvent(
-    new InputEvent("textInput", {
-      data: text,
-      bubbles: true
-    })
-  );
-
-  // X may update its React/editor state asynchronously after textInput.
-  await wait(250);
-
-  if (composerText(composer) === text || isPostButtonEnabled(composer)) {
-    return true;
+  let deleted = false;
+  try {
+    if (typeof document.execCommand === "function") {
+      deleted = document.execCommand("delete", false);
+    }
+  } catch {
+    // Fall through to the Range-based deletion below.
   }
 
-  // Fallback for X/editor variants that do not handle TweetAI's textInput
-  // path. execCommand goes through Chromium's editing pipeline and emits the
-  // browser's native editing events.
-  selectAllComposerText(composer);
+  if (composerText(composer) !== "") {
+    const selection = window.getSelection();
+    const range = document.createRange();
+    range.selectNodeContents(composer);
+    selection?.removeAllRanges();
+    selection?.addRange(range);
+    range.deleteContents();
+    selection?.collapse(composer, 0);
+    deleted = true;
+  }
+
+  await wait(50);
+
   try {
     if (typeof document.execCommand === "function") {
       document.execCommand("insertText", false, text);
     }
   } catch {
-    // Continue to the final verification below.
+    // Fall through to the input event below.
   }
 
-  await wait(200);
-  return composerText(composer) === text || isPostButtonEnabled(composer);
+  if (composerText(composer) !== text) {
+    composer.dispatchEvent(
+      new InputEvent("beforeinput", {
+        inputType: "insertText",
+        data: text,
+        bubbles: true,
+        cancelable: true
+      })
+    );
+    composer.dispatchEvent(
+      new InputEvent("input", {
+        inputType: "insertText",
+        data: text,
+        bubbles: true
+      })
+    );
+  }
+
+  await wait(250);
+
+  return (
+    composerText(composer) === text ||
+    (deleted && isPostButtonEnabled(composer))
+  );
 }

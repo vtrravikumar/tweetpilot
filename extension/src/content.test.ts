@@ -131,7 +131,7 @@ describe("X composer detection", () => {
     expect(findComposer()).toBe(composer);
   });
 
-  it("can replace composer text and emit textInput", async () => {
+  it("replaces an existing draft instead of appending", async () => {
     const composer = document.createElement("div");
     composer.setAttribute("contenteditable", "true");
     composer.setAttribute("role", "textbox");
@@ -140,16 +140,27 @@ describe("X composer detection", () => {
     });
     document.body.appendChild(composer);
 
-    let textInputEvents = 0;
-    composer.addEventListener("textInput", () => {
-      textInputEvents += 1;
-    });
+    composer.textContent = "Old draft";
+    const originalExecCommand = document.execCommand;
+    document.execCommand = ((command: string, _showUi?: boolean, value?: string) => {
+      if (command === "delete") {
+        composer.textContent = "";
+        return true;
+      }
+      if (command === "insertText") {
+        composer.textContent = value ?? "";
+        return true;
+      }
+      return false;
+    }) as typeof document.execCommand;
 
-    composer.textContent = "New draft";
-    const result = await replaceComposerText(composer, "New draft");
+    try {
+      const result = await replaceComposerText(composer, "New draft");
 
-    expect(result).toBe(true);
-    expect(composerText(composer)).toBe("New draft");
-    expect(textInputEvents).toBe(1);
+      expect(result).toBe(true);
+      expect(composerText(composer)).toBe("New draft");
+    } finally {
+      document.execCommand = originalExecCommand;
+    }
   });
 });
