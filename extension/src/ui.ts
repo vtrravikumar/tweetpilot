@@ -107,6 +107,7 @@ export function createPanel(callbacks: PanelCallbacks): TweetPanel {
 
   let composer: HTMLElement | null = null;
   let hasTweet = false;
+  let replaceConfirmed = false;
 
   const updateCount = () => {
     count.textContent = `${suggestion.value.length}/${DEFAULT_MAX_LENGTH}`;
@@ -142,9 +143,17 @@ export function createPanel(callbacks: PanelCallbacks): TweetPanel {
       return;
     }
 
+    if (current && !replaceConfirmed) {
+      replaceConfirmed = true;
+      primary.textContent = "Replace draft?";
+      status.textContent = "X already has a draft. Choose Replace draft? to overwrite it.";
+      return;
+    }
+
     status.textContent = "Adding to X…";
     void (async () => {
       const inserted = await replaceComposerText(composer, tweet);
+      replaceConfirmed = false;
       if (!inserted || composerText(composer) !== tweet) {
         status.textContent =
           "X did not accept the suggestion. You can copy it and paste it into the composer.";
@@ -170,6 +179,7 @@ export function createPanel(callbacks: PanelCallbacks): TweetPanel {
 
   const invalidateSuggestion = (message: string) => {
     hasTweet = false;
+    replaceConfirmed = false;
     suggestion.value = "";
     updateCount();
     primary.textContent = "Get a thought";
@@ -205,6 +215,7 @@ export function createPanel(callbacks: PanelCallbacks): TweetPanel {
     },
     setTweet(tweet, resolvedTopic) {
       hasTweet = true;
+      replaceConfirmed = false;
       suggestion.value = tweet;
       updateCount();
       status.textContent = `Vichāraḥ · ${resolvedTopic} · Thought`;
@@ -215,6 +226,7 @@ export function createPanel(callbacks: PanelCallbacks): TweetPanel {
     },
     setError(message) {
       hasTweet = false;
+      replaceConfirmed = false;
       root.classList.remove("vc-loading");
       status.textContent = message;
       primary.textContent = "Get a thought";
@@ -230,6 +242,7 @@ export function createPanel(callbacks: PanelCallbacks): TweetPanel {
     setComposer: (value) => {
       if (value !== composer) {
         hasTweet = false;
+        replaceConfirmed = false;
         suggestion.value = "";
         updateCount();
         primary.textContent = "Get a thought";
