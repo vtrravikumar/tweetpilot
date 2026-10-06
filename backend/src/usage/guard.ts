@@ -1,25 +1,48 @@
-/**
- * Usage guard: the single hook where generation-call limiting plugs in.
- *
- * M2.3 ships only the allow-all default. A real limit needs shared state
- * (a Worker isolate is ephemeral and many can run at once, so an in-memory
- * counter would not be a reliable limit), which means persistence or a
- * Cloudflare rate-limiting mechanism. That is deliberately deferred to M2.6;
- * it can be added by implementing this interface and passing it to
- * createGenerateTweetRoute - no route or provider change needed.
- */
-
-export type UsageDecision =
-  | { allowed: true }
-  | { allowed: false; retryAfterSeconds?: number };
+import { readConfig } from "../env";
+import { VicharUsage, type UsageDecision } from "./durableObject";
 
 export interface UsageGuard {
   /** Called after request validation, immediately before a generation call. */
-  check(request: Request): Promise<UsageDecision>;
+  check(request: Request, env: Env): Promise<UsageDecision>;
 }
 
-export const allowAllUsageGuard: UsageGuard = {
-  async check() {
-    return { allowed: true };
-  },
-};
+export function createUsageGuard(): UsageGuard {
+  return {
+    async check(request, env) {
+      const apiKey = readVicharApiKey(request);
+      if (!apiKey) {
+        return {
+          allowed: false,
+          remaining: 0,
+          dailyLimit: 0,
+          retryAfterSeconds: 0,
+          reason: "burst",
+        };
+      }
+
+      const config = readConfig(env);
+      const namespace = (
+        env as unknown as {
+          VICHAR_USAGE: DurableObjectNamespace<VicharUsage>;
+        }
+      ).VICHAR_USAGE;
+
+      const id = namespace.idFromName(apiKey);
+      const stub = namespace.get(id);
+
+      return stub.check(
+        Date.now(),
+        config.vicharDailyLimit,
+        config.vicharBurstPerMinute,
+      );
+    },
+  };
+}
+
+export function readVicharApiKey(request: Request): string | undefined {
+  const authorization = request.headers.get("authorization");
+  if (!authorization) return undefined;
+
+  const match = /^Bearer\s+([A-Za-z0-9-]{20,128})$/.exec(authorization.trim());
+  return match?.[1];
+}
