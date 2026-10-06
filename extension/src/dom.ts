@@ -91,8 +91,10 @@ export function replaceComposerText(
       : false;
 
   if (!inserted || composerText(composer) !== text) {
-    // Give Draft.js a second, event-driven path. This does not rely on
-    // directly mutating the controlled editor DOM.
+    // Give Draft.js a second, event-driven path. In a real browser,
+    // execCommand is the preferred path because it updates the editor's
+    // native editing state. The DOM fallback is retained for test/jsdom
+    // environments where execCommand is unavailable.
     const beforeInput = new InputEvent("beforeinput", {
       bubbles: true,
       cancelable: true,
@@ -101,9 +103,11 @@ export function replaceComposerText(
     });
     composer.dispatchEvent(beforeInput);
 
-    if (composerText(composer) !== text && typeof execCommand === "function") {
+    if (typeof execCommand === "function") {
       selectAllComposerText(composer);
       execCommand.call(document, "insertText", false, text);
+    } else {
+      composer.textContent = text;
     }
   }
 
