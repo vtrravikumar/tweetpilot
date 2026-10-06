@@ -76,14 +76,15 @@ describe("X composer detection", () => {
     expect(findComposer()).toBe(modalComposer);
   });
 
-  it("resolves a modal composer host to the dialog", () => {
-    const dialog = document.createElement("div");
-    dialog.setAttribute("role", "dialog");
+  it("resolves the composer host to the parent of X's native toolbar", () => {
+    const host = document.createElement("div");
+    const toolbar = document.createElement("div");
+    toolbar.setAttribute("data-testid", "toolBar");
     const composer = document.createElement("div");
-    dialog.appendChild(composer);
-    document.body.appendChild(dialog);
+    host.append(toolbar, composer);
+    document.body.appendChild(host);
 
-    expect(composerHost(composer)).toBe(dialog);
+    expect(composerHost(composer)).toBe(host);
   });
 
   it("resolves the composer host to its form", () => {
@@ -95,7 +96,20 @@ describe("X composer detection", () => {
     expect(composerHost(composer)).toBe(form);
   });
 
-  it("can replace composer text and emit input", () => {
+  it("finds an inline composer when no dialog is open", () => {
+    const composer = document.createElement("div");
+    composer.setAttribute("data-testid", "tweetTextarea_0");
+    composer.setAttribute("contenteditable", "true");
+    composer.setAttribute("role", "textbox");
+    Object.defineProperty(composer, "getBoundingClientRect", {
+      value: () => ({ width: 300, height: 80 })
+    });
+    document.body.appendChild(composer);
+
+    expect(findComposer()).toBe(composer);
+  });
+
+  it("can replace composer text and emit textInput", async () => {
     const composer = document.createElement("div");
     composer.setAttribute("contenteditable", "true");
     composer.setAttribute("role", "textbox");
@@ -104,14 +118,16 @@ describe("X composer detection", () => {
     });
     document.body.appendChild(composer);
 
-    let inputEvents = 0;
-    composer.addEventListener("input", () => {
-      inputEvents += 1;
+    let textInputEvents = 0;
+    composer.addEventListener("textInput", () => {
+      textInputEvents += 1;
     });
 
-    replaceComposerText(composer, "New draft");
+    composer.textContent = "New draft";
+    const result = await replaceComposerText(composer, "New draft");
 
+    expect(result).toBe(true);
     expect(composerText(composer)).toBe("New draft");
-    expect(inputEvents).toBe(1);
+    expect(textInputEvents).toBe(1);
   });
 });
