@@ -30,13 +30,13 @@
       "js": ["content.js"],
       "run_at": "document_idle"
     }
-  ],,
+  ],
   "web_accessible_resources": [
     {
       "resources": ["icon128.png"],
       "matches": ["https://x.com/*", "https://twitter.com/*"]
     }
-  ]
+  ],
   "content_security_policy": {
     "extension_pages": "script-src 'self'; object-src 'self'"
   }
