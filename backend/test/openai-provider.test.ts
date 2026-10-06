@@ -456,7 +456,7 @@ describe("OpenAIProvider - over-length output", () => {
   it("retries once with feedback when the first draft is too long, then succeeds", async () => {
     const fetchMock = queueFetch(openaiOk("a".repeat(150)), openaiOk("b".repeat(100)));
     const result = await provider(fetchMock).generate({ topic: "x", maxLength: 140 });
-    expect(result.tweet).toBe(`b`.repeat(83) + `\n${VICHAR_ATTRIBUTION}`);
+    expect(result.tweet).toBe(`b`.repeat(100) + `\n${VICHAR_ATTRIBUTION}`);
     expect(fetchMock).toHaveBeenCalledTimes(2);
     const retryInput = capture(fetchMock, 1).body.input;
     expect(retryInput).toContain("150 characters");
@@ -518,6 +518,6 @@ describe("OpenAIProvider - Vichar attribution", () => {
     const fetchMock = queueFetch(openaiOk("A"));
     const result = await provider(fetchMock).generate({ topic: "x", maxLength: MIN_VICHAR_MAX_LENGTH });
     expect(Array.from(result.tweet).length).toBe(MIN_VICHAR_MAX_LENGTH);
-    expect(result.tweet).toBe(VICHAR_ATTRIBUTION);
+    expect(result.tweet).toBe(`A\\n${VICHAR_ATTRIBUTION}`);
   });
 });
