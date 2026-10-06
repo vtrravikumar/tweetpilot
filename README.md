@@ -6,9 +6,9 @@ It is designed to help turn an idea into a concise, personal post while keeping 
 
 The production web client is live at [vtrrk.in/vichar/](https://vtrrk.in/vichar/), and the Chrome extension brings the same workflow into the X composer.
 
-> **Status: Active development**
+> **Status: V1 production foundation complete; Chrome extension integration remains in active development**
 >
-> The backend is production deployed, the web client is live, and the first Vichar-generated post has been reviewed and manually published on X.
+> The backend is production deployed and hardened, the web client is live, and the first Vichar-generated post has been reviewed and manually published on X. The production generation path has also been revalidated through the web session and OpenAI provider.
 
 ---
 
@@ -102,6 +102,7 @@ Vichar is intentionally small and cost-conscious.
 - Vitest
 - Cloudflare Workers Vitest pool
 - No conventional database; Durable Object SQLite stores only anonymous usage counters
+- Durable usage protection for extension installations and anonymous web users
 - No dedicated server or VM
 - No Docker/Kubernetes requirement
 
@@ -176,6 +177,8 @@ The generator:
 - derives an output-token budget from the requested tweet length;
 - limits oversized prompt fields;
 - validates the returned tweet length;
+- enforces the exact final `Vichar by @vtrrk` attribution and counts it within `maxLength`;
+- prevents duplicate attribution variants from model output;
 - prevents unapproved links;
 - allows one corrective generation when the output violates length/link rules;
 - does not store responses through the OpenAI request (`store: false`);
@@ -226,6 +229,9 @@ The Worker reads these values from its environment:
 | `VTRRK_LINKS` | No | JSON configuration of topic-specific VTRRK links |
 | `CORS_ALLOWED_ORIGINS` | No | Comma-separated browser origins allowed to call the API |
 | `TWEETPILOT_GENERATOR` | No | Set to `placeholder` only for offline/test generation |
+| `VICHAR_DAILY_LIMIT` | No | Durable Object daily generation limit; production default is `10` |
+| `VICHAR_BURST_PER_MINUTE` | No | Durable Object per-minute generation limit; production default is `3` |
+| `VICHAR_WEB_SECRET` | Yes for web usage protection | Server-side secret used to derive a pseudonymous web usage identifier |
 
 **Never commit an API key or `.dev.vars` to Git.**
 
@@ -414,6 +420,8 @@ Planned capabilities include:
 The extension will **not** automatically click X's native Post button.
 
 ### M3 — Hardening and product completion
+
+Core backend hardening is complete. Remaining M3 work is product refinement and broader extension/web experience validation.
 
 Planned areas include:
 
