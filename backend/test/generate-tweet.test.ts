@@ -228,6 +228,33 @@ describe("POST /v1/tweet/generate - maxLength validation", () => {
   );
 });
 
+describe("POST /v1/tweet/generate - request size", () => {
+  it("rejects an oversized declared request body before parsing", async () => {
+    const response = await exports.default.fetch(URL_, {
+      method: "POST",
+      headers: {
+        authorization: `Bearer test-${crypto.randomUUID()}`,
+        "content-type": "application/json",
+        "content-length": "9000",
+      },
+      body: JSON.stringify({ topic: "Photography" }),
+    });
+    await expectError(response, 413, "request_too_large");
+  });
+
+  it("rejects an oversized actual request body", async () => {
+    const response = await exports.default.fetch(URL_, {
+      method: "POST",
+      headers: {
+        authorization: `Bearer test-${crypto.randomUUID()}`,
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({ topic: "x".repeat(10_000) }),
+    });
+    await expectError(response, 413, "request_too_large");
+  });
+});
+
 describe("POST /v1/tweet/generate - malformed bodies", () => {
   it("rejects malformed JSON with 400 invalid_json", async () => {
     await expectError(await post("{ not json"), 400, "invalid_json");
