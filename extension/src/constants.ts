@@ -7,4 +7,4 @@ export const STORAGE_KEYS = {
   location: "vichar.location"
 } as const;
 
-export const PANEL_ID = "tweetpilot-root";
+export const PANEL_ID = "vichar-root";
