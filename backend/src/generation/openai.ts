@@ -7,6 +7,8 @@ import {
 import { PERSONALIZATION_INSTRUCTIONS } from "./personalization";
 import {
   DEFAULT_MAX_LENGTH,
+  VICHAR_ATTRIBUTION,
+  VICHAR_ATTRIBUTION_SEPARATOR,
   type GenerateTweetInput,
   type GenerateTweetResult,
   type TweetGenerator,
@@ -103,10 +105,16 @@ export class OpenAIProvider implements TweetGenerator {
     for (let attempt = 0; attempt <= this.maxLengthRetries; attempt++) {
       const prompt = buildPrompt({ input, maxLength, link, feedback });
       const raw = await this.callOpenAI(prompt, maxOutputTokens);
-      const tweet = normalizeTweet(raw);
+      const normalized = normalizeTweet(raw);
+      const tweet = withVicharAttribution(normalized, maxLength);
 
       if (tweet === "") {
         throw new GenerationError("invalid_output", "Model returned empty text.");
+      }
+
+      if (tweet === undefined) {
+        feedback = `Previous draft was too long after required Vichar attribution. Rewrite the thought shorter while leaving room for the exact final line: ${VICHAR_ATTRIBUTION}`;
+        continue;
       }
 
       const length = Array.from(tweet).length;
@@ -219,6 +227,7 @@ function buildPrompt({ input, maxLength, link, feedback }: PromptParts): string 
   lines.push(
     `Limit: at most ${maxLength} characters in total${link ? ", including the link" : ""}.`,
   );
+  lines.push(`End with the exact final line: ${VICHAR_ATTRIBUTION}. It is mandatory and counts toward the character limit.`);
   lines.push(
     link
       ? `Link: ${link}\nInclude the link exactly as written only if it fits naturally. Never add any other link.`
@@ -237,6 +246,19 @@ function clip(value: string): string {
 }
 
 /** Trims whitespace and removes one pair of wrapping double quotes. */
+export function withVicharAttribution(text: string, maxLength: number): string | undefined {
+  const attribution = VICHAR_ATTRIBUTION;
+  let body = text.trim();
+  if (body === attribution) body = "";
+  else if (body.endsWith(VICHAR_ATTRIBUTION_SEPARATOR + attribution)) {
+    body = body.slice(0, -(VICHAR_ATTRIBUTION_SEPARATOR.length + attribution.length)).trimEnd();
+  } else if (body.endsWith(attribution)) {
+    body = body.slice(0, -attribution.length).trimEnd();
+  }
+  const result = body ? `${body}${VICHAR_ATTRIBUTION_SEPARATOR}${attribution}` : attribution;
+  return Array.from(result).length <= maxLength ? result : undefined;
+}
+
 export function normalizeTweet(raw: string): string {
   const text = raw.trim();
   const pairs: Array<[string, string]> = [
