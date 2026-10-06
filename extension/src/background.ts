@@ -17,7 +17,7 @@ chrome.runtime.onMessage.addListener(
     }
 
     if (message?.type !== "generate") {
-      sendResponse({ ok: false, error: "Unsupported TweetPilot message." });
+      sendResponse({ ok: false, error: "Unsupported Vichar message." });
       return;
     }
 
@@ -63,7 +63,7 @@ chrome.runtime.onMessage.addListener(
           error:
             error instanceof Error
               ? error.message
-              : "Unable to reach TweetPilot backend."
+              : "Unable to reach Vichar backend."
         });
       });
 
