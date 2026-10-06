@@ -96,7 +96,6 @@
   font-style: normal;
 }
 
-#tweetpilot-root select,
 #tweetpilot-root input,
 #tweetpilot-root textarea {
   width: 100%;
@@ -107,7 +106,6 @@
   font: inherit;
 }
 
-#tweetpilot-root select,
 #tweetpilot-root input {
   height: 36px;
   padding: 0 10px;
