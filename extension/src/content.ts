@@ -8,7 +8,6 @@ import type { Topic } from "./types";
 
 let activeComposer: HTMLElement | null = null;
 let lastResolvedTopic: Exclude<Topic, "Surprise me"> | undefined;
-let lastGeneratedForComposer: HTMLElement | null = null;
 let dismissedForComposer: HTMLElement | null = null;
 let generationSequence = 0;
 
@@ -105,10 +104,9 @@ async function handleComposer(composer: HTMLElement | null): Promise<void> {
     locationInput.value = settings.location;
   }
 
-  if (lastGeneratedForComposer !== composer) {
-    lastGeneratedForComposer = composer;
-    void generateSuggestion("Surprise me", settings.location);
-  }
+  // Deliberately do not generate here. Opening an X composer must not spend
+  // OpenAI tokens unless the user explicitly asks for an idea.
+  panel.element.querySelector<HTMLButtonElement>(".tp-primary")?.focus();
 }
 
 function observeComposer(): void {
