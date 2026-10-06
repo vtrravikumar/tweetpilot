@@ -518,6 +518,6 @@ describe("OpenAIProvider - Vichar attribution", () => {
     const fetchMock = queueFetch(openaiOk("A"));
     const result = await provider(fetchMock).generate({ topic: "x", maxLength: MIN_VICHAR_MAX_LENGTH });
     expect(Array.from(result.tweet).length).toBe(MIN_VICHAR_MAX_LENGTH);
-    expect(result.tweet).toBe(`A\\n${VICHAR_ATTRIBUTION}`);
+    expect(result.tweet).toBe(`A\n${VICHAR_ATTRIBUTION}`);
   });
 });
