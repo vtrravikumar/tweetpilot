@@ -1,5 +1,19 @@
 import { readConfig } from "../env";
-import { VicharUsage, type UsageDecision } from "./durableObject";
+import { VicharUsage } from "./durableObject";
+
+export type UsageDecision =
+  | {
+      allowed: true;
+      remaining?: number;
+      dailyLimit?: number;
+    }
+  | {
+      allowed: false;
+      retryAfterSeconds?: number;
+      remaining?: number;
+      dailyLimit?: number;
+      reason?: "daily" | "burst" | "unauthorized";
+    };
 
 export interface UsageGuard {
   /** Called after request validation, immediately before a generation call. */
