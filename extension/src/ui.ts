@@ -66,13 +66,13 @@ export function createPanel(callbacks: PanelCallbacks): TweetPanel {
       <div class="vc-status" aria-live="polite"></div>
 
       <div class="vc-suggestion-wrap">
-        <textarea class="vc-suggestion" maxlength="${DEFAULT_MAX_LENGTH}" aria-label="Tweet suggestion"></textarea>
+        <textarea class="vc-suggestion" maxlength="${DEFAULT_MAX_LENGTH}" aria-label="Vichar thought"></textarea>
         <div class="vc-count">0/${DEFAULT_MAX_LENGTH}</div>
       </div>
 
       <div class="vc-actions">
-        <button type="button" class="vc-primary">Get a Tweet</button>
-        <button type="button" class="vc-secondary vc-another" disabled>Get Another</button>
+        <button type="button" class="vc-primary">Get a thought</button>
+        <button type="button" class="vc-secondary vc-another" disabled>Another thought</button>
         <button type="button" class="vc-secondary vc-dismiss">Dismiss</button>
       </div>
 
@@ -126,9 +126,9 @@ export function createPanel(callbacks: PanelCallbacks): TweetPanel {
     const tweet = suggestion.value.trim();
     if (!tweet) {
       hasTweet = false;
-      primary.textContent = "Get a Tweet";
+      primary.textContent = "Get a thought";
       another.disabled = true;
-      status.textContent = "Get a tweet first.";
+      status.textContent = "Get a thought first.";
       return;
     }
 
@@ -169,19 +169,19 @@ export function createPanel(callbacks: PanelCallbacks): TweetPanel {
     hasTweet = false;
     suggestion.value = "";
     updateCount();
-    primary.textContent = "Get a Tweet";
+    primary.textContent = "Get a thought";
     primary.disabled = false;
     another.disabled = true;
     status.textContent = message;
   };
 
   topicInput.addEventListener("input", () => {
-    invalidateSuggestion("Topic changed. Choose Get a Tweet when you're ready.");
+    invalidateSuggestion("Topic changed. Choose Get a thought when you're ready.");
   });
 
   locationInput.addEventListener("change", () => {
     invalidateSuggestion(
-      "Location changed. Choose Get a Tweet when you're ready."
+      "Location changed. Choose Get a thought when you're ready."
     );
   });
   dismiss.addEventListener("click", callbacks.onDismiss);
@@ -207,14 +207,14 @@ export function createPanel(callbacks: PanelCallbacks): TweetPanel {
       status.textContent = `विचारः • ${resolvedTopic}`;
       primary.textContent = "Use this";
       primary.disabled = false;
-      another.textContent = "Get Another";
+      another.textContent = "Another thought";
       another.disabled = false;
     },
     setError(message) {
       hasTweet = false;
       root.classList.remove("vc-loading");
       status.textContent = message;
-      primary.textContent = "Get a Tweet";
+      primary.textContent = "Get a thought";
       primary.disabled = false;
       another.disabled = true;
     },
@@ -229,11 +229,11 @@ export function createPanel(callbacks: PanelCallbacks): TweetPanel {
         hasTweet = false;
         suggestion.value = "";
         updateCount();
-        primary.textContent = "Get a Tweet";
-        another.textContent = "Get Another";
+        primary.textContent = "Get a thought";
+        another.textContent = "Another thought";
         another.disabled = true;
         primary.disabled = false;
-        status.textContent = "विचारं लभताम् — Get a Tweet when you want an idea.";
+        status.textContent = "विचारं लभताम् — Get a thought when you want an idea.";
       }
 
       composer = value;
