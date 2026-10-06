@@ -38,7 +38,7 @@ export function createPanel(callbacks: PanelCallbacks): TweetPanel {
     <div class="vc-card">
       <div class="vc-header">
         <div>
-          <div class="vc-brand">Vichar <span>By VTRRK</span></div>
+          <div class="vc-brand"><span class="vc-word">V<span class="vc-ai-i">i</span>ch<span class="vc-ai-a">a</span>r</span> <span>By VTRRK</span></div>
           <div class="vc-subtitle">विचारात् वाक्यं भवति</div>
         </div>
         <button type="button" class="vc-icon-button" aria-label="Dismiss Vichar">×</button>
