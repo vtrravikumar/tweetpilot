@@ -101,7 +101,7 @@ Vichar is intentionally small and cost-conscious.
 - OpenAI Responses API
 - Vitest
 - Cloudflare Workers Vitest pool
-- No database currently
+- No conventional database; Durable Object SQLite stores only anonymous usage counters
 - No dedicated server or VM
 - No Docker/Kubernetes requirement
 
@@ -325,7 +325,7 @@ The implementation deliberately avoids wildcard CORS and does not enable credent
 
 Chrome extension origins are supported once the production extension ID is known.
 
-CORS is a browser access-control mechanism, not authentication or abuse protection. Durable rate limiting is planned for a broader public rollout.
+CORS is a browser access-control mechanism, not authentication. Vichar uses Durable Object-backed usage protection for both extension installations and anonymous web users. The web path derives a stable pseudonymous identifier from Cloudflare's client IP using the server-side web secret; the raw IP is not stored as the usage identifier.
 
 ---
 
@@ -342,7 +342,7 @@ Current principles:
 - bounded output tokens;
 - no web search;
 - no embeddings;
-- no database;
+- no conventional database; usage counters are stored in a small SQLite-backed Durable Object;
 - no unnecessary background processing;
 - automated tests never call the real OpenAI API.
 
