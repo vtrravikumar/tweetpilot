@@ -4,6 +4,7 @@ import { corsPreflightResponse, withCors } from "./http/cors";
 import { createUsageGuard } from "./usage/guard";
 import { createGenerateTweetRoute } from "./routes/generateTweet";
 import { healthRoute } from "./routes/health";
+import { webSessionRoute } from "./routes/webSession";
 
 export type Handler = (
   request: Request,
@@ -17,11 +18,9 @@ export interface Route {
   handler: Handler;
 }
 
-/**
- * Route table. Add new endpoints here.
- */
 export const routes: readonly Route[] = [
   healthRoute,
+  webSessionRoute,
   createGenerateTweetRoute((env) => createTweetGenerator(env), {
     usageGuard: createUsageGuard(),
   }),
@@ -33,14 +32,10 @@ export async function handleRequest(
   ctx: ExecutionContext,
 ): Promise<Response> {
   const { pathname } = new URL(request.url);
-
   const pathMatches = routes.filter((route) => route.path === pathname);
+
   if (pathMatches.length === 0) {
-    return withCors(
-      errorResponse(404, "not_found", "Route not found."),
-      request,
-      env,
-    );
+    return withCors(errorResponse(404, "not_found", "Route not found."), request, env);
   }
 
   const allowedMethods = pathMatches.map((route) => route.method);
@@ -51,9 +46,7 @@ export async function handleRequest(
   if (!route) {
     const allow = allowedMethods.join(", ");
     return withCors(
-      errorResponse(405, "method_not_allowed", "Method not allowed.", {
-        allow,
-      }),
+      errorResponse(405, "method_not_allowed", "Method not allowed.", { allow }),
       request,
       env,
     );
