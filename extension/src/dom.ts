@@ -70,8 +70,24 @@ export function composerText(composer: HTMLElement): string {
     .trim();
 }
 
+function findPostButton(composer: HTMLElement): HTMLElement | null {
+  const scope =
+    composer.closest('[role="dialog"]') ||
+    composer.closest('[aria-modal="true"]') ||
+    composer.closest("form") ||
+    document;
+
+  return scope.querySelector<HTMLElement>(
+    '[data-testid="tweetButton"], [data-testid="tweetButtonInline"]'
+  );
+}
+
+export function composerToolbar(composer: HTMLElement): HTMLElement | null {
+  return findPostButton(composer)?.closest('[data-testid="toolBar"]') || null;
+}
+
 export function composerHost(composer: HTMLElement): HTMLElement {
-  const toolbar = composer.closest('[data-testid="toolBar"]');
+  const toolbar = composerToolbar(composer);
   return (
     toolbar?.parentElement ||
     composer.closest('[role="dialog"]') ||
@@ -84,7 +100,6 @@ export function composerHost(composer: HTMLElement): HTMLElement {
 
 function findPostButton(composer: HTMLElement): HTMLElement | null {
   const scope =
-    composer.closest('[data-testid="toolBar"]')?.parentElement ||
     composer.closest('[role="dialog"]') ||
     composer.closest('[aria-modal="true"]') ||
     composer.closest("form") ||
