@@ -6,11 +6,17 @@ import { validateGenerateTweetRequest } from "../src/validation/generateTweet";
 const URL_ = "https://example.com/v1/tweet/generate";
 
 function post(body: unknown, init: RequestInit = {}): Promise<Response> {
+  const headers = new Headers(init.headers);
+  headers.set("content-type", "application/json");
+  if (!headers.has("authorization")) {
+    headers.set("authorization", `Bearer test-${crypto.randomUUID()}`);
+  }
+
   return exports.default.fetch(URL_, {
     method: "POST",
-    headers: { "content-type": "application/json" },
-    body: typeof body === "string" ? body : JSON.stringify(body),
     ...init,
+    headers,
+    body: typeof body === "string" ? body : JSON.stringify(body),
   });
 }
 
