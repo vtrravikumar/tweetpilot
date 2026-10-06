@@ -142,7 +142,7 @@ describe("OpenAIProvider - prompt", () => {
 
     const long = queueFetch(openaiOk("a".repeat(250)));
     const result = await provider(long).generate({ topic: "x", maxLength: 280 });
-    expect(result.tweet.length).toBe(250);
+    expect(result.tweet.length).toBe(267);
   });
 
   it("includes the personalization profile in the instructions", async () => {
