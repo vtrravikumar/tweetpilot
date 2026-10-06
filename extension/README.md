@@ -6,7 +6,7 @@ The Vichar Chrome extension is the M1 integration of Vichar into the X composer.
 
 **Vichar** means thought or idea. The product identity uses **Vichar — By VTRRK**, with the visual treatment of the I and A in *Vichar* hinting at AI.
 
-The brand palette is inspired by WGSN x Coloro's 2027 Luminous Blue direction, with a restrained orange accent.
+The frozen brand palette is crimson red, bright red, golden yellow, warm orange and soft cream. **Blue, black, brown and green are intentionally excluded.**
 
 ## Product rule
 
@@ -31,7 +31,7 @@ The extension uses the existing production Cloudflare Worker during development 
 
 `https://tweetpilot-api.vtrravikumar.workers.dev`
 
-The OpenAI API key is never shipped to the extension. The extension sends a message to its MV3 service worker, which calls the Cloudflare Worker.
+The OpenAI API key is never shipped to the extension. The extension generates an opaque per-installation Vichar usage key, stores it in extension-local storage, and sends it to the Cloudflare Worker as a Bearer token. The backend uses that key to enforce the free usage quota; it is not an OpenAI credential or a secret.
 
 ## Local build
 
