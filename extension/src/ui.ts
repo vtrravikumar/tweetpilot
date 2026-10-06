@@ -98,7 +98,6 @@ export function createPanel(callbacks: PanelCallbacks): TweetPanel {
   let hasTweet = false;
 
   const updateCount = () => {
-
     count.textContent = `${suggestion.value.length}/${DEFAULT_MAX_LENGTH}`;
   };
 
@@ -158,12 +157,24 @@ export function createPanel(callbacks: PanelCallbacks): TweetPanel {
     callbacks.onGenerate(topicSelect.value as Topic, locationInput.value);
   });
 
+  const invalidateSuggestion = (message: string) => {
+    hasTweet = false;
+    suggestion.value = "";
+    updateCount();
+    primary.textContent = "Inspire Tweet";
+    primary.disabled = false;
+    another.disabled = true;
+    status.textContent = message;
+  };
+
   topicSelect.addEventListener("change", () => {
-    status.textContent = "Topic changed. Press Inspire Tweet when you're ready.";
+    invalidateSuggestion("Topic changed. Press Inspire Tweet when you're ready.");
   });
 
   locationInput.addEventListener("change", () => {
-    status.textContent = "Location changed. Press Inspire Tweet when you're ready.";
+    invalidateSuggestion(
+      "Location changed. Press Inspire Tweet when you're ready."
+    );
   });
   dismiss.addEventListener("click", callbacks.onDismiss);
   close.addEventListener("click", callbacks.onDismiss);
