@@ -1,4 +1,5 @@
 import { API_GENERATE_URL } from "./constants";
+import { getApiKey } from "./settings";
 import type {
   BackgroundMessage,
   BackgroundResponse,
@@ -21,24 +22,33 @@ chrome.runtime.onMessage.addListener(
       return;
     }
 
-    void fetch(API_GENERATE_URL, {
-      method: "POST",
-      headers: {
-        "content-type": "application/json"
-      },
-      body: JSON.stringify(message.request)
-    })
+    void getApiKey()
+      .then((apiKey) =>
+        fetch(API_GENERATE_URL, {
+          method: "POST",
+          headers: {
+            "content-type": "application/json",
+            authorization: `Bearer ${apiKey}`
+          },
+          body: JSON.stringify(message.request)
+        })
+      )
       .then(async (response) => {
         const payload = (await response.json().catch(() => null)) as
           | GenerateResponse
-          | { error?: string }
+          | { error?: { code?: string; message?: string } }
           | null;
 
         if (!response.ok) {
           const detail =
-            payload && "error" in payload && payload.error
-              ? payload.error
+            payload &&
+            "error" in payload &&
+            payload.error &&
+            typeof payload.error === "object" &&
+            typeof payload.error.message === "string"
+              ? payload.error.message
               : `Backend returned HTTP ${response.status}.`;
+
           sendResponse({ ok: false, error: detail });
           return;
         }
