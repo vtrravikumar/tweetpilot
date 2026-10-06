@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { composerText, findComposer, replaceComposerText } from "./dom";
+import { composerHost, composerText, findComposer, replaceComposerText } from "./dom";
 import { resolveTopic } from "./topic";
 
 describe("topic resolution", () => {
@@ -52,7 +52,7 @@ describe("X composer detection", () => {
     expect(findComposer()).toBeNull();
   });
 
-  it("can replace composer text and emit input", () => {
+  it("resolves the composer host to its form", () => {\n    const form = document.createElement("form");\n    const composer = document.createElement("div");\n    form.appendChild(composer);\n    document.body.appendChild(form);\n\n    expect(composerHost(composer)).toBe(form);\n  });\n\n  it("can replace composer text and emit input", () => {
     const composer = document.createElement("div");
     composer.setAttribute("contenteditable", "true");
     composer.setAttribute("role", "textbox");
