@@ -4,6 +4,7 @@ import {
   composerHost,
   composerToolbar,
   composerText,
+  findComposer,
   isPostButtonEnabled,
   replaceComposerText
 } from "./dom";
@@ -136,7 +137,12 @@ export function createPanel(callbacks: PanelCallbacks): TweetPanel {
       return;
     }
 
-    const current = composerText(composer);
+    // X can replace the contenteditable node while the Vichar panel stays
+    // mounted. Always resolve the live composer at click time so we never
+    // inspect stale/hidden editor DOM.
+    const liveComposer = findComposer() ?? composer;
+    composer = liveComposer;
+    const current = composerText(liveComposer);
     if (current === tweet) {
       status.textContent =
         "Already in X. Edit it if you like, then use X's native Post button.";
@@ -152,16 +158,16 @@ export function createPanel(callbacks: PanelCallbacks): TweetPanel {
 
     status.textContent = "Adding to X…";
     void (async () => {
-      const inserted = await replaceComposerText(composer, tweet);
+      const inserted = await replaceComposerText(liveComposer, tweet);
       replaceConfirmedForDraft = null;
-      if (!inserted || composerText(composer) !== tweet) {
+      if (!inserted || composerText(liveComposer) !== tweet) {
         status.textContent =
           "X did not accept the suggestion. You can copy it and paste it into the composer.";
         return;
       }
 
       await new Promise((resolve) => window.setTimeout(resolve, 150));
-      if (!isPostButtonEnabled(composer)) {
+      if (!isPostButtonEnabled(liveComposer)) {
         status.textContent =
           "The text is in the X editor, but X has not enabled Post yet. Edit the draft or try Use this again.";
         return;
