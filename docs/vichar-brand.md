@@ -11,7 +11,7 @@ Historical/internal repository and infrastructure names may remain where changin
 ## Approved messaging
 
 - English tagline: **From thought to expression.**
-- Public UI: English-first; do not display the Sanskrit line or Devanagari phrase in the primary product experience.
+- Public UI: Use Sanskrit in Roman/English script with an English translation; do not use Devanagari in the primary product experience.
 
 ## Approved visual identity
 
