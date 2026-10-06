@@ -22,7 +22,6 @@ const panel = createPanel({
   onReopen: () => {
     dismissedForComposer = null;
     panel.setDismissed(false);
-    void generateSuggestion(panel.getTopic(), panel.getLocation());
   }
 });
 
