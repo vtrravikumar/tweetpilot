@@ -1,4 +1,9 @@
 #vichar-root {
+  --vc-blue: #0922ff;
+  --vc-orange: #ff7a00;
+  --vc-sky: #7ed3ff;
+  --vc-navy: #0b1a3a;
+  --vc-gray: #e9eef7;
   all: initial;
   position: relative;
   z-index: 1;
@@ -7,7 +12,7 @@
   margin: 0;
   padding: 0;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  color: #0f1419;
+  color: var(--vc-navy);
 }
 
 #vichar-root.vc-inactive {
@@ -60,7 +65,7 @@
 
 #vichar-root .vc-subtitle,
 #vichar-root .vc-footer {
-  color: #536471;
+  color: #536a8c;
 }
 
 #vichar-root .vc-icon-button,
@@ -73,7 +78,7 @@
 #vichar-root .vc-icon-button {
   font-size: 22px;
   line-height: 1;
-  color: #536471;
+  color: #536a8c;
 }
 
 #vichar-root .vc-controls {
@@ -92,17 +97,17 @@
 
 #vichar-root label em {
   font-weight: 400;
-  color: #536471;
+  color: #536a8c;
   font-style: normal;
 }
 
 #vichar-root input,
 #vichar-root textarea {
   width: 100%;
-  border: 1px solid #cfd9de;
+  border: 1px solid #d8e2f2;
   border-radius: 9px;
-  background: #fff;
-  color: #0f1419;
+  background: #ffffff;
+  color: var(--vc-navy);
   font: inherit;
 }
 
@@ -122,7 +127,7 @@
 
 #vichar-root .vc-status {
   min-height: 18px;
-  color: #536471;
+  color: #536a8c;
   margin: 6px 0;
 }
 
@@ -135,7 +140,7 @@
   right: 8px;
   bottom: 7px;
   font-size: 11px;
-  color: #536471;
+  color: #536a8c;
   background: rgba(255, 255, 255, 0.9);
   padding: 1px 3px;
   border-radius: 4px;
@@ -157,14 +162,14 @@
 
 #vichar-root .vc-primary {
   border: 0;
-  background: #0f1419;
-  color: #fff;
+  background: var(--vc-navy);
+  color: #ffffff;
 }
 
 #vichar-root .vc-secondary {
-  border: 1px solid #cfd9de;
-  background: #fff;
-  color: #0f1419;
+  border: 1px solid #d8e2f2;
+  background: #ffffff;
+  color: var(--vc-navy);
 }
 
 #vichar-root button:disabled {
@@ -181,12 +186,12 @@
   display: none;
   margin-left: auto;
   margin-top: 8px;
-  border: 1px solid #cfd9de;
+  border: 1px solid #d8e2f2;
   border-radius: 999px;
-  background: #fff;
-  color: #0f1419;
+  background: #ffffff;
+  color: var(--vc-navy);
   padding: 7px 11px;
-  box-shadow: 0 4px 14px rgba(15, 20, 25, 0.16);
+  box-shadow: 0 4px 14px rgba(11, 26, 58, 0.16);
   font: inherit;
   font-size: 12px;
   font-weight: 700;
@@ -202,4 +207,22 @@
 
 #vichar-root.vc-loading .vc-suggestion {
   opacity: 0.6;
+}
+
+#vichar-root .vc-brand {
+  color: var(--vc-navy);
+}
+
+#vichar-root .vc-brand::first-letter {
+  color: var(--vc-blue);
+}
+
+#vichar-root .vc-primary:hover:not(:disabled) {
+  background: var(--vc-navy);
+}
+
+#vichar-root input:focus,
+#vichar-root textarea:focus {
+  outline: 2px solid rgba(9, 34, 255, 0.18);
+  border-color: var(--vc-blue);
 }
