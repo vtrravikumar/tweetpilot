@@ -29,25 +29,39 @@ function looksLikeSearchBox(element: HTMLElement): boolean {
   );
 }
 
-export function findComposer(root: ParentNode = document): HTMLElement | null {
+function composerCandidates(root: ParentNode): HTMLElement[] {
   for (const selector of COMPOSER_SELECTORS) {
     const candidates = Array.from(
       root.querySelectorAll<HTMLElement>(selector)
-    );
-
-    const composer = candidates.find(
+    ).filter(
       (candidate) =>
         isVisible(candidate) &&
         !looksLikeSearchBox(candidate) &&
         !candidate.closest("#tweetpilot-root")
     );
 
-    if (composer) {
-      return composer;
+    if (candidates.length > 0) {
+      return candidates;
     }
   }
 
-  return null;
+  return [];
+}
+
+function isInComposerDialog(element: HTMLElement): boolean {
+  return Boolean(
+    element.closest('[role="dialog"]') ||
+      element.closest('[aria-modal="true"]')
+  );
+}
+
+export function findComposer(root: ParentNode = document): HTMLElement | null {
+  // X keeps an inline composer on Home, but clicking Post opens a separate
+  // modal/dialog composer. Always prefer the modal when it exists.
+  const allCandidates = composerCandidates(root);
+  const dialogComposer = allCandidates.find(isInComposerDialog);
+
+  return dialogComposer ?? allCandidates[0] ?? null;
 }
 
 export function composerText(composer: HTMLElement): string {
@@ -81,9 +95,6 @@ export function replaceComposerText(
 ): void {
   selectAllComposerText(composer);
 
-  // X currently uses a Draft.js contenteditable for the tweet composer.
-  // execCommand(insertText) is preferable to mutating textContent because it
-  // produces the browser editing events Draft.js expects.
   const execCommand = document.execCommand;
   const inserted =
     typeof execCommand === "function"
@@ -91,10 +102,6 @@ export function replaceComposerText(
       : false;
 
   if (!inserted || composerText(composer) !== text) {
-    // Give Draft.js a second, event-driven path. In a real browser,
-    // execCommand is the preferred path because it updates the editor's
-    // native editing state. The DOM fallback is retained for test/jsdom
-    // environments where execCommand is unavailable.
     const beforeInput = new InputEvent("beforeinput", {
       bubbles: true,
       cancelable: true,
