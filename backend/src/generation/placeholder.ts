@@ -1,5 +1,7 @@
 import {
   DEFAULT_MAX_LENGTH,
+  VICHAR_ATTRIBUTION,
+  VICHAR_ATTRIBUTION_SEPARATOR,
   type GenerateTweetInput,
   type GenerateTweetResult,
   type TweetGenerator,
@@ -26,12 +28,21 @@ export class PlaceholderTweetGenerator implements TweetGenerator {
     if (input.style) parts.push(`Style: ${input.style}.`);
 
     return {
-      tweet: truncate(parts.join(" "), input.maxLength ?? DEFAULT_MAX_LENGTH),
+      tweet: truncateWithAttribution(parts.join(" "), input.maxLength ?? DEFAULT_MAX_LENGTH),
     };
   }
 }
 
 /** Truncates by Unicode code point so surrogate pairs are never split. */
+function truncateWithAttribution(text: string, maxLength: number): string {
+  const suffix = VICHAR_ATTRIBUTION_SEPARATOR + VICHAR_ATTRIBUTION;
+  if (Array.from(suffix).length > maxLength) return truncate(text, maxLength);
+  const bodyBudget = maxLength - Array.from(suffix).length;
+  const body = truncate(text, bodyBudget);
+  return body ? `${body}${suffix}` : VICHAR_ATTRIBUTION;
+}
+
+
 function truncate(text: string, maxLength: number): string {
   const chars = Array.from(text);
   if (chars.length <= maxLength) return text;
