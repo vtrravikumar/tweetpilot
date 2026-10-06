@@ -113,7 +113,8 @@ export class OpenAIProvider implements TweetGenerator {
       const tweet = withVicharAttribution(normalized, maxLength);
 
       if (tweet === undefined) {
-        feedback = `Previous draft was too long after required Vichar attribution. Rewrite the thought shorter while leaving room for the exact final line: ${VICHAR_ATTRIBUTION}`;
+        const length = Array.from(normalized).length;
+        feedback = `Previous draft (${length} characters) was too long after required Vichar attribution. Rewrite the thought shorter while leaving room for the exact final line: ${VICHAR_ATTRIBUTION}`;
         continue;
       }
 
