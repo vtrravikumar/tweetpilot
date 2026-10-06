@@ -72,8 +72,9 @@ export function composerText(composer: HTMLElement): string {
 
 export function composerHost(composer: HTMLElement): HTMLElement {
   return (
-    composer.closest("form") ||
     composer.closest('[role="dialog"]') ||
+    composer.closest('[aria-modal="true"]') ||
+    composer.closest("form") ||
     composer.parentElement ||
     document.body
   ) as HTMLElement;
