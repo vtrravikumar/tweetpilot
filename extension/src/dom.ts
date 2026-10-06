@@ -172,65 +172,23 @@ export async function replaceComposerText(
 ): Promise<boolean> {
   composer = resolveEditableComposer(composer);
 
-  // X does not mutate the editor for an untrusted synthetic Delete keydown.
-  // That is why the old implementation could append the new text to an
-  // existing draft. Use Chromium's editing command to perform a real delete,
-  // then insert the replacement through the same editing pipeline.
+  // Keep the replacement inside Chromium's native editing pipeline. In
+  // particular, do not mutate X's contenteditable with Range.deleteContents():
+  // that changes the DOM without updating X's internal editor state and can
+  // leave the composer visually populated but no longer editable.
   composer.focus();
   selectAllComposerText(composer);
 
-  let deleted = false;
+  let replaced = false;
   try {
     if (typeof document.execCommand === "function") {
-      deleted = document.execCommand("delete", false);
+      replaced = document.execCommand("insertText", false, text);
     }
   } catch {
-    // Fall through to the Range-based deletion below.
-  }
-
-  if (composerText(composer) !== "") {
-    const selection = window.getSelection();
-    const range = document.createRange();
-    range.selectNodeContents(composer);
-    selection?.removeAllRanges();
-    selection?.addRange(range);
-    range.deleteContents();
-    selection?.collapse(composer, 0);
-    deleted = true;
-  }
-
-  await wait(50);
-
-  try {
-    if (typeof document.execCommand === "function") {
-      document.execCommand("insertText", false, text);
-    }
-  } catch {
-    // Fall through to the input event below.
-  }
-
-  if (composerText(composer) !== text) {
-    composer.dispatchEvent(
-      new InputEvent("beforeinput", {
-        inputType: "insertText",
-        data: text,
-        bubbles: true,
-        cancelable: true
-      })
-    );
-    composer.dispatchEvent(
-      new InputEvent("input", {
-        inputType: "insertText",
-        data: text,
-        bubbles: true
-      })
-    );
+    // Leave the composer untouched if the browser/editor rejects the command.
   }
 
   await wait(250);
 
-  return (
-    composerText(composer) === text ||
-    (deleted && isPostButtonEnabled(composer))
-  );
+  return replaced && composerText(composer) === text;
 }
