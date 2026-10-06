@@ -8,7 +8,10 @@ interface WebTokenPayload {
 }
 
 function base64UrlEncode(value: string): string {
-  const bytes = new TextEncoder().encode(value);
+  return base64UrlEncodeBytes(new TextEncoder().encode(value));
+}
+
+function base64UrlEncodeBytes(bytes: Uint8Array): string {
   let binary = "";
   for (const byte of bytes) binary += String.fromCharCode(byte);
   return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
@@ -30,7 +33,7 @@ async function sign(value: string, secret: string): Promise<string> {
     ["sign"],
   );
   const signature = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(value));
-  return base64UrlEncode(String.fromCharCode(...new Uint8Array(signature)));
+  return base64UrlEncodeBytes(new Uint8Array(signature));
 }
 
 async function verify(value: string, signature: string, secret: string): Promise<boolean> {
