@@ -5,7 +5,7 @@
  * secrets/variables supplied outside source control:
  *
  *   OPENAI_API_KEY            secret. Local dev: backend/.dev.vars (git-ignored).
- *                             Production: set later via Wrangler/dashboard (not in M2.3).
+ *                             Production: configured as a Wrangler secret.
  *   OPENAI_MODEL              optional. Overrides the default model.
  *   OPENAI_REASONING_EFFORT   optional. Overrides the default ("none"); the value
  *                             "omit" drops the field for non-reasoning models.
@@ -14,6 +14,12 @@
  *                             to call the API, e.g. chrome-extension://<id>.
  *   TWEETPILOT_GENERATOR      optional. "placeholder" selects the offline stub
  *                             (used by the test suite); anything else = OpenAI.
+ *   VICHAR_DAILY_LIMIT        optional positive integer; default 10.
+ *   VICHAR_BURST_PER_MINUTE   optional positive integer; default 3.
+ *
+ * VICHAR_WEB_SECRET is a secret used by the web-session token and the
+ * anonymous web usage guard; it is intentionally not part of TweetPilotConfig.
+
  *
  * Values are read defensively (strings only) because Wrangler's generated Env
  * type only lists keys it can see, and secrets are not always visible to it.
