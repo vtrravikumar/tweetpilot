@@ -42,9 +42,16 @@ export function createUsageGuard(): UsageGuard {
       const config = readConfig(env);
       const namespace = (
         env as unknown as {
-          VICHAR_USAGE: DurableObjectNamespace<VicharUsage>;
+          VICHAR_USAGE?: DurableObjectNamespace<VicharUsage>;
+          VICHAR_TEST_MODE?: string;
         }
       ).VICHAR_USAGE;
+
+      if (!namespace) {
+        const testMode = (env as unknown as { VICHAR_TEST_MODE?: unknown }).VICHAR_TEST_MODE;
+        if (testMode === "1") return { allowed: true };
+        throw new Error("VICHAR_USAGE binding is not configured.");
+      }
 
       const id = namespace.idFromName(apiKey);
       const stub = namespace.get(id);
