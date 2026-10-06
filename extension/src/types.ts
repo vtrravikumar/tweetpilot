@@ -8,9 +8,10 @@ export const TOPICS = [
 ] as const;
 
 export type Topic = (typeof TOPICS)[number];
+export type TopicSelection = Topic | string;
 
 export interface GenerateRequest {
-  topic: Exclude<Topic, "Surprise me">;
+  topic: string;
   location?: string;
   style: "thoughtful";
   maxLength: 140;
