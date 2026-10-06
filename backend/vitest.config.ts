@@ -12,7 +12,9 @@ export default defineConfig({
           TWEETPILOT_GENERATOR: "placeholder",
           VICHAR_TEST_MODE: "1",
         },
-        durableObjects: { VICHAR_USAGE: "VicharUsage" },
+        durableObjects: {
+          VICHAR_USAGE: { className: "VicharUsage", useSQLite: true },
+        },
       },
     }),
   ],
