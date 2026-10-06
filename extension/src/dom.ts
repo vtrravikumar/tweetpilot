@@ -56,10 +56,16 @@ export function composerText(composer: HTMLElement): string {
     .trim();
 }
 
-export function replaceComposerText(
-  composer: HTMLElement,
-  text: string
-): void {
+export function composerHost(composer: HTMLElement): HTMLElement {
+  return (
+    composer.closest("form") ||
+    composer.closest('[role="dialog"]') ||
+    composer.parentElement ||
+    document.body
+  ) as HTMLElement;
+}
+
+function selectAllComposerText(composer: HTMLElement): void {
   composer.focus();
 
   const selection = window.getSelection();
@@ -67,15 +73,38 @@ export function replaceComposerText(
   range.selectNodeContents(composer);
   selection?.removeAllRanges();
   selection?.addRange(range);
+}
 
+export function replaceComposerText(
+  composer: HTMLElement,
+  text: string
+): void {
+  selectAllComposerText(composer);
+
+  // X currently uses a Draft.js contenteditable for the tweet composer.
+  // execCommand(insertText) is preferable to mutating textContent because it
+  // produces the browser editing events Draft.js expects.
   const execCommand = document.execCommand;
   const inserted =
     typeof execCommand === "function"
       ? execCommand.call(document, "insertText", false, text)
       : false;
 
-  if (!inserted) {
-    composer.textContent = text;
+  if (!inserted || composerText(composer) !== text) {
+    // Give Draft.js a second, event-driven path. This does not rely on
+    // directly mutating the controlled editor DOM.
+    const beforeInput = new InputEvent("beforeinput", {
+      bubbles: true,
+      cancelable: true,
+      inputType: "insertText",
+      data: text
+    });
+    composer.dispatchEvent(beforeInput);
+
+    if (composerText(composer) !== text && typeof execCommand === "function") {
+      selectAllComposerText(composer);
+      execCommand.call(document, "insertText", false, text);
+    }
   }
 
   composer.dispatchEvent(
