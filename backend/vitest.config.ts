@@ -8,7 +8,10 @@ export default defineConfig({
       // Test-only variable (not a Cloudflare resource): the HTTP-contract
       // tests run against the offline placeholder, never the real OpenAI API.
       miniflare: {
-        bindings: { TWEETPILOT_GENERATOR: "placeholder" },
+        bindings: {
+          TWEETPILOT_GENERATOR: "placeholder",
+          VICHAR_TEST_MODE: "1",
+        },
         durableObjects: { VICHAR_USAGE: "VicharUsage" },
       },
     }),
