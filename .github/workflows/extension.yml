@@ -1,0 +1,29 @@
+name: TweetPilot Extension
+
+on:
+  push:
+    paths:
+      - "extension/**"
+      - ".github/workflows/extension.yml"
+  pull_request:
+    paths:
+      - "extension/**"
+      - ".github/workflows/extension.yml"
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: extension
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: extension/package-lock.json
+      - run: npm install
+      - run: npm test
+      - run: npm run typecheck
+      - run: npm run build
