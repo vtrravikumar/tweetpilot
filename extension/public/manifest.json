@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "TweetPilot — By VTRRK",
+  "name": "Vichar — By VTRRK",
   "version": "0.1.0",
-  "description": "A non-blocking AI writing companion for the X composer.",
+  "description": "A thoughtful AI writing companion for the X composer.",
   "minimum_chrome_version": "120",
   "permissions": ["storage"],
   "host_permissions": [
@@ -13,12 +13,18 @@
     "type": "module"
   },
   "action": {
-    "default_title": "TweetPilot — By VTRRK",
+    "default_title": "Vichar — By VTRRK",
     "default_icon": {
+      "16": "icon16.png",
+      "32": "icon32.png",
+      "48": "icon48.png",
       "128": "icon128.png"
     }
   },
   "icons": {
+    "16": "icon16.png",
+    "32": "icon32.png",
+    "48": "icon48.png",
     "128": "icon128.png"
   },
   "content_scripts": [
