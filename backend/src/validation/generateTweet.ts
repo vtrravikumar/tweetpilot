@@ -1,4 +1,7 @@
-import type { GenerateTweetInput } from "../generation/types";
+import {
+  MIN_VICHAR_MAX_LENGTH,
+  type GenerateTweetInput,
+} from "../generation/types";
 
 export type ValidationResult =
   | { ok: true; value: GenerateTweetInput }
@@ -36,9 +39,9 @@ export function validateGenerateTweetRequest(body: unknown): ValidationResult {
     maxLength !== undefined &&
     (typeof maxLength !== "number" ||
       !Number.isSafeInteger(maxLength) ||
-      maxLength <= 0)
+      maxLength < MIN_VICHAR_MAX_LENGTH)
   ) {
-    return fail("maxLength must be a positive integer when supplied.");
+    return fail(`maxLength must be an integer of at least ${MIN_VICHAR_MAX_LENGTH} characters when supplied.`);
   }
 
   const value: GenerateTweetInput = { topic: topic.trim() };
