@@ -139,10 +139,38 @@ function selectAllComposerText(composer: HTMLElement): void {
   selection?.addRange(range);
 }
 
+/**
+ * Resolve the actual X contenteditable using the same ancestor/descendant
+ * search pattern used by TweetAI. This matters because X can wrap the editor
+ * in several non-editable divs and can replace those wrappers dynamically.
+ */
+export function resolveEditableComposer(element: HTMLElement): HTMLElement {
+  let node: HTMLElement | null = element;
+
+  while (node) {
+    if (node.getAttribute("contenteditable") === "true") {
+      return node;
+    }
+
+    const descendant = node.querySelector<HTMLElement>(
+      '[contenteditable="true"]'
+    );
+    if (descendant) {
+      return descendant;
+    }
+
+    node = node.parentElement;
+  }
+
+  return element;
+}
+
 export async function replaceComposerText(
   composer: HTMLElement,
   text: string
 ): Promise<boolean> {
+  composer = resolveEditableComposer(composer);
+
   // Match TweetAI's proven X integration first: focus the native editor,
   // select its contents, send Delete, then send textInput with the new text.
   // Do not synthesize an extra "input" delete event here; X's editor owns the
