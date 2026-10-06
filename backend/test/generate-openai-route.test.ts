@@ -14,7 +14,10 @@ const KEY = "sk-test-not-a-real-key-987654";
 const ctx = {} as ExecutionContext;
 
 function env(values: Record<string, string> = {}): Env {
-  return values as unknown as Env;
+  return {
+    VICHAR_TEST_MODE: "1",
+    ...values,
+  } as unknown as Env;
 }
 
 function request(body: unknown = { topic: "Photography" }, method = "POST"): Request {
