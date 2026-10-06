@@ -171,6 +171,11 @@ export function createPanel(callbacks: PanelCallbacks): TweetPanel {
     getComposer: () => composer,
     setComposer: (value) => {
       composer = value;
+
+      const host = value ? composerHost(value) : document.body;
+      if (root.parentElement !== host) {
+        host.appendChild(root);
+      }
     },
     setDismissed(dismissed) {
       root.classList.toggle("tp-dismissed", dismissed);
