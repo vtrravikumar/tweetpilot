@@ -393,19 +393,23 @@ The initial deployment uses the existing production OpenAI API setup. Provider a
 
 ### M1 — Chrome extension
 
-**Next**
+**In progress**
 
 The extension will bring TweetPilot into the X composer.
 
 Planned capabilities include:
 
-- Chrome MV3 extension;
+- Chrome MV3 extension foundation;
 - X composer detection;
-- in-page TweetPilot UI;
-- topic selection;
+- non-blocking in-page TweetPilot UI;
+- Surprise me as the default topic;
+- optional topic selection and location context;
 - generation through the production backend;
-- editable output;
-- user-controlled insertion/copy workflow.
+- editable suggestion;
+- explicit Use this / Another / Dismiss workflow;
+- user-controlled insertion into the composer;
+- native X Post remains the final action;
+- automated extension tests and CI verification.
 
 The extension will **not** automatically click X's native Post button.
 
