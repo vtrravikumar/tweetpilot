@@ -37,6 +37,8 @@
   gap: 8px;
 }
 #vichar-root .vc-header { justify-content: space-between; margin-bottom: 6px; }
+#vichar-root .vc-brand-lockup { display: flex; align-items: center; gap: 7px; }
+#vichar-root .vc-mark { display: block; width: 30px; height: 30px; border-radius: 7px; object-fit: cover; }
 #vichar-root .vc-brand { font-size: 15px; font-weight: 700; }
 #vichar-root .vc-brand > span:last-child { font-weight: 500; opacity: 0.55; margin-left: 4px; }
 
