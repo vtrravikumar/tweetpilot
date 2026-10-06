@@ -1,4 +1,4 @@
-import { TOPICS } from "./types";
+import { TOPICS, type Topic } from "./types";
 
 export function resolveTopic(
   selected: string,
