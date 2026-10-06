@@ -63,8 +63,8 @@ export function createPanel(callbacks: PanelCallbacks): TweetPanel {
       </div>
 
       <div class="tp-actions">
-        <button type="button" class="tp-primary">Use this</button>
-        <button type="button" class="tp-secondary tp-another">Another</button>
+        <button type="button" class="tp-primary">Inspire Tweet</button>
+        <button type="button" class="tp-secondary tp-another" disabled>Change tweet</button>
         <button type="button" class="tp-secondary tp-dismiss">Dismiss</button>
       </div>
 
@@ -95,8 +95,10 @@ export function createPanel(callbacks: PanelCallbacks): TweetPanel {
   const reopen = root.querySelector<HTMLButtonElement>(".tp-reopen")!;
 
   let composer: HTMLElement | null = null;
+  let hasTweet = false;
 
   const updateCount = () => {
+
     count.textContent = `${suggestion.value.length}/${DEFAULT_MAX_LENGTH}`;
   };
 
@@ -108,9 +110,18 @@ export function createPanel(callbacks: PanelCallbacks): TweetPanel {
       return;
     }
 
+    if (!hasTweet) {
+      status.textContent = "Creating an idea…";
+      callbacks.onGenerate(topicSelect.value as Topic, locationInput.value);
+      return;
+    }
+
     const tweet = suggestion.value.trim();
     if (!tweet) {
-      status.textContent = "Generate a suggestion first.";
+      hasTweet = false;
+      primary.textContent = "Inspire Tweet";
+      another.disabled = true;
+      status.textContent = "Inspire a tweet first.";
       return;
     }
 
@@ -142,15 +153,18 @@ export function createPanel(callbacks: PanelCallbacks): TweetPanel {
     })();
   });
 
-  another.addEventListener("click", () =>
-    callbacks.onGenerate(topicSelect.value as Topic, locationInput.value)
-  );
-  topicSelect.addEventListener("change", () =>
-    callbacks.onGenerate(topicSelect.value as Topic, locationInput.value)
-  );
-  locationInput.addEventListener("change", () =>
-    callbacks.onGenerate(topicSelect.value as Topic, locationInput.value)
-  );
+  another.addEventListener("click", () => {
+    status.textContent = "Creating another idea…";
+    callbacks.onGenerate(topicSelect.value as Topic, locationInput.value);
+  });
+
+  topicSelect.addEventListener("change", () => {
+    status.textContent = "Topic changed. Press Inspire Tweet when you're ready.";
+  });
+
+  locationInput.addEventListener("change", () => {
+    status.textContent = "Location changed. Press Inspire Tweet when you're ready.";
+  });
   dismiss.addEventListener("click", callbacks.onDismiss);
   close.addEventListener("click", callbacks.onDismiss);
   reopen.addEventListener("click", callbacks.onReopen);
@@ -160,7 +174,7 @@ export function createPanel(callbacks: PanelCallbacks): TweetPanel {
     setLoading(loading) {
       root.classList.toggle("tp-loading", loading);
       primary.disabled = loading;
-      another.disabled = loading;
+      another.disabled = loading || !hasTweet;
       topicSelect.disabled = loading;
       locationInput.disabled = loading;
       if (loading) {
@@ -168,17 +182,22 @@ export function createPanel(callbacks: PanelCallbacks): TweetPanel {
       }
     },
     setTweet(tweet, resolvedTopic) {
+      hasTweet = true;
       suggestion.value = tweet;
       updateCount();
       status.textContent = `Fresh idea for ${resolvedTopic}`;
+      primary.textContent = "Use this";
       primary.disabled = false;
+      another.textContent = "Change tweet";
       another.disabled = false;
     },
     setError(message) {
+      hasTweet = false;
       root.classList.remove("tp-loading");
       status.textContent = message;
-      primary.disabled = true;
-      another.disabled = false;
+      primary.textContent = "Inspire Tweet";
+      primary.disabled = false;
+      another.disabled = true;
     },
     setVisible(visible) {
       root.classList.toggle("tp-inactive", !visible);
@@ -187,6 +206,17 @@ export function createPanel(callbacks: PanelCallbacks): TweetPanel {
     getLocation: () => locationInput.value.trim(),
     getComposer: () => composer,
     setComposer: (value) => {
+      if (value !== composer) {
+        hasTweet = false;
+        suggestion.value = "";
+        updateCount();
+        primary.textContent = "Inspire Tweet";
+        another.textContent = "Change tweet";
+        another.disabled = true;
+        primary.disabled = false;
+        status.textContent = "Press Inspire Tweet when you want an idea.";
+      }
+
       composer = value;
 
       const host = value ? composerHost(value) : document.body;
