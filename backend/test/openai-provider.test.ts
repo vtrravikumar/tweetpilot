@@ -276,14 +276,14 @@ describe("OpenAIProvider - VTRRK links", () => {
       openaiOk(`Clean version ${PHOTO_URL}`),
     );
     const result = await provider(fetchMock, { links }).generate({ topic: "Photography" });
-    expect(result.tweet).toBe(`Clean version ${PHOTO_URL}\\n${VICHAR_ATTRIBUTION}`);
+    expect(result.tweet).toBe(`Clean version ${PHOTO_URL}\n${VICHAR_ATTRIBUTION}`);
     expect(capture(fetchMock, 1).body.input).toContain("link that is not allowed");
   });
 
   it("does not treat a plain brand mention as a link", async () => {
     const fetchMock = queueFetch(openaiOk("Posting more on VTRRK soon."));
     const result = await provider(fetchMock).generate({ topic: "Cooking" });
-    expect(result.tweet).toBe(`Posting more on VTRRK soon.\\n${VICHAR_ATTRIBUTION}`);
+    expect(result.tweet).toBe(`Posting more on VTRRK soon.\n${VICHAR_ATTRIBUTION}`);
   });
 });
 
@@ -324,8 +324,8 @@ describe("OpenAIProvider - response normalization", () => {
 
   it("counts length by code point, so emoji are not over-counted", async () => {
     const fetchMock = queueFetch(openaiOk("😀".repeat(10)));
-    const result = await provider(fetchMock).generate({ topic: "x", maxLength: 10 });
-    expect(Array.from(result.tweet).length).toBe(10);
+    const result = await provider(fetchMock).generate({ topic: "x", maxLength: 27 });
+    expect(Array.from(result.tweet).length).toBe(27);
   });
 });
 
@@ -447,7 +447,7 @@ describe("OpenAIProvider - provider API failures", () => {
 
 describe("OpenAIProvider - over-length output", () => {
   it("accepts output of exactly maxLength", async () => {
-    const fetchMock = queueFetch(openaiOk("a".repeat(140)));
+    const fetchMock = queueFetch(openaiOk("a".repeat(123)));
     const result = await provider(fetchMock).generate({ topic: "x", maxLength: 140 });
     expect(result.tweet.length).toBe(140);
     expect(fetchMock).toHaveBeenCalledTimes(1);
@@ -456,7 +456,7 @@ describe("OpenAIProvider - over-length output", () => {
   it("retries once with feedback when the first draft is too long, then succeeds", async () => {
     const fetchMock = queueFetch(openaiOk("a".repeat(150)), openaiOk("b".repeat(100)));
     const result = await provider(fetchMock).generate({ topic: "x", maxLength: 140 });
-    expect(result.tweet).toBe(`b`.repeat(83) + `\\n${VICHAR_ATTRIBUTION}`);
+    expect(result.tweet).toBe(`b`.repeat(83) + `\n${VICHAR_ATTRIBUTION}`);
     expect(fetchMock).toHaveBeenCalledTimes(2);
     const retryInput = capture(fetchMock, 1).body.input;
     expect(retryInput).toContain("150 characters");
@@ -504,13 +504,13 @@ describe("OpenAIProvider - Vichar attribution", () => {
   it("always appends the exact attribution as the final line", async () => {
     const fetchMock = queueFetch(openaiOk("A useful thought."));
     const result = await provider(fetchMock).generate({ topic: "x" });
-    expect(result.tweet.endsWith(`\\n${VICHAR_ATTRIBUTION}`)).toBe(true);
+    expect(result.tweet.endsWith(`\n${VICHAR_ATTRIBUTION}`)).toBe(true);
   });
 
   it("does not duplicate attribution when the model already includes it", async () => {
-    const fetchMock = queueFetch(openaiOk(`A useful thought.\\n${VICHAR_ATTRIBUTION}`));
+    const fetchMock = queueFetch(openaiOk(`A useful thought.\n${VICHAR_ATTRIBUTION}`));
     const result = await provider(fetchMock).generate({ topic: "x" });
-    expect(result.tweet).toBe(`A useful thought.\\n${VICHAR_ATTRIBUTION}`);
+    expect(result.tweet).toBe(`A useful thought.\n${VICHAR_ATTRIBUTION}`);
     expect(result.tweet.match(/Vichar by @vtrrk/g)?.length).toBe(1);
   });
 
