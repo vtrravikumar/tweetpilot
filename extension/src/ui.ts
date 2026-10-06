@@ -2,6 +2,7 @@ import { DEFAULT_MAX_LENGTH, PANEL_ID } from "./constants";
 import { TOPICS, type Topic } from "./types";
 import {
   composerHost,
+  composerToolbar,
   composerText,
   isPostButtonEnabled,
   replaceComposerText
@@ -190,7 +191,7 @@ export function createPanel(callbacks: PanelCallbacks): TweetPanel {
 
       const host = value ? composerHost(value) : document.body;
       if (value && host) {
-        const toolbar = value.closest('[data-testid="toolBar"]');
+        const toolbar = composerToolbar(value);
         if (toolbar?.parentElement === host) {
           if (root.parentElement !== host || root.nextSibling !== toolbar) {
             host.insertBefore(root, toolbar);
