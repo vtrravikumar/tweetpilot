@@ -7,7 +7,10 @@ export default defineConfig({
       wrangler: { configPath: "./wrangler.jsonc" },
       // Test-only variable (not a Cloudflare resource): the HTTP-contract
       // tests run against the offline placeholder, never the real OpenAI API.
-      miniflare: { bindings: { TWEETPILOT_GENERATOR: "placeholder" } },
+      miniflare: {
+        bindings: { TWEETPILOT_GENERATOR: "placeholder" },
+        durableObjects: { VICHAR_USAGE: "VicharUsage" },
+      },
     }),
   ],
   test: {
