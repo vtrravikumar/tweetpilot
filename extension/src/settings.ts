@@ -6,10 +6,13 @@ const DEFAULT_SETTINGS: StoredSettings = {
 };
 
 export async function loadSettings(): Promise<StoredSettings> {
-  const result = await chrome.storage.local.get(STORAGE_KEYS.location);
+  const result = (await chrome.storage.local.get(
+    STORAGE_KEYS.location
+  )) as Record<string, unknown>;
+
   const location =
     typeof result[STORAGE_KEYS.location] === "string"
-      ? result[STORAGE_KEYS.location].trim()
+      ? (result[STORAGE_KEYS.location] as string).trim()
       : DEFAULT_SETTINGS.location;
 
   return { location };
