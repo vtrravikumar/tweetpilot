@@ -1,20 +1,20 @@
-# TweetPilot — By VTRRK
+# Vichar — By VTRRK
 
-TweetPilot is a personal AI-assisted writing companion for X (formerly Twitter).
+Vichar is a personal AI-assisted writing companion for X (formerly Twitter).
 
 It is designed to help turn an idea into a concise, personal post while keeping the important parts human-controlled: **review, editing and the final decision to publish**.
 
-The first production version is already live as a web-based Tweet Creator on [vtrrk.in](https://vtrrk.in/tweet/). The next major step is a Chrome extension that will bring the same workflow into the X composer.
+The production web client is live at [vtrrk.in/vichar/](https://vtrrk.in/vichar/), and the Chrome extension brings the same workflow into the X composer.
 
 > **Status: Active development**
 >
-> The backend is production deployed, the web client is live, and the first TweetPilot-generated post has been reviewed and manually published on X.
+> The backend is production deployed, the web client is live, and the first Vichar-generated post has been reviewed and manually published on X.
 
 ---
 
-## What TweetPilot does
+## What Vichar does
 
-TweetPilot generates short, personalized tweet drafts based on:
+Vichar generates short, personalized tweet drafts based on:
 
 - **Technology & AI**
 - **Photography**
@@ -25,7 +25,7 @@ TweetPilot generates short, personalized tweet drafts based on:
 
 The request can also include optional location context and a writing style such as `thoughtful`.
 
-The generated tweet is returned to the user for review and editing. TweetPilot does **not** automatically publish the final post.
+The generated tweet is returned to the user for review and editing. Vichar does **not** automatically publish the final post.
 
 ### Current workflow
 
@@ -41,15 +41,15 @@ Copy to X
 User presses X's native Post button
 ```
 
-This separation is deliberate. TweetPilot is an assistant, not an autonomous publisher.
+This separation is deliberate. Vichar is an assistant, not an autonomous publisher.
 
 ---
 
 ## Live version
 
-### Tweet Creator
+### Vichar
 
-**https://vtrrk.in/tweet/**
+**https://vtrrk.in/vichar/**
 
 The current web client provides:
 
@@ -62,13 +62,13 @@ The current web client provides:
 - Copy Tweet;
 - manual publication through X.
 
-The current character limit is configured for a non-Premium X account and is not treated as a permanent TweetPilot limit.
+The current character limit is configured for a non-Premium X account and is not treated as a permanent Vichar limit.
 
 ---
 
 ## Architecture
 
-TweetPilot is intentionally small and cost-conscious.
+Vichar is intentionally small and cost-conscious.
 
 ```text
 ┌──────────────────────────┐
@@ -79,7 +79,7 @@ TweetPilot is intentionally small and cost-conscious.
              ▼
 ┌──────────────────────────┐
 │   Cloudflare Worker      │
-│      tweetpilot-api      │
+│      vichar-api      │
 │                          │
 │  HTTP validation         │
 │  CORS                    │
@@ -112,7 +112,7 @@ The initial web client lives in the separate **vtrrk.in** Astro repository.
 The production API is:
 
 ```
-https://tweetpilot-api.vtrravikumar.workers.dev
+https://vichar-api.vtrravikumar.workers.dev
 ```
 
 ---
@@ -153,7 +153,7 @@ GET /health
 Production:
 
 ```
-https://tweetpilot-api.vtrravikumar.workers.dev/health
+https://vichar-api.vtrravikumar.workers.dev/health
 ```
 
 ---
@@ -187,7 +187,7 @@ The current default model is configured in code but can be overridden through th
 
 ## Personalization
 
-TweetPilot is intended for V.T.R. Ravi Kumar's personal voice and interests rather than generic social-media copy.
+Vichar is intended for V.T.R. Ravi Kumar's personal voice and interests rather than generic social-media copy.
 
 The current personalization favours:
 
@@ -200,7 +200,7 @@ The current personalization favours:
 - avoiding repetitive rhetorical patterns;
 - avoiding generic engagement bait.
 
-Location is optional context supplied by the user. TweetPilot does not require precise location tracking.
+Location is optional context supplied by the user. Vichar does not require precise location tracking.
 
 ---
 
@@ -331,7 +331,7 @@ CORS is a browser access-control mechanism, not authentication or abuse protecti
 
 ## Cost-conscious design
 
-TweetPilot is intentionally designed to keep AI costs low.
+Vichar is intentionally designed to keep AI costs low.
 
 Current principles:
 
@@ -378,7 +378,7 @@ The initial deployment uses the existing production OpenAI API setup. Provider a
 - automated tests;
 - production deployment.
 
-### Web Tweet Creator
+### Web Vichar
 
 **Complete**
 
@@ -395,13 +395,13 @@ The initial deployment uses the existing production OpenAI API setup. Provider a
 
 **In progress**
 
-The extension will bring TweetPilot into the X composer.
+The extension will bring Vichar into the X composer.
 
 Planned capabilities include:
 
 - Chrome MV3 extension foundation;
 - X composer detection;
-- non-blocking in-page TweetPilot UI;
+- non-blocking in-page Vichar UI;
 - Surprise me as the default topic;
 - optional topic selection and location context;
 - generation through the production backend;
@@ -430,7 +430,7 @@ Planned areas include:
 ## Repository structure
 
 ```text
-tweetpilot/
+vichar/
 ├── backend/
 │   ├── src/
 │   │   ├── generation/
@@ -453,17 +453,17 @@ The repository is expected to grow to include the Chrome extension as M1 is impl
 
 ## Related
 
-- **Live Tweet Creator:** https://vtrrk.in/tweet/
+- **Live Vichar:** https://vtrrk.in/vichar/
 - **Personal website:** https://vtrrk.in/
-- **TweetPilot API:** https://tweetpilot-api.vtrravikumar.workers.dev/
+- **Vichar API:** https://vichar-api.vtrravikumar.workers.dev/
 - **VTRRK GitHub:** https://github.com/vtrravikumar
-- **TweetPilot project page:** https://vtrrk.in/projects/tweetpilot/
+- **Vichar project page:** https://vtrrk.in/projects/vichar/
 
 ---
 
 ## Design principles
 
-TweetPilot follows a few simple principles:
+Vichar follows a few simple principles:
 
 1. **AI assists; the human decides.**
 2. **The generated text should sound personal, not generic.**
@@ -477,7 +477,7 @@ TweetPilot follows a few simple principles:
 
 ## Disclaimer
 
-TweetPilot is an independent personal project and is not affiliated with or endorsed by X Corp.
+Vichar is an independent personal project and is not affiliated with or endorsed by X Corp.
 
 The Chrome extension is intended as an assistant for composing posts. Platform rules and policies may apply to browser extensions and automation on X; the project does not claim platform approval.
 
