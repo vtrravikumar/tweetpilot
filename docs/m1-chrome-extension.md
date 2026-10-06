@@ -2,17 +2,17 @@
 
 ## Goal
 
-Bring TweetPilot into the X composer without turning the X composer into an AI-only workflow.
+Bring Vichar into the X composer without turning the X composer into an AI-only workflow.
 
 ## Core UX
 
 When the X Post composer becomes visible:
 
-1. TweetPilot opens with **Surprise me** selected.
+1. Vichar opens with **Surprise me** selected.
 2. It generates one suggestion using the production Cloudflare Worker.
 3. The suggestion remains outside the X composer until the user explicitly chooses **Use this**.
 4. **Another** generates a fresh suggestion.
-5. **Dismiss** hides TweetPilot so the user can write their own post normally.
+5. **Dismiss** hides Vichar so the user can write their own post normally.
 6. The user may type into X at any time.
 7. The user uses X's native **Post** button.
 
@@ -33,7 +33,7 @@ X page
   │
   │ content.js
   ▼
-TweetPilot UI
+Vichar UI
   │
   │ chrome.runtime.sendMessage
   ▼
@@ -54,7 +54,7 @@ The service worker performs the cross-origin backend request using the extension
 
 Development and testing use the already deployed Worker:
 
-`https://tweetpilot-api.vtrravikumar.workers.dev/v1/tweet/generate`
+`https://vichar-api.vtrravikumar.workers.dev/v1/tweet/generate`
 
 No second backend or development API key is required for M1.
 
