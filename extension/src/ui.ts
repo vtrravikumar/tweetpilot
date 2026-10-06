@@ -41,7 +41,7 @@ export function createPanel(callbacks: PanelCallbacks): TweetPanel {
           <img class="vc-mark" src="${chrome.runtime.getURL("icon128.png")}" alt="" width="30" height="30" />
           <div>
             <div class="vc-brand"><span class="vc-word">V<span class="vc-ai-i">i</span>ch<span class="vc-ai-a">a</span>r</span> <span>By VTRRK</span></div>
-            <div class="vc-subtitle">विचारात् वाक्यं भवति</div>
+            <div class="vc-subtitle">Vichārāt Vākyam Bhavati <span aria-hidden="true">·</span> From thought to expression.</div>
           </div>
         </div>
         <button type="button" class="vc-icon-button" aria-label="Dismiss Vichar">×</button>
@@ -121,7 +121,7 @@ export function createPanel(callbacks: PanelCallbacks): TweetPanel {
     }
 
     if (!hasTweet) {
-      status.textContent = "विचारं लभताम्…";
+      status.textContent = "Vichāraṁ Labhatām… · Get a thought…";
       callbacks.onGenerate(topicInput.value.trim() || "Surprise me", locationInput.value);
       return;
     }
@@ -164,7 +164,7 @@ export function createPanel(callbacks: PanelCallbacks): TweetPanel {
   });
 
   another.addEventListener("click", () => {
-    status.textContent = "विचारं लभताम्…";
+    status.textContent = "Vichāraṁ Labhatām… · Get a thought…";
     callbacks.onGenerate(topicInput.value.trim() || "Surprise me", locationInput.value);
   });
 
@@ -200,14 +200,14 @@ export function createPanel(callbacks: PanelCallbacks): TweetPanel {
       topicInput.disabled = loading;
       locationInput.disabled = loading;
       if (loading) {
-        status.textContent = "विचारः सृज्यते…";
+        status.textContent = "Vichāraḥ Sṛjyate… · Creating a thought…";
       }
     },
     setTweet(tweet, resolvedTopic) {
       hasTweet = true;
       suggestion.value = tweet;
       updateCount();
-      status.textContent = `विचारः • ${resolvedTopic}`;
+      status.textContent = `Vichāraḥ · ${resolvedTopic} · Thought`;
       primary.textContent = "Use this";
       primary.disabled = false;
       another.textContent = "Another thought";
@@ -236,7 +236,7 @@ export function createPanel(callbacks: PanelCallbacks): TweetPanel {
         another.textContent = "Another thought";
         another.disabled = true;
         primary.disabled = false;
-        status.textContent = "विचारं लभताम् — Get a thought when you want an idea.";
+        status.textContent = "Vichāraṁ Labhatām — Get a thought when you want an idea.";
       }
 
       composer = value;
