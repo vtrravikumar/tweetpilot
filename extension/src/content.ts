@@ -106,7 +106,6 @@ async function handleComposer(composer: HTMLElement | null): Promise<void> {
 
   // Deliberately do not generate here. Opening an X composer must not spend
   // OpenAI tokens unless the user explicitly asks for an idea.
-  panel.element.querySelector<HTMLButtonElement>(".tp-primary")?.focus();
 }
 
 function observeComposer(): void {
