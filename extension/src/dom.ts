@@ -186,13 +186,44 @@ export async function replaceComposerText(
   text: string
 ): Promise<boolean> {
   composer = resolveEditableComposer(composer);
+  composer.focus();
 
-  // Match TweetAI's proven X integration first: focus the native editor,
-  // select its contents, send Delete, then send textInput with the new text.
-  // Do not synthesize an extra "input" delete event here; X's editor owns the
-  // state transition and the extra event can leave its internal state stale.
+  // First perform a real browser editing operation. Dispatching a synthetic
+  // KeyboardEvent("Delete") only looks like a key press; it does not cause the
+  // browser/X editor to delete the selected text. That was causing Vichar to
+  // append to an existing X draft instead of replacing it.
+  selectAllComposerText(composer);
+
+  try {
+    if (typeof document.execCommand === "function") {
+      document.execCommand("delete", false);
+      await wait(100);
+
+      // Insert only after the old draft has actually been removed.
+      document.execCommand("insertText", false, text);
+      await wait(250);
+
+      if (composerText(composer) === text || isPostButtonEnabled(composer)) {
+        return true;
+      }
+    }
+  } catch {
+    // Continue to the event-based fallback below.
+  }
+
+  // Fallback for X/editor variants where execCommand is unavailable or not
+  // accepted. Re-select the current contents before sending the input event
+  // so that the insertion replaces rather than appends.
   composer.focus();
   selectAllComposerText(composer);
+  composer.dispatchEvent(
+    new InputEvent("beforeinput", {
+      inputType: "deleteContent",
+      bubbles: true,
+      cancelable: true
+    })
+  );
+
   composer.dispatchEvent(
     new KeyboardEvent("keydown", {
       key: "Delete",
@@ -202,6 +233,9 @@ export async function replaceComposerText(
 
   await wait(100);
 
+  // Re-select because an editor may preserve the selection after the
+  // synthetic event.
+  selectAllComposerText(composer);
   composer.dispatchEvent(
     new InputEvent("textInput", {
       data: text,
@@ -209,19 +243,17 @@ export async function replaceComposerText(
     })
   );
 
-  // X may update its React/editor state asynchronously after textInput.
   await wait(250);
 
   if (composerText(composer) === text || isPostButtonEnabled(composer)) {
     return true;
   }
 
-  // Fallback for X/editor variants that do not handle TweetAI's textInput
-  // path. execCommand goes through Chromium's editing pipeline and emits the
-  // browser's native editing events.
+  // Final Chromium editing-pipeline fallback.
   selectAllComposerText(composer);
   try {
     if (typeof document.execCommand === "function") {
+      document.execCommand("delete", false);
       document.execCommand("insertText", false, text);
     }
   } catch {
