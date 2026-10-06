@@ -13,7 +13,7 @@
     "type": "module"
   },
   "action": {
-    "default_title": "TweetPilot",
+    "default_title": "TweetPilot — By VTRRK",
     "default_icon": {
       "128": "icon128.png"
     }
