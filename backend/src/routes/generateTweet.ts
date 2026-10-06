@@ -8,6 +8,8 @@ import { isValidVicharWebToken } from "../webAuth";
 
 export type GeneratorSource = TweetGenerator | ((env: Env) => TweetGenerator);
 
+const MAX_REQUEST_BODY_BYTES = 8 * 1024;
+
 export interface GenerateTweetRouteOptions {
   usageGuard?: UsageGuard;
 }
@@ -22,9 +24,21 @@ export function createGenerateTweetRoute(
     method: "POST",
     path: "/v1/tweet/generate",
     handler: async (request, env) => {
+      const contentLength = request.headers.get("content-length");
+      if (contentLength !== null) {
+        const declaredLength = Number.parseInt(contentLength, 10);
+        if (Number.isSafeInteger(declaredLength) && declaredLength > MAX_REQUEST_BODY_BYTES) {
+          return errorResponse(413, "request_too_large", "Request body is too large.");
+        }
+      }
+
       let body: unknown;
       try {
-        body = await request.json();
+        const rawBody = await request.text();
+        if (new TextEncoder().encode(rawBody).byteLength > MAX_REQUEST_BODY_BYTES) {
+          return errorResponse(413, "request_too_large", "Request body is too large.");
+        }
+        body = JSON.parse(rawBody);
       } catch {
         return errorResponse(400, "invalid_json", "Request body must be valid JSON.");
       }
