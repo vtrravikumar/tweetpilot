@@ -2,7 +2,7 @@ import { GenerationError } from "../generation/errors";
 import type { TweetGenerator } from "../generation/types";
 import { errorResponse, jsonResponse } from "../http/json";
 import type { Route } from "../router";
-import { createUsageGuard, type UsageGuard } from "../usage/guard";
+import { allowAllUsageGuard, type UsageGuard } from "../usage/guard";
 import { validateGenerateTweetRequest } from "../validation/generateTweet";
 
 /** A fixed generator, or a factory that picks one per request from the env. */
@@ -23,7 +23,7 @@ export function createGenerateTweetRoute(
   source: GeneratorSource,
   options: GenerateTweetRouteOptions = {},
 ): Route {
-  const usageGuard = options.usageGuard ?? createUsageGuard();
+  const usageGuard = options.usageGuard ?? allowAllUsageGuard;
 
   return {
     method: "POST",
@@ -70,14 +70,14 @@ export function createGenerateTweetRoute(
       try {
         const generator = typeof source === "function" ? source(env) : source;
         const { tweet } = await generator.generate(validation.value);
-        return jsonResponse(
-          { tweet },
-          200,
-          {
-            "x-vichar-remaining": String(decision.remaining),
-            "x-vichar-daily-limit": String(decision.dailyLimit),
-          },
-        );
+        const headers: Record<string, string> = {};
+        if (decision.remaining !== undefined) {
+          headers["x-vichar-remaining"] = String(decision.remaining);
+        }
+        if (decision.dailyLimit !== undefined) {
+          headers["x-vichar-daily-limit"] = String(decision.dailyLimit);
+        }
+        return jsonResponse({ tweet }, 200, headers);
       } catch (err) {
         if (err instanceof GenerationError) return generationErrorResponse(err);
         throw err;
