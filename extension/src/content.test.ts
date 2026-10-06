@@ -52,6 +52,30 @@ describe("X composer detection", () => {
     expect(findComposer()).toBeNull();
   });
 
+  it("prefers the Post dialog composer over the inline Home composer", () => {
+    const inline = document.createElement("div");
+    inline.setAttribute("data-testid", "tweetTextarea_0");
+    inline.setAttribute("contenteditable", "true");
+    inline.setAttribute("role", "textbox");
+    Object.defineProperty(inline, "getBoundingClientRect", {
+      value: () => ({ width: 300, height: 80 })
+    });
+
+    const dialog = document.createElement("div");
+    dialog.setAttribute("role", "dialog");
+    const modalComposer = document.createElement("div");
+    modalComposer.setAttribute("data-testid", "tweetTextarea_1");
+    modalComposer.setAttribute("contenteditable", "true");
+    modalComposer.setAttribute("role", "textbox");
+    Object.defineProperty(modalComposer, "getBoundingClientRect", {
+      value: () => ({ width: 300, height: 80 })
+    });
+    dialog.appendChild(modalComposer);
+    document.body.append(inline, dialog);
+
+    expect(findComposer()).toBe(modalComposer);
+  });
+
   it("resolves the composer host to its form", () => {
     const form = document.createElement("form");
     const composer = document.createElement("div");
