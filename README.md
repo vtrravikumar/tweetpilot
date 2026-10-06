@@ -102,7 +102,7 @@ Vichar is intentionally small and cost-conscious.
 - Vitest
 - Cloudflare Workers Vitest pool
 - No conventional database; Durable Object SQLite stores only anonymous usage counters
-- Durable usage protection for extension installations and anonymous web users
+- Durable usage protection for extension installations; Vichar web generation is unlimited in V1
 - No dedicated server or VM
 - No Docker/Kubernetes requirement
 
@@ -229,9 +229,9 @@ The Worker reads these values from its environment:
 | `VTRRK_LINKS` | No | JSON configuration of topic-specific VTRRK links |
 | `CORS_ALLOWED_ORIGINS` | No | Comma-separated browser origins allowed to call the API |
 | `TWEETPILOT_GENERATOR` | No | Set to `placeholder` only for offline/test generation |
-| `VICHAR_DAILY_LIMIT` | No | Durable Object daily generation limit; production default is `10` |
-| `VICHAR_BURST_PER_MINUTE` | No | Durable Object per-minute generation limit; production default is `3` |
-| `VICHAR_WEB_SECRET` | Yes for web usage protection | Server-side secret used to derive a pseudonymous web usage identifier |
+| `VICHAR_DAILY_LIMIT` | No | Extension installation daily generation limit; production default is `10` |
+| `VICHAR_BURST_PER_MINUTE` | No | Extension installation per-minute generation limit; production default is `3` |
+| `VICHAR_WEB_SECRET` | Yes for web session access | Server-side secret used to issue short-lived Vichar web session tokens |
 
 **Never commit an API key or `.dev.vars` to Git.**
 
@@ -331,7 +331,7 @@ The implementation deliberately avoids wildcard CORS and does not enable credent
 
 Chrome extension origins are supported once the production extension ID is known.
 
-CORS is a browser access-control mechanism, not authentication. Vichar uses Durable Object-backed usage protection for both extension installations and anonymous web users. The web path derives a stable pseudonymous identifier from Cloudflare's client IP using the server-side web secret; the raw IP is not stored as the usage identifier.
+CORS is a browser access-control mechanism, not authentication. Vichar's web client uses a short-lived server-issued session token and is intentionally unlimited in V1. The Chrome extension uses Durable Object-backed per-installation usage protection.
 
 ---
 
@@ -430,7 +430,7 @@ Planned areas include:
 - copy fallbacks;
 - integration hardening;
 - extension UX refinement;
-- production abuse/rate limiting;
+- production abuse/rate limiting for the public web client if usage becomes excessive;
 - broader end-to-end validation.
 
 ---
