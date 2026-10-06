@@ -162,7 +162,7 @@
 
 #vichar-root .vc-primary {
   border: 0;
-  background: var(--vc-navy);
+  background: var(--vc-blue);
   color: #ffffff;
 }
 
@@ -213,8 +213,16 @@
   color: var(--vc-navy);
 }
 
-#vichar-root .vc-brand::first-letter {
+#vichar-root .vc-word {
+  letter-spacing: -0.2px;
+}
+
+#vichar-root .vc-ai-i {
   color: var(--vc-blue);
+}
+
+#vichar-root .vc-ai-a {
+  color: var(--vc-orange);
 }
 
 #vichar-root .vc-primary:hover:not(:disabled) {
