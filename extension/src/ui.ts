@@ -1,6 +1,6 @@
 import { DEFAULT_MAX_LENGTH, PANEL_ID } from "./constants";
 import { TOPICS, type Topic } from "./types";
-import { composerText, replaceComposerText } from "./dom";
+import { composerHost, composerText, replaceComposerText } from "./dom";
 
 export interface PanelCallbacks {
   onGenerate: (topic: Topic, location: string) => void;
