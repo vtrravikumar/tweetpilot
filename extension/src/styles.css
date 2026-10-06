@@ -51,7 +51,7 @@
   font-weight: 700;
 }
 
-#vichar-root .vc-brand span {
+#vichar-root .vc-brand > span:last-child {
   font-weight: 500;
   opacity: 0.55;
   margin-left: 4px;
