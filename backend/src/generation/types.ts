@@ -35,4 +35,4 @@ export const DEFAULT_MAX_LENGTH = 140;
 export const VICHAR_ATTRIBUTION = "Vichar by @vtrrk";
 export const VICHAR_ATTRIBUTION_SEPARATOR = "\n";
 export const MIN_VICHAR_MAX_LENGTH =
-  Array.from(VICHAR_ATTRIBUTION_SEPARATOR + VICHAR_ATTRIBUTION).length;
+  Array.from("x" + VICHAR_ATTRIBUTION_SEPARATOR + VICHAR_ATTRIBUTION).length;
