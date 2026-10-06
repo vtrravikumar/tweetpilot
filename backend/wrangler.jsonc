@@ -7,6 +7,22 @@
     "enabled": true
   },
   "vars": {
-    "CORS_ALLOWED_ORIGINS": "https://vtrrk.in"
+    "CORS_ALLOWED_ORIGINS": "https://vtrrk.in",
+    "VICHAR_DAILY_LIMIT": "10",
+    "VICHAR_BURST_PER_MINUTE": "3"
+  },
+  "durable_objects": {
+    "bindings": [
+      {
+        "name": "VICHAR_USAGE",
+        "class_name": "VicharUsage"
+      }
+    ]
+  },
+  "exports": {
+    "VicharUsage": {
+      "type": "durable-object",
+      "storage": "sqlite"
+    }
   }
 }
