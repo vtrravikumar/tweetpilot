@@ -106,11 +106,11 @@ export class OpenAIProvider implements TweetGenerator {
       const prompt = buildPrompt({ input, maxLength, link, feedback });
       const raw = await this.callOpenAI(prompt, maxOutputTokens);
       const normalized = normalizeTweet(raw);
-      const tweet = withVicharAttribution(normalized, maxLength);
-
-      if (tweet === "") {
+      if (normalized === "") {
         throw new GenerationError("invalid_output", "Model returned empty text.");
       }
+
+      const tweet = withVicharAttribution(normalized, maxLength);
 
       if (tweet === undefined) {
         feedback = `Previous draft was too long after required Vichar attribution. Rewrite the thought shorter while leaving room for the exact final line: ${VICHAR_ATTRIBUTION}`;
