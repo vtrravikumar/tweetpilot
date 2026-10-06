@@ -20,6 +20,12 @@ export interface UsageGuard {
   check(request: Request, env: Env): Promise<UsageDecision>;
 }
 
+export const allowAllUsageGuard: UsageGuard = {
+  async check() {
+    return { allowed: true };
+  },
+};
+
 export function createUsageGuard(): UsageGuard {
   return {
     async check(request, env) {
