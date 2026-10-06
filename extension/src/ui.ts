@@ -1,5 +1,5 @@
 import { DEFAULT_MAX_LENGTH, PANEL_ID } from "./constants";
-import { TOPICS, type Topic } from "./types";
+import { TOPICS, type TopicSelection } from "./types";
 import {
   composerHost,
   composerToolbar,
@@ -9,7 +9,7 @@ import {
 } from "./dom";
 
 export interface PanelCallbacks {
-  onGenerate: (topic: Topic, location: string) => void;
+  onGenerate: (topic: TopicSelection, location: string) => void;
   onDismiss: () => void;
   onReopen: () => void;
 }
@@ -47,7 +47,15 @@ export function createPanel(callbacks: PanelCallbacks): TweetPanel {
       <div class="tp-controls">
         <label>
           <span>Topic</span>
-          <select class="tp-topic"></select>
+          <input
+            class="tp-topic"
+            type="text"
+            list="tp-topic-options"
+            maxlength="100"
+            autocomplete="off"
+            placeholder="Choose or type a topic"
+          />
+          <datalist id="tp-topic-options"></datalist>
         </label>
         <label>
           <span>Location <em>optional</em></span>
@@ -63,8 +71,8 @@ export function createPanel(callbacks: PanelCallbacks): TweetPanel {
       </div>
 
       <div class="tp-actions">
-        <button type="button" class="tp-primary">Inspire Tweet</button>
-        <button type="button" class="tp-secondary tp-another" disabled>Change tweet</button>
+        <button type="button" class="tp-primary">Get a Tweet</button>
+        <button type="button" class="tp-secondary tp-another" disabled>Get Another</button>
         <button type="button" class="tp-secondary tp-dismiss">Dismiss</button>
       </div>
 
@@ -75,14 +83,14 @@ export function createPanel(callbacks: PanelCallbacks): TweetPanel {
 
   document.body.appendChild(root);
 
-  const topicSelect = root.querySelector<HTMLSelectElement>(".tp-topic")!;
+  const topicInput = root.querySelector<HTMLInputElement>(".tp-topic")!;
+  const topicOptions = root.querySelector<HTMLDataListElement>("#tp-topic-options")!;
   for (const topic of TOPICS) {
     const option = document.createElement("option");
     option.value = topic;
-    option.textContent = topic;
-    topicSelect.appendChild(option);
+    topicOptions.appendChild(option);
   }
-  topicSelect.value = "Surprise me";
+  topicInput.value = "Surprise me";
 
   const locationInput = root.querySelector<HTMLInputElement>(".tp-location")!;
   const status = root.querySelector<HTMLDivElement>(".tp-status")!;
@@ -111,16 +119,16 @@ export function createPanel(callbacks: PanelCallbacks): TweetPanel {
 
     if (!hasTweet) {
       status.textContent = "Creating an idea…";
-      callbacks.onGenerate(topicSelect.value as Topic, locationInput.value);
+      callbacks.onGenerate(topicInput.value.trim() || "Surprise me", locationInput.value);
       return;
     }
 
     const tweet = suggestion.value.trim();
     if (!tweet) {
       hasTweet = false;
-      primary.textContent = "Inspire Tweet";
+      primary.textContent = "Get a Tweet";
       another.disabled = true;
-      status.textContent = "Inspire a tweet first.";
+      status.textContent = "Get a tweet first.";
       return;
     }
 
@@ -154,20 +162,20 @@ export function createPanel(callbacks: PanelCallbacks): TweetPanel {
 
   another.addEventListener("click", () => {
     status.textContent = "Creating another idea…";
-    callbacks.onGenerate(topicSelect.value as Topic, locationInput.value);
+    callbacks.onGenerate(topicInput.value.trim() || "Surprise me", locationInput.value);
   });
 
   const invalidateSuggestion = (message: string) => {
     hasTweet = false;
     suggestion.value = "";
     updateCount();
-    primary.textContent = "Inspire Tweet";
+    primary.textContent = "Get a Tweet";
     primary.disabled = false;
     another.disabled = true;
     status.textContent = message;
   };
 
-  topicSelect.addEventListener("change", () => {
+  topicInput.addEventListener("input", () => {
     invalidateSuggestion("Topic changed. Press Inspire Tweet when you're ready.");
   });
 
@@ -186,7 +194,7 @@ export function createPanel(callbacks: PanelCallbacks): TweetPanel {
       root.classList.toggle("tp-loading", loading);
       primary.disabled = loading;
       another.disabled = loading || !hasTweet;
-      topicSelect.disabled = loading;
+      topicInput.disabled = loading;
       locationInput.disabled = loading;
       if (loading) {
         status.textContent = "Thinking…";
@@ -206,14 +214,14 @@ export function createPanel(callbacks: PanelCallbacks): TweetPanel {
       hasTweet = false;
       root.classList.remove("tp-loading");
       status.textContent = message;
-      primary.textContent = "Inspire Tweet";
+      primary.textContent = "Get a Tweet";
       primary.disabled = false;
       another.disabled = true;
     },
     setVisible(visible) {
       root.classList.toggle("tp-inactive", !visible);
     },
-    getTopic: () => topicSelect.value as Topic,
+    getTopic: () => (topicInput.value.trim() || "Surprise me") as TopicSelection,
     getLocation: () => locationInput.value.trim(),
     getComposer: () => composer,
     setComposer: (value) => {
@@ -225,7 +233,7 @@ export function createPanel(callbacks: PanelCallbacks): TweetPanel {
         another.textContent = "Change tweet";
         another.disabled = true;
         primary.disabled = false;
-        status.textContent = "Press Inspire Tweet when you want an idea.";
+        status.textContent = "Choose Get a Tweet when you want an idea.";
       }
 
       composer = value;
