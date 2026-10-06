@@ -1,0 +1,79 @@
+import { env } from "cloudflare:workers";
+import { describe, expect, it } from "vitest";
+
+describe("VicharUsage Durable Object", () => {
+  it("allows requests until the burst limit, then blocks the next request", async () => {
+    const stub = env.VICHAR_USAGE.getByName("burst-boundary");
+    const now = Date.UTC(2026, 9, 6, 10, 0, 10);
+
+    expect(await stub.check(now, 10, 3)).toMatchObject({
+      allowed: true,
+      remaining: 9,
+      dailyLimit: 10,
+    });
+    expect(await stub.check(now + 1_000, 10, 3)).toMatchObject({
+      allowed: true,
+      remaining: 8,
+      dailyLimit: 10,
+    });
+    expect(await stub.check(now + 2_000, 10, 3)).toMatchObject({
+      allowed: true,
+      remaining: 7,
+      dailyLimit: 10,
+    });
+
+    const blocked = await stub.check(now + 3_000, 10, 3);
+    expect(blocked).toMatchObject({
+      allowed: false,
+      reason: "burst",
+      remaining: 7,
+      dailyLimit: 10,
+    });
+    expect(blocked.retryAfterSeconds).toBeGreaterThan(0);
+  });
+
+  it("blocks at the daily limit even when the burst window has reset", async () => {
+    const stub = env.VICHAR_USAGE.getByName("daily-boundary");
+    const dayStart = Date.UTC(2026, 9, 6, 11, 0, 0);
+
+    for (let i = 0; i < 10; i++) {
+      const result = await stub.check(dayStart + i * 60_000, 10, 100);
+      expect(result.allowed).toBe(true);
+      expect(result.remaining).toBe(9 - i);
+    }
+
+    const blocked = await stub.check(dayStart + 11 * 60_000, 10, 100);
+    expect(blocked).toMatchObject({
+      allowed: false,
+      reason: "daily",
+      remaining: 0,
+      dailyLimit: 10,
+    });
+    expect(blocked.retryAfterSeconds).toBeGreaterThan(0);
+  });
+
+  it("resets the daily counter on the next UTC day", async () => {
+    const stub = env.VICHAR_USAGE.getByName("day-reset");
+    const beforeMidnight = Date.UTC(2026, 9, 6, 23, 59, 59);
+    const afterMidnight = Date.UTC(2026, 9, 7, 0, 0, 1);
+
+    expect(await stub.check(beforeMidnight, 1, 10)).toMatchObject({
+      allowed: true,
+      remaining: 0,
+    });
+    expect(await stub.check(afterMidnight, 1, 10)).toMatchObject({
+      allowed: true,
+      remaining: 0,
+    });
+  });
+
+  it("keeps counters isolated by installation key", async () => {
+    const a = env.VICHAR_USAGE.getByName("installation-a");
+    const b = env.VICHAR_USAGE.getByName("installation-b");
+    const now = Date.UTC(2026, 9, 6, 12, 0, 0);
+
+    expect((await a.check(now, 1, 10)).allowed).toBe(true);
+    expect((await a.check(now + 1_000, 1, 10)).allowed).toBe(false);
+    expect((await b.check(now + 1_000, 1, 10)).allowed).toBe(true);
+  });
+});
