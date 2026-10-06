@@ -142,11 +142,9 @@ describe("X composer detection", () => {
 
     composer.textContent = "Old draft";
     const originalExecCommand = document.execCommand;
+    const commands: string[] = [];
     document.execCommand = ((command: string, _showUi?: boolean, value?: string) => {
-      if (command === "delete") {
-        composer.textContent = "";
-        return true;
-      }
+      commands.push(command);
       if (command === "insertText") {
         composer.textContent = value ?? "";
         return true;
@@ -155,10 +153,13 @@ describe("X composer detection", () => {
     }) as typeof document.execCommand;
 
     try {
-      const result = await replaceComposerText(composer, "New draft");
+      const first = await replaceComposerText(composer, "New draft");
+      const second = await replaceComposerText(composer, "Second draft");
 
-      expect(result).toBe(true);
-      expect(composerText(composer)).toBe("New draft");
+      expect(first).toBe(true);
+      expect(second).toBe(true);
+      expect(composerText(composer)).toBe("Second draft");
+      expect(commands).toEqual(["insertText", "insertText"]);
     } finally {
       document.execCommand = originalExecCommand;
     }
