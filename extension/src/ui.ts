@@ -35,56 +35,56 @@ export function createPanel(callbacks: PanelCallbacks): TweetPanel {
   root.id = PANEL_ID;
   root.setAttribute("data-tweetpilot", "true");
   root.innerHTML = `
-    <div class="tp-card">
-      <div class="tp-header">
+    <div class="vc-card">
+      <div class="vc-header">
         <div>
-          <div class="tp-brand">TweetPilot <span>By VTRRK</span></div>
-          <div class="tp-subtitle">AI writing companion</div>
+          <div class="vc-brand">Vichar <span>By VTRRK</span></div>
+          <div class="vc-subtitle">विचारस्य अभिव्यक्तिः</div>
         </div>
-        <button type="button" class="tp-icon-button" aria-label="Dismiss TweetPilot">×</button>
+        <button type="button" class="vc-icon-button" aria-label="Dismiss Vichar">×</button>
       </div>
 
-      <div class="tp-controls">
+      <div class="vc-controls">
         <label>
           <span>Topic</span>
           <input
-            class="tp-topic"
+            class="vc-topic"
             type="text"
-            list="tp-topic-options"
+            list="vc-topic-options"
             maxlength="100"
             autocomplete="off"
             placeholder="Choose or type a topic"
           />
-          <datalist id="tp-topic-options"></datalist>
+          <datalist id="vc-topic-options"></datalist>
         </label>
         <label>
           <span>Location <em>optional</em></span>
-          <input class="tp-location" type="text" maxlength="80" placeholder="e.g. Chennai" />
+          <input class="vc-location" type="text" maxlength="80" placeholder="e.g. Chennai" />
         </label>
       </div>
 
-      <div class="tp-status" aria-live="polite"></div>
+      <div class="vc-status" aria-live="polite"></div>
 
-      <div class="tp-suggestion-wrap">
-        <textarea class="tp-suggestion" maxlength="${DEFAULT_MAX_LENGTH}" aria-label="Tweet suggestion"></textarea>
-        <div class="tp-count">0/${DEFAULT_MAX_LENGTH}</div>
+      <div class="vc-suggestion-wrap">
+        <textarea class="vc-suggestion" maxlength="${DEFAULT_MAX_LENGTH}" aria-label="Tweet suggestion"></textarea>
+        <div class="vc-count">0/${DEFAULT_MAX_LENGTH}</div>
       </div>
 
-      <div class="tp-actions">
-        <button type="button" class="tp-primary">Get a Tweet</button>
-        <button type="button" class="tp-secondary tp-another" disabled>Get Another</button>
-        <button type="button" class="tp-secondary tp-dismiss">Dismiss</button>
+      <div class="vc-actions">
+        <button type="button" class="vc-primary">Get a Tweet</button>
+        <button type="button" class="vc-secondary vc-another" disabled>Get Another</button>
+        <button type="button" class="vc-secondary vc-dismiss">Dismiss</button>
       </div>
 
-      <div class="tp-footer">You decide what gets posted.</div>
+      <div class="vc-footer">You decide what gets posted.</div>
     </div>
-    <button type="button" class="tp-reopen">TweetPilot</button>
+    <button type="button" class="vc-reopen">Vichar</button>
   `;
 
   document.body.appendChild(root);
 
-  const topicInput = root.querySelector<HTMLInputElement>(".tp-topic")!;
-  const topicOptions = root.querySelector<HTMLDataListElement>("#tp-topic-options")!;
+  const topicInput = root.querySelector<HTMLInputElement>(".vc-topic")!;
+  const topicOptions = root.querySelector<HTMLDataListElement>("#vc-topic-options")!;
   for (const topic of TOPICS) {
     const option = document.createElement("option");
     option.value = topic;
@@ -92,15 +92,15 @@ export function createPanel(callbacks: PanelCallbacks): TweetPanel {
   }
   topicInput.value = "Surprise me";
 
-  const locationInput = root.querySelector<HTMLInputElement>(".tp-location")!;
-  const status = root.querySelector<HTMLDivElement>(".tp-status")!;
-  const suggestion = root.querySelector<HTMLTextAreaElement>(".tp-suggestion")!;
-  const count = root.querySelector<HTMLDivElement>(".tp-count")!;
-  const primary = root.querySelector<HTMLButtonElement>(".tp-primary")!;
-  const another = root.querySelector<HTMLButtonElement>(".tp-another")!;
-  const dismiss = root.querySelector<HTMLButtonElement>(".tp-dismiss")!;
-  const close = root.querySelector<HTMLButtonElement>(".tp-icon-button")!;
-  const reopen = root.querySelector<HTMLButtonElement>(".tp-reopen")!;
+  const locationInput = root.querySelector<HTMLInputElement>(".vc-location")!;
+  const status = root.querySelector<HTMLDivElement>(".vc-status")!;
+  const suggestion = root.querySelector<HTMLTextAreaElement>(".vc-suggestion")!;
+  const count = root.querySelector<HTMLDivElement>(".vc-count")!;
+  const primary = root.querySelector<HTMLButtonElement>(".vc-primary")!;
+  const another = root.querySelector<HTMLButtonElement>(".vc-another")!;
+  const dismiss = root.querySelector<HTMLButtonElement>(".vc-dismiss")!;
+  const close = root.querySelector<HTMLButtonElement>(".vc-icon-button")!;
+  const reopen = root.querySelector<HTMLButtonElement>(".vc-reopen")!;
 
   let composer: HTMLElement | null = null;
   let hasTweet = false;
@@ -191,13 +191,13 @@ export function createPanel(callbacks: PanelCallbacks): TweetPanel {
   return {
     element: root,
     setLoading(loading) {
-      root.classList.toggle("tp-loading", loading);
+      root.classList.toggle("vc-loading", loading);
       primary.disabled = loading;
       another.disabled = loading || !hasTweet;
       topicInput.disabled = loading;
       locationInput.disabled = loading;
       if (loading) {
-        status.textContent = "Thinking…";
+        status.textContent = "विचारः सृज्यते…";
       }
     },
     setTweet(tweet, resolvedTopic) {
@@ -212,14 +212,14 @@ export function createPanel(callbacks: PanelCallbacks): TweetPanel {
     },
     setError(message) {
       hasTweet = false;
-      root.classList.remove("tp-loading");
+      root.classList.remove("vc-loading");
       status.textContent = message;
       primary.textContent = "Get a Tweet";
       primary.disabled = false;
       another.disabled = true;
     },
     setVisible(visible) {
-      root.classList.toggle("tp-inactive", !visible);
+      root.classList.toggle("vc-inactive", !visible);
     },
     getTopic: () => (topicInput.value.trim() || "Surprise me") as TopicSelection,
     getLocation: () => locationInput.value.trim(),
@@ -230,10 +230,10 @@ export function createPanel(callbacks: PanelCallbacks): TweetPanel {
         suggestion.value = "";
         updateCount();
         primary.textContent = "Get a Tweet";
-        another.textContent = "Change tweet";
+        another.textContent = "Get Another";
         another.disabled = true;
         primary.disabled = false;
-        status.textContent = "Choose Get a Tweet when you want an idea.";
+        status.textContent = "विचार चाहिए? Get a Tweet चुनें.";
       }
 
       composer = value;
@@ -253,7 +253,7 @@ export function createPanel(callbacks: PanelCallbacks): TweetPanel {
       }
     },
     setDismissed(dismissed) {
-      root.classList.toggle("tp-dismissed", dismissed);
+      root.classList.toggle("vc-dismissed", dismissed);
     },
     getTweet: () => suggestion.value.trim()
   };
