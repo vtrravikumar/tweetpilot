@@ -1,23 +1,29 @@
-# TweetPilot Chrome Extension — By VTRRK
+# Vichar Chrome Extension — By VTRRK
 
-The TweetPilot Chrome extension is the M1 integration of TweetPilot into the X composer.
+The Vichar Chrome extension is the M1 integration of Vichar into the X composer.
+
+## Brand
+
+**Vichar** means thought or idea. The product identity uses **Vichar — By VTRRK**, with the visual treatment of the I and A in *Vichar* hinting at AI.
+
+The brand palette is inspired by WGSN x Coloro's 2027 Luminous Blue direction, with a restrained orange accent.
 
 ## Product rule
 
-**TweetPilot assists the X composer; it does not control the X composer.**
+**Vichar assists the X composer; it does not control the X composer.**
 
-When an X Post composer opens, TweetPilot defaults to **Surprise me** and waits for the user to request a tweet. No OpenAI request is made until the user chooses **Get a Tweet**.
+When an X Post composer opens, Vichar defaults to **Surprise me** and waits for the user to request a tweet. No OpenAI request is made until the user chooses **Get a Tweet**.
 
 The user can:
 
 1. **Get a Tweet** — explicitly ask for a suggestion.
 2. **Use this** — place the suggestion into the X composer.
 3. **Get Another** — generate another suggestion.
-4. **Dismiss** — hide TweetPilot and write a completely normal X post.
+4. **Dismiss** — hide Vichar and write a completely normal X post.
 
 The user can also ignore the panel and type directly into X at any time.
 
-TweetPilot never clicks X's native Post button.
+Vichar never clicks X's native Post button.
 
 ## Development backend
 
@@ -54,14 +60,14 @@ extension/dist/
 5. Open or reload `https://x.com/`.
 6. Open the X **Post** composer.
 
-For clean integration testing, temporarily disable other X-composer extensions such as TweetAI so their DOM/UI changes do not interfere with the first TweetPilot test.
+For clean integration testing, temporarily disable other X-composer extensions such as TweetAI so their DOM/UI changes do not interfere with the first Vichar test.
 
 ## Permissions
 
 The extension requests:
 
 - `storage` for the optional location preference.
-- host access to the TweetPilot Cloudflare Worker.
+- host access to the Vichar Cloudflare Worker.
 - content-script access to `x.com` and `twitter.com`.
 
 It does not request broad access to unrelated websites, X APIs, cookies, tabs, history, or geolocation.
