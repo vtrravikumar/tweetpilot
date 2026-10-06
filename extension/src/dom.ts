@@ -37,7 +37,7 @@ function composerCandidates(root: ParentNode): HTMLElement[] {
       (candidate) =>
         isVisible(candidate) &&
         !looksLikeSearchBox(candidate) &&
-        !candidate.closest("#tweetpilot-root")
+        !candidate.closest("#vichar-root")
     );
 
     if (candidates.length > 0) {
