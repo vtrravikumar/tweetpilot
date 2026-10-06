@@ -31,7 +31,7 @@ The extension uses the existing production Cloudflare Worker during development 
 
 `https://tweetpilot-api.vtrravikumar.workers.dev`
 
-The OpenAI API key is never shipped to the extension. The extension generates an opaque per-installation Vichar usage key, stores it in extension-local storage, and sends it to the Cloudflare Worker as a Bearer token. The backend uses that key to enforce the free usage quota; it is not an OpenAI credential or a secret.
+The OpenAI API key is never shipped to the extension. The extension generates an opaque per-installation Vichar usage key, stores it in extension-local storage, and sends it to the Cloudflare Worker as a Bearer token. The backend uses that key to enforce the free quota (10 generations/day, 3/minute burst by default); it is not an OpenAI credential or a secret.
 
 ## Local build
 
