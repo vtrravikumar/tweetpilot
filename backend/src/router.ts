@@ -1,6 +1,7 @@
 import { errorResponse } from "./http/json";
 import { createTweetGenerator } from "./generation/factory";
 import { corsPreflightResponse, withCors } from "./http/cors";
+import { createUsageGuard } from "./usage/guard";
 import { createGenerateTweetRoute } from "./routes/generateTweet";
 import { healthRoute } from "./routes/health";
 
@@ -21,7 +22,9 @@ export interface Route {
  */
 export const routes: readonly Route[] = [
   healthRoute,
-  createGenerateTweetRoute((env) => createTweetGenerator(env)),
+  createGenerateTweetRoute((env) => createTweetGenerator(env), {
+    usageGuard: createUsageGuard(),
+  }),
 ];
 
 export async function handleRequest(
