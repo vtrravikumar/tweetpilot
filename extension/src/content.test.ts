@@ -57,6 +57,24 @@ describe("X composer detection", () => {
     expect(composerText(composer)).toBe("");
   });
 
+  it("ignores Vichar's own panel text when checking for an X draft", () => {
+    const composer = document.createElement("div");
+    composer.setAttribute("data-testid", "tweetTextarea_0");
+    composer.setAttribute("contenteditable", "true");
+    composer.setAttribute("role", "textbox");
+    Object.defineProperty(composer, "getBoundingClientRect", {
+      value: () => ({ width: 300, height: 80 })
+    });
+
+    const panel = document.createElement("div");
+    panel.id = "vichar-root";
+    panel.innerHTML = '<textarea>Vichar by @vtrrk</textarea>';
+    composer.appendChild(panel);
+    document.body.appendChild(composer);
+
+    expect(composerText(composer)).toBe("");
+  });
+
   it("ignores a search textbox", () => {
     const search = document.createElement("div");
     search.setAttribute("contenteditable", "true");
