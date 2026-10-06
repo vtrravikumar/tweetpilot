@@ -6,13 +6,14 @@ The TweetPilot Chrome extension is the M1 integration of TweetPilot into the X c
 
 **TweetPilot assists the X composer; it does not control the X composer.**
 
-When an X Post composer opens, TweetPilot defaults to **Surprise me** and generates one suggestion. The suggestion is never inserted automatically.
+When an X Post composer opens, TweetPilot defaults to **Surprise me** and waits for the user to request a tweet. No OpenAI request is made until the user chooses **Get a Tweet**.
 
 The user can:
 
-1. **Use this** — explicitly place the suggestion into the X composer.
-2. **Another** — generate another suggestion.
-3. **Dismiss** — hide TweetPilot and write a completely normal X post.
+1. **Get a Tweet** — explicitly ask for a suggestion.
+2. **Use this** — place the suggestion into the X composer.
+3. **Get Another** — generate another suggestion.
+4. **Dismiss** — hide TweetPilot and write a completely normal X post.
 
 The user can also ignore the panel and type directly into X at any time.
 
