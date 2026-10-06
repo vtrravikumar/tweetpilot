@@ -28,28 +28,33 @@ For the former "Press Inspire Tweet when you want an idea" message:
 
 The action remains **Get a Tweet** in the primary button because it is immediately understandable to X users.
 
-## Colour direction
+## Frozen colour direction
 
-The primary colour direction follows **WGSN x Coloro Luminous Blue**, their 2027 Colour of the Year.
+The final Vichar visual direction is **warm, energetic and distinctly non-blue**.
 
-- **Luminous Blue** — Coloro `125—28—38`
-- Digital working approximation: `#0922FF`
-- **Energy Orange** — accent
-- Deep Navy — `#0B1A3A`
-- Sky Blue — `#7ED3FF`
-- Soft Gray — `#E9EEF7`
+- **Crimson Red** — #DC143C — primary brand/action colour
+- **Bright Red** — #FF2D3A — energetic accent
+- **Golden Yellow** — #FFC400 — highlighted **I** / AI cue
+- **Warm Orange** — #FF8A00 — highlighted **A** / AI cue
+- **Soft Cream** — #FFF4E6 — light surface/background
+- **Deep Crimson** — #7A1025 — readable text colour
 
-Use Luminous Blue as the primary action/brand colour. Use Energy Orange sparingly for the highlighted **A**, AI cues and small visual accents. Keep the overall interface restrained rather than using the entire forecast palette.
+### Explicit exclusions
+
+**No blue. No black. No brown. No green.**
+
+The identity should retain the crimson + gold/orange character across the extension UI, icon and future website assets.
 
 ## Logo direction
 
 - Primary mark: stylised V + thought/voice/pen motif.
-- Wordmark: Vichar with **I** highlighted in Luminous Blue and **A** highlighted in Energy Orange.
+- Wordmark: Vichar with **I** highlighted in Golden Yellow and **A** highlighted in Warm Orange.
 - "BY VTRRK" remains secondary.
 - Icon must remain recognisable at 16px.
 - Avoid robot heads, generic AI brains and obvious chat-bubble clichés.
 - Light and dark variants should retain the same Vichar identity.
+- The frozen visual concept uses a bright crimson backdrop with flowing/wave-like gold and orange forms.
 
 ## Infrastructure note
 
-The existing Worker hostname remains `tweetpilot-api.vtrravikumar.workers.dev` for now. It is an infrastructure endpoint, not the product brand. A branded API hostname can be introduced separately without changing the extension's public identity.
+The existing Worker hostname remains tweetpilot-api.vtrravikumar.workers.dev for now. It is an infrastructure endpoint, not the product brand. A branded API hostname can be introduced separately without changing the extension's public identity.
