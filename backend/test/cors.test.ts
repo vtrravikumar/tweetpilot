@@ -60,7 +60,7 @@ describe("CORS", () => {
         headers: {
           origin: EXTENSION_ORIGIN,
           "access-control-request-method": "POST",
-          "access-control-request-headers": "content-type",
+          "access-control-request-headers": "content-type, authorization",
         },
       }),
       env({ CORS_ALLOWED_ORIGINS: EXTENSION_ORIGIN }),
@@ -70,7 +70,7 @@ describe("CORS", () => {
     expect(response.status).toBe(204);
     expect(response.headers.get("access-control-allow-origin")).toBe(EXTENSION_ORIGIN);
     expect(response.headers.get("access-control-allow-methods")).toBe("POST, OPTIONS");
-    expect(response.headers.get("access-control-allow-headers")).toBe("content-type");
+    expect(response.headers.get("access-control-allow-headers")).toBe("content-type, authorization");
   });
 
   it("rejects preflight requests from unconfigured origins", async () => {
@@ -117,6 +117,20 @@ describe("CORS", () => {
       ctx,
     );
     expect(unsupportedHeader.status).toBe(403);
+
+    const supportedHeader = await handleRequest(
+      request("/v1/tweet/generate", {
+        method: "OPTIONS",
+        headers: {
+          origin: EXTENSION_ORIGIN,
+          "access-control-request-method": "POST",
+          "access-control-request-headers": "content-type, authorization",
+        },
+      }),
+      env({ CORS_ALLOWED_ORIGINS: EXTENSION_ORIGIN }),
+      ctx,
+    );
+    expect(supportedHeader.status).toBe(204);
   });
 
   it("normalizes only safe exact origins and ignores wildcards or paths", () => {
