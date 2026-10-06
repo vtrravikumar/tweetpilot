@@ -61,7 +61,7 @@ async function generateSuggestion(
     panel.setError(
       error instanceof Error
         ? error.message
-        : "TweetPilot could not generate a tweet."
+        : "Vichar could not generate a tweet."
     );
   } finally {
     if (requestId === generationSequence) {
@@ -98,7 +98,7 @@ async function handleComposer(composer: HTMLElement | null): Promise<void> {
   }
 
   const locationInput =
-    panel.element.querySelector<HTMLInputElement>(".tp-location");
+    panel.element.querySelector<HTMLInputElement>(".vc-location");
   if (locationInput) {
     locationInput.value = settings.location;
   }
