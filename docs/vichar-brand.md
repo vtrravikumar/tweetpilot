@@ -10,9 +10,8 @@ Historical/internal repository and infrastructure names may remain where changin
 
 ## Approved messaging
 
-- Microcopy: `विचारं लभताम्`
-- Sanskrit line: `विचारात् वाक्यं भवति`
 - English tagline: **From thought to expression.**
+- Public UI: English-first; do not display the Sanskrit line or Devanagari phrase in the primary product experience.
 
 ## Approved visual identity
 
@@ -72,4 +71,4 @@ These are infrastructure/implementation names, not the product identity.
 
 No UI implementation may invent its own logo or brand treatment. New Vichar surfaces must consume the approved artwork and palette defined here.
 
-Current canonical logo asset: `extension/public/vichar-icon-128.png`. The website mirrors this approved artwork at `public/brand/vichar-icon-128.png` in the `vtrrk.in` repository. Before public release, derive the remaining 16/32/48/favicons and store assets from the same approved artwork; do not redraw them independently.
+Current approved artwork source: the Vichar brand board supplied and approved on 6 October 2026. The public website now uses the approved light-background Vichar lockup derived from that artwork. The extension should use the same approved mark and English-first treatment. Before public release, derive the remaining 16/32/48/favicons and store assets from the same approved artwork; do not redraw them independently.
