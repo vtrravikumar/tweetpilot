@@ -25,6 +25,13 @@ export interface TweetPilotConfig {
   vtrrkLinks: string | undefined;
   corsAllowedOrigins: string | undefined;
   generatorMode: string | undefined;
+  vicharDailyLimit: number;
+  vicharBurstPerMinute: number;
+}
+
+function positiveInt(value: string | undefined, fallback: number): number {
+  const parsed = value ? Number.parseInt(value, 10) : Number.NaN;
+  return Number.isSafeInteger(parsed) && parsed > 0 ? parsed : fallback;
 }
 
 export function readConfig(env: Env): TweetPilotConfig {
@@ -40,5 +47,7 @@ export function readConfig(env: Env): TweetPilotConfig {
     vtrrkLinks: str("VTRRK_LINKS"),
     corsAllowedOrigins: str("CORS_ALLOWED_ORIGINS"),
     generatorMode: str("TWEETPILOT_GENERATOR"),
+    vicharDailyLimit: positiveInt(str("VICHAR_DAILY_LIMIT"), 10),
+    vicharBurstPerMinute: positiveInt(str("VICHAR_BURST_PER_MINUTE"), 3),
   };
 }
