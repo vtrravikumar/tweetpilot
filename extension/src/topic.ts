@@ -1,9 +1,9 @@
-import { TOPICS, type Topic } from "./types";
+import { TOPICS } from "./types";
 
 export function resolveTopic(
-  selected: Topic,
-  previousResolved?: Exclude<Topic, "Surprise me">
-): Exclude<Topic, "Surprise me"> {
+  selected: string,
+  previousResolved?: string
+): string {
   if (selected !== "Surprise me") {
     return selected;
   }
