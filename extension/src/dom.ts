@@ -137,6 +137,12 @@ export async function replaceComposerText(
       bubbles: true
     })
   );
+  composer.dispatchEvent(
+    new InputEvent("input", {
+      bubbles: true,
+      inputType: "deleteContentBackward"
+    })
+  );
 
   await wait(100);
 
