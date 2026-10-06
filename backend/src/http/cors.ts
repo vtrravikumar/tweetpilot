@@ -1,6 +1,6 @@
 import { readConfig } from "../env";
 
-const ALLOWED_REQUEST_HEADERS = ["content-type"] as const;
+const ALLOWED_REQUEST_HEADERS = ["content-type", "authorization"] as const;
 const PREFLIGHT_MAX_AGE_SECONDS = "86400";
 
 export function withCors(
