@@ -56,8 +56,8 @@ function isInComposerDialog(element: HTMLElement): boolean {
 }
 
 export function findComposer(root: ParentNode = document): HTMLElement | null {
-  // X keeps an inline composer on Home, but clicking Post opens a separate
-  // modal/dialog composer. Always prefer the modal when it exists.
+  // TweetAI integrates with both X's inline composer and the Post dialog.
+  // Prefer the dialog when it exists, otherwise use the visible inline editor.
   const allCandidates = composerCandidates(root);
   const dialogComposer = allCandidates.find(isInComposerDialog);
 
@@ -71,13 +71,44 @@ export function composerText(composer: HTMLElement): string {
 }
 
 export function composerHost(composer: HTMLElement): HTMLElement {
+  const toolbar = composer.closest('[data-testid="toolBar"]');
   return (
+    toolbar?.parentElement ||
     composer.closest('[role="dialog"]') ||
     composer.closest('[aria-modal="true"]') ||
     composer.closest("form") ||
     composer.parentElement ||
     document.body
   ) as HTMLElement;
+}
+
+function findPostButton(composer: HTMLElement): HTMLElement | null {
+  const scope =
+    composer.closest('[data-testid="toolBar"]')?.parentElement ||
+    composer.closest('[role="dialog"]') ||
+    composer.closest('[aria-modal="true"]') ||
+    composer.closest("form") ||
+    document;
+
+  return scope.querySelector<HTMLElement>(
+    '[data-testid="tweetButton"], [data-testid="tweetButtonInline"]'
+  );
+}
+
+export function isPostButtonEnabled(composer: HTMLElement): boolean {
+  const button = findPostButton(composer);
+  if (!button) {
+    return false;
+  }
+
+  return (
+    button.getAttribute("aria-disabled") !== "true" &&
+    !(button as HTMLButtonElement).disabled
+  );
+}
+
+function wait(milliseconds: number): Promise<void> {
+  return new Promise((resolve) => window.setTimeout(resolve, milliseconds));
 }
 
 function selectAllComposerText(composer: HTMLElement): void {
@@ -90,40 +121,55 @@ function selectAllComposerText(composer: HTMLElement): void {
   selection?.addRange(range);
 }
 
-export function replaceComposerText(
+export async function replaceComposerText(
   composer: HTMLElement,
   text: string
-): void {
+): Promise<boolean> {
+  // TweetAI's current X integration uses the native contenteditable event
+  // path: select the existing editor contents, send Delete, then send a
+  // textInput event carrying the generated text. This lets X handle the
+  // editor state instead of merely changing the DOM.
+  composer.focus();
   selectAllComposerText(composer);
-
-  const execCommand = document.execCommand;
-  const inserted =
-    typeof execCommand === "function"
-      ? execCommand.call(document, "insertText", false, text)
-      : false;
-
-  if (!inserted || composerText(composer) !== text) {
-    const beforeInput = new InputEvent("beforeinput", {
-      bubbles: true,
-      cancelable: true,
-      inputType: "insertText",
-      data: text
-    });
-    composer.dispatchEvent(beforeInput);
-
-    if (typeof execCommand === "function") {
-      selectAllComposerText(composer);
-      execCommand.call(document, "insertText", false, text);
-    } else {
-      composer.textContent = text;
-    }
-  }
-
   composer.dispatchEvent(
-    new InputEvent("input", {
-      bubbles: true,
-      inputType: "insertText",
-      data: text
+    new KeyboardEvent("keydown", {
+      key: "Delete",
+      bubbles: true
     })
   );
+
+  await wait(100);
+
+  composer.dispatchEvent(
+    new InputEvent("textInput", {
+      data: text,
+      bubbles: true
+    })
+  );
+
+  await wait(150);
+
+  if (composerText(composer) === text) {
+    return true;
+  }
+
+  // Fallback for X/editor variants that don't handle the textInput path.
+  // execCommand generates the browser's editing events for contenteditable.
+  selectAllComposerText(composer);
+  const execCommand = document.execCommand;
+  if (typeof execCommand === "function") {
+    execCommand.call(document, "insertText", false, text);
+  } else {
+    composer.textContent = text;
+    composer.dispatchEvent(
+      new InputEvent("input", {
+        bubbles: true,
+        inputType: "insertText",
+        data: text
+      })
+    );
+  }
+
+  await wait(100);
+  return composerText(composer) === text; 
 }
