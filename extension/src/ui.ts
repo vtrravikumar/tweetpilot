@@ -107,7 +107,7 @@ export function createPanel(callbacks: PanelCallbacks): TweetPanel {
 
   let composer: HTMLElement | null = null;
   let hasTweet = false;
-  let replaceConfirmed = false;
+  let replaceConfirmedForDraft: string | null = null;
 
   const updateCount = () => {
     count.textContent = `${suggestion.value.length}/${DEFAULT_MAX_LENGTH}`;
@@ -143,8 +143,8 @@ export function createPanel(callbacks: PanelCallbacks): TweetPanel {
       return;
     }
 
-    if (current && !replaceConfirmed) {
-      replaceConfirmed = true;
+    if (current && replaceConfirmedForDraft !== current) {
+      replaceConfirmedForDraft = current;
       primary.textContent = "Replace draft?";
       status.textContent = "X already has a draft. Choose Replace draft? to overwrite it.";
       return;
@@ -153,7 +153,7 @@ export function createPanel(callbacks: PanelCallbacks): TweetPanel {
     status.textContent = "Adding to X…";
     void (async () => {
       const inserted = await replaceComposerText(composer, tweet);
-      replaceConfirmed = false;
+      replaceConfirmedForDraft = null;
       if (!inserted || composerText(composer) !== tweet) {
         status.textContent =
           "X did not accept the suggestion. You can copy it and paste it into the composer.";
