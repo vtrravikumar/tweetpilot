@@ -38,7 +38,7 @@ export function createPanel(callbacks: PanelCallbacks): TweetPanel {
     <div class="vc-card">
       <div class="vc-header">
         <div class="vc-brand-lockup">
-          <img class="vc-mark" src="${chrome.runtime.getURL("vichar-icon-128.png")}" alt="" width="30" height="30" />
+          <img class="vc-mark" src="${chrome.runtime.getURL("icon128.png")}" alt="" width="30" height="30" />
           <div>
             <div class="vc-brand"><span class="vc-word">V<span class="vc-ai-i">i</span>ch<span class="vc-ai-a">a</span>r</span> <span>By VTRRK</span></div>
             <div class="vc-subtitle">विचारात् वाक्यं भवति</div>
