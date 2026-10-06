@@ -137,7 +137,7 @@ describe("POST /v1/tweet/generate with the OpenAI provider (mocked fetch)", () =
       ctx,
     );
     expect(response.status).toBe(200);
-    expect(await response.json()).toEqual({ tweet: "Golden hour never gets old." });
+    expect(await response.json()).toEqual({ tweet: "Golden hour never gets old.\nVichar by @vtrrk" });
     expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(capture(fetchMock).body.input).toContain("at most 140 characters");
   });
