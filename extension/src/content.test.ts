@@ -43,6 +43,20 @@ describe("X composer detection", () => {
     expect(composerText(composer)).toBe("Hello");
   });
 
+  it("treats X's composer placeholder as an empty draft", () => {
+    const composer = document.createElement("div");
+    composer.setAttribute("data-testid", "tweetTextarea_0");
+    composer.setAttribute("contenteditable", "true");
+    composer.setAttribute("role", "textbox");
+    composer.textContent = "What's happening?";
+    Object.defineProperty(composer, "getBoundingClientRect", {
+      value: () => ({ width: 300, height: 80 })
+    });
+    document.body.appendChild(composer);
+
+    expect(composerText(composer)).toBe("");
+  });
+
   it("ignores a search textbox", () => {
     const search = document.createElement("div");
     search.setAttribute("contenteditable", "true");
