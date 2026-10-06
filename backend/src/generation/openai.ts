@@ -255,7 +255,8 @@ export function withVicharAttribution(text: string, maxLength: number): string |
   } else if (body.endsWith(attribution)) {
     body = body.slice(0, -attribution.length).trimEnd();
   }
-  const result = body ? `${body}${VICHAR_ATTRIBUTION_SEPARATOR}${attribution}` : attribution;
+  if (!body) return undefined;
+  const result = `${body}${VICHAR_ATTRIBUTION_SEPARATOR}${attribution}`;
   return Array.from(result).length <= maxLength ? result : undefined;
 }
 
