@@ -70,7 +70,7 @@ export function composerText(composer: HTMLElement): string {
     .trim();
 }
 
-function findPostButton(composer: HTMLElement): HTMLElement | null {
+function findPostButtonLegacy(composer: HTMLElement): HTMLElement | null {
   const scope =
     composer.closest('[role="dialog"]') ||
     composer.closest('[aria-modal="true"]') ||
