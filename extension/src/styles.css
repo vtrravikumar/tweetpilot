@@ -1,4 +1,4 @@
-#tweetpilot-root {
+#vichar-root {
   all: initial;
   position: relative;
   z-index: 1;
@@ -10,17 +10,17 @@
   color: #0f1419;
 }
 
-#tweetpilot-root.tp-inactive {
+#vichar-root.vc-inactive {
   display: none;
 }
 
-#tweetpilot-root *,
-#tweetpilot-root *::before,
-#tweetpilot-root *::after {
+#vichar-root *,
+#vichar-root *::before,
+#vichar-root *::after {
   box-sizing: border-box;
 }
 
-#tweetpilot-root .tp-card {
+#vichar-root .vc-card {
   background: transparent;
   border: 0;
   border-bottom: 1px solid rgba(15, 20, 25, 0.10);
@@ -29,75 +29,75 @@
   padding: 8px 0;
 }
 
-#tweetpilot-root .tp-header,
-#tweetpilot-root .tp-actions {
+#vichar-root .vc-header,
+#vichar-root .vc-actions {
   display: flex;
   align-items: center;
   gap: 8px;
 }
 
-#tweetpilot-root .tp-header {
+#vichar-root .vc-header {
   justify-content: space-between;
   margin-bottom: 6px;
 }
 
-#tweetpilot-root .tp-brand {
+#vichar-root .vc-brand {
   font-size: 15px;
   font-weight: 700;
 }
 
-#tweetpilot-root .tp-brand span {
+#vichar-root .vc-brand span {
   font-weight: 500;
   opacity: 0.55;
   margin-left: 4px;
 }
 
-#tweetpilot-root .tp-subtitle,
-#tweetpilot-root .tp-footer,
-#tweetpilot-root .tp-status {
+#vichar-root .vc-subtitle,
+#vichar-root .vc-footer,
+#vichar-root .vc-status {
   font-size: 12px;
 }
 
-#tweetpilot-root .tp-subtitle,
-#tweetpilot-root .tp-footer {
+#vichar-root .vc-subtitle,
+#vichar-root .vc-footer {
   color: #536471;
 }
 
-#tweetpilot-root .tp-icon-button,
-#tweetpilot-root .tp-reopen {
+#vichar-root .vc-icon-button,
+#vichar-root .vc-reopen {
   border: 0;
   background: transparent;
   cursor: pointer;
 }
 
-#tweetpilot-root .tp-icon-button {
+#vichar-root .vc-icon-button {
   font-size: 22px;
   line-height: 1;
   color: #536471;
 }
 
-#tweetpilot-root .tp-controls {
+#vichar-root .vc-controls {
   display: grid;
   grid-template-columns: minmax(120px, 0.8fr) minmax(120px, 1fr);
   gap: 8px;
   margin-bottom: 6px;
 }
 
-#tweetpilot-root label {
+#vichar-root label {
   display: grid;
   gap: 5px;
   font-size: 12px;
   font-weight: 600;
 }
 
-#tweetpilot-root label em {
+#vichar-root label em {
   font-weight: 400;
   color: #536471;
   font-style: normal;
 }
 
-#tweetpilot-root input,
-#tweetpilot-root textarea {
+#vichar-root input,
+#vichar-root textarea {
   width: 100%;
   border: 1px solid #cfd9de;
   border-radius: 9px;
@@ -106,12 +106,12 @@
   font: inherit;
 }
 
-#tweetpilot-root input {
+#vichar-root input {
   height: 36px;
   padding: 0 10px;
 }
 
-#tweetpilot-root textarea {
+#vichar-root textarea {
   min-height: 56px;
   max-height: 80px;
   resize: vertical;
@@ -120,17 +120,17 @@
   font-size: 14px;
 }
 
-#tweetpilot-root .tp-status {
+#vichar-root .vc-status {
   min-height: 18px;
   color: #536471;
   margin: 6px 0;
 }
 
-#tweetpilot-root .tp-suggestion-wrap {
+#vichar-root .vc-suggestion-wrap {
   position: relative;
 }
 
-#tweetpilot-root .tp-count {
+#vichar-root .vc-count {
   position: absolute;
   right: 8px;
   bottom: 7px;
@@ -141,11 +141,11 @@
   border-radius: 4px;
 }
 
-#tweetpilot-root .tp-actions {
+#vichar-root .vc-actions {
   margin-top: 6px;
 }
 
-#tweetpilot-root .tp-actions button {
+#vichar-root .vc-actions button {
   min-height: 34px;
   border-radius: 999px;
   padding: 0 12px;
@@ -155,29 +155,29 @@
   cursor: pointer;
 }
 
-#tweetpilot-root .tp-primary {
+#vichar-root .vc-primary {
   border: 0;
   background: #0f1419;
   color: #fff;
 }
 
-#tweetpilot-root .tp-secondary {
+#vichar-root .vc-secondary {
   border: 1px solid #cfd9de;
   background: #fff;
   color: #0f1419;
 }
 
-#tweetpilot-root button:disabled {
+#vichar-root button:disabled {
   opacity: 0.5;
   cursor: default;
 }
 
-#tweetpilot-root .tp-footer {
+#vichar-root .vc-footer {
   margin-top: 6px;
   text-align: center;
 }
 
-#tweetpilot-root .tp-reopen {
+#vichar-root .vc-reopen {
   display: none;
   margin-left: auto;
   margin-top: 8px;
@@ -192,14 +192,14 @@
   font-weight: 700;
 }
 
-#tweetpilot-root.tp-dismissed .tp-card {
+#vichar-root.vc-dismissed .vc-card {
   display: none;
 }
 
-#tweetpilot-root.tp-dismissed .tp-reopen {
+#vichar-root.vc-dismissed .vc-reopen {
   display: block;
 }
 
-#tweetpilot-root.tp-loading .tp-suggestion {
+#vichar-root.vc-loading .vc-suggestion {
   opacity: 0.6;
 }
