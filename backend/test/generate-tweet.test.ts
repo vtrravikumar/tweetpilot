@@ -112,13 +112,14 @@ describe("POST /v1/tweet/generate - success", () => {
     expect(response.status).toBe(200);
   });
 
-  it("does not reject oversized fields at request validation time", async () => {
+  it("rejects an oversized request body before generation", async () => {
     const response = await post({
       topic: "Photography ".repeat(5_000),
       location: "Chennai ".repeat(1_000),
       style: "thoughtful ".repeat(1_000),
     });
-    expect(response.status).toBe(200);
+    expect(response.status).toBe(413);
+    await expectError(response, 413, "request_too_large");
   });
 });
 
@@ -194,7 +195,7 @@ describe("POST /v1/tweet/generate - style validation", () => {
 });
 
 describe("POST /v1/tweet/generate - maxLength validation", () => {
-  it.each([0, -1, 1, 1.5, 16, "140", null, true, [140], { a: 1 }])(
+  it.each([0, -1, 1, 1.5, 16, 17, "140", null, true, [140], { a: 1 }])(
     "rejects an invalid maxLength: %j",
     async (maxLength) => {
       await expectError(
