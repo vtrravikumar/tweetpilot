@@ -107,7 +107,7 @@ export function createPanel(callbacks: PanelCallbacks): TweetPanel {
 
   let composer: HTMLElement | null = null;
   let hasTweet = false;
-  let replaceConfirmedForDraftForDraft: string | null = null;
+  let replaceConfirmedForDraft: string | null = null;
 
   const updateCount = () => {
     count.textContent = `${suggestion.value.length}/${DEFAULT_MAX_LENGTH}`;
@@ -143,8 +143,8 @@ export function createPanel(callbacks: PanelCallbacks): TweetPanel {
       return;
     }
 
-    if (current && replaceConfirmedForDraftForDraft !== current) {
-      replaceConfirmedForDraftForDraft = current;
+    if (current && replaceConfirmedForDraft !== current) {
+      replaceConfirmedForDraft = current;
       primary.textContent = "Replace draft?";
       status.textContent = "X already has a draft. Choose Replace draft? to overwrite it.";
       return;
@@ -153,7 +153,7 @@ export function createPanel(callbacks: PanelCallbacks): TweetPanel {
     status.textContent = "Adding to X…";
     void (async () => {
       const inserted = await replaceComposerText(composer, tweet);
-      replaceConfirmedForDraftForDraft = null;
+      replaceConfirmedForDraft = null;
       if (!inserted || composerText(composer) !== tweet) {
         status.textContent =
           "X did not accept the suggestion. You can copy it and paste it into the composer.";
@@ -179,7 +179,7 @@ export function createPanel(callbacks: PanelCallbacks): TweetPanel {
 
   const invalidateSuggestion = (message: string) => {
     hasTweet = false;
-    replaceConfirmedForDraft = false;
+    replaceConfirmedForDraft = null;
     suggestion.value = "";
     updateCount();
     primary.textContent = "Get a thought";
@@ -215,7 +215,7 @@ export function createPanel(callbacks: PanelCallbacks): TweetPanel {
     },
     setTweet(tweet, resolvedTopic) {
       hasTweet = true;
-      replaceConfirmedForDraft = false;
+      replaceConfirmedForDraft = null;
       suggestion.value = tweet;
       updateCount();
       status.textContent = `Vichāraḥ · ${resolvedTopic} · Thought`;
@@ -226,7 +226,7 @@ export function createPanel(callbacks: PanelCallbacks): TweetPanel {
     },
     setError(message) {
       hasTweet = false;
-      replaceConfirmedForDraft = false;
+      replaceConfirmedForDraft = null;
       root.classList.remove("vc-loading");
       status.textContent = message;
       primary.textContent = "Get a thought";
@@ -242,7 +242,7 @@ export function createPanel(callbacks: PanelCallbacks): TweetPanel {
     setComposer: (value) => {
       if (value !== composer) {
         hasTweet = false;
-        replaceConfirmedForDraft = false;
+        replaceConfirmedForDraft = null;
         suggestion.value = "";
         updateCount();
         primary.textContent = "Get a thought";
