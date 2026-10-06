@@ -15,8 +15,7 @@ export function createUsageGuard(): UsageGuard {
           allowed: false,
           remaining: 0,
           dailyLimit: 0,
-          retryAfterSeconds: 0,
-          reason: "burst",
+          reason: "unauthorized",
         };
       }
 
