@@ -29,6 +29,7 @@ describe("VicharUsage Durable Object", () => {
       remaining: 7,
       dailyLimit: 10,
     });
+    if (blocked.allowed) throw new Error("expected burst limit to block");
     expect(blocked.retryAfterSeconds).toBeGreaterThan(0);
   });
 
@@ -49,6 +50,7 @@ describe("VicharUsage Durable Object", () => {
       remaining: 0,
       dailyLimit: 10,
     });
+    if (blocked.allowed) throw new Error("expected daily limit to block");
     expect(blocked.retryAfterSeconds).toBeGreaterThan(0);
   });
 
