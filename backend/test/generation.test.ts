@@ -4,7 +4,8 @@ import {
   PLACEHOLDER_PREFIX,
   PlaceholderTweetGenerator,
 } from "../src/generation/placeholder";
-import { VICHAR_ATTRIBUTION } from "../src/generation/types";\nimport type { TweetGenerator } from "../src/generation/types";
+import { VICHAR_ATTRIBUTION } from "../src/generation/types";
+import type { TweetGenerator } from "../src/generation/types";
 import { createGenerateTweetRoute } from "../src/routes/generateTweet";
 import { validateGenerateTweetRequest } from "../src/validation/generateTweet";
 
@@ -21,7 +22,8 @@ describe("PlaceholderTweetGenerator", () => {
 
   it("applies the default max length when none is given", async () => {
     const { tweet } = await generator.generate({ topic: "x".repeat(1000) });
-    expect(Array.from(tweet).length).toBe(DEFAULT_MAX_LENGTH);\n    expect(tweet.endsWith(`\\n${VICHAR_ATTRIBUTION}`)).toBe(true);
+    expect(Array.from(tweet).length).toBe(DEFAULT_MAX_LENGTH);
+    expect(tweet.endsWith(`\n${VICHAR_ATTRIBUTION}`)).toBe(true);
   });
 
   it("does not split surrogate pairs when truncating", async () => {
@@ -29,7 +31,8 @@ describe("PlaceholderTweetGenerator", () => {
       topic: "😀".repeat(100),
       maxLength: 60,
     });
-    expect(Array.from(tweet).length).toBe(60);\n    expect(tweet.endsWith(`\\n${VICHAR_ATTRIBUTION}`)).toBe(true);
+    expect(Array.from(tweet).length).toBe(60);
+    expect(tweet.endsWith(`\n${VICHAR_ATTRIBUTION}`)).toBe(true);
     expect(tweet).not.toMatch(/[\uD800-\uDBFF](?![\uDC00-\uDFFF])/);
   });
 });
