@@ -1,9 +1,11 @@
 #vichar-root {
-  --vc-blue: #0922ff;
-  --vc-orange: #ff7a00;
-  --vc-sky: #7ed3ff;
-  --vc-navy: #0b1a3a;
-  --vc-gray: #e9eef7;
+  --vc-crimson: #dc143c;
+  --vc-red: #ff2d3a;
+  --vc-gold: #ffc400;
+  --vc-orange: #ff8a00;
+  --vc-cream: #fff4e6;
+  --vc-deep-crimson: #7a1025;
+  --vc-border: #f0c9b8;
   all: initial;
   position: relative;
   z-index: 1;
@@ -12,73 +14,50 @@
   margin: 0;
   padding: 0;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  color: var(--vc-navy);
+  color: var(--vc-deep-crimson);
 }
 
-#vichar-root.vc-inactive {
-  display: none;
-}
-
-#vichar-root *,
-#vichar-root *::before,
-#vichar-root *::after {
-  box-sizing: border-box;
-}
+#vichar-root.vc-inactive { display: none; }
+#vichar-root *, #vichar-root *::before, #vichar-root *::after { box-sizing: border-box; }
 
 #vichar-root .vc-card {
-  background: transparent;
+  background:
+    linear-gradient(135deg, rgba(220, 20, 60, 0.055), rgba(255, 138, 0, 0.035)),
+    transparent;
   border: 0;
-  border-bottom: 1px solid rgba(15, 20, 25, 0.10);
+  border-bottom: 1px solid rgba(220, 20, 60, 0.18);
   border-radius: 0;
   box-shadow: none;
   padding: 8px 0;
 }
 
-#vichar-root .vc-header,
-#vichar-root .vc-actions {
+#vichar-root .vc-header, #vichar-root .vc-actions {
   display: flex;
   align-items: center;
   gap: 8px;
 }
-
-#vichar-root .vc-header {
-  justify-content: space-between;
-  margin-bottom: 6px;
-}
-
-#vichar-root .vc-brand {
-  font-size: 15px;
-  font-weight: 700;
-}
-
-#vichar-root .vc-brand > span:last-child {
-  font-weight: 500;
-  opacity: 0.55;
-  margin-left: 4px;
-}
+#vichar-root .vc-header { justify-content: space-between; margin-bottom: 6px; }
+#vichar-root .vc-brand { font-size: 15px; font-weight: 700; }
+#vichar-root .vc-brand > span:last-child { font-weight: 500; opacity: 0.55; margin-left: 4px; }
 
 #vichar-root .vc-subtitle,
 #vichar-root .vc-footer,
-#vichar-root .vc-status {
-  font-size: 12px;
+#vichar-root .vc-status { font-size: 12px; }
+#vichar-root .vc-subtitle, #vichar-root .vc-footer {
+  color: var(--vc-deep-crimson);
+  opacity: 0.72;
 }
 
-#vichar-root .vc-subtitle,
-#vichar-root .vc-footer {
-  color: #536a8c;
-}
-
-#vichar-root .vc-icon-button,
-#vichar-root .vc-reopen {
+#vichar-root .vc-icon-button, #vichar-root .vc-reopen {
   border: 0;
   background: transparent;
   cursor: pointer;
 }
-
 #vichar-root .vc-icon-button {
   font-size: 22px;
   line-height: 1;
-  color: #536a8c;
+  color: var(--vc-deep-crimson);
+  opacity: 0.7;
 }
 
 #vichar-root .vc-controls {
@@ -88,34 +67,23 @@
   margin-bottom: 6px;
 }
 
-#vichar-root label {
-  display: grid;
-  gap: 5px;
-  font-size: 12px;
-  font-weight: 600;
-}
-
+#vichar-root label { display: grid; gap: 5px; font-size: 12px; font-weight: 600; }
 #vichar-root label em {
   font-weight: 400;
-  color: #536a8c;
+  color: var(--vc-deep-crimson);
+  opacity: 0.65;
   font-style: normal;
 }
 
-#vichar-root input,
-#vichar-root textarea {
+#vichar-root input, #vichar-root textarea {
   width: 100%;
-  border: 1px solid #d8e2f2;
+  border: 1px solid var(--vc-border);
   border-radius: 9px;
-  background: #ffffff;
-  color: var(--vc-navy);
+  background: var(--vc-cream);
+  color: var(--vc-deep-crimson);
   font: inherit;
 }
-
-#vichar-root input {
-  height: 36px;
-  padding: 0 10px;
-}
-
+#vichar-root input { height: 36px; padding: 0 10px; }
 #vichar-root textarea {
   min-height: 56px;
   max-height: 80px;
@@ -127,29 +95,22 @@
 
 #vichar-root .vc-status {
   min-height: 18px;
-  color: #536a8c;
+  color: var(--vc-deep-crimson);
+  opacity: 0.78;
   margin: 6px 0;
 }
-
-#vichar-root .vc-suggestion-wrap {
-  position: relative;
-}
-
+#vichar-root .vc-suggestion-wrap { position: relative; }
 #vichar-root .vc-count {
   position: absolute;
   right: 8px;
   bottom: 7px;
   font-size: 11px;
-  color: #536a8c;
-  background: rgba(255, 255, 255, 0.9);
+  color: var(--vc-deep-crimson);
+  background: rgba(255, 244, 230, 0.92);
   padding: 1px 3px;
   border-radius: 4px;
 }
-
-#vichar-root .vc-actions {
-  margin-top: 6px;
-}
-
+#vichar-root .vc-actions { margin-top: 6px; }
 #vichar-root .vc-actions button {
   min-height: 34px;
   border-radius: 999px;
@@ -162,75 +123,41 @@
 
 #vichar-root .vc-primary {
   border: 0;
-  background: var(--vc-blue);
+  background: var(--vc-crimson);
   color: #ffffff;
 }
-
 #vichar-root .vc-secondary {
-  border: 1px solid #d8e2f2;
-  background: #ffffff;
-  color: var(--vc-navy);
+  border: 1px solid var(--vc-border);
+  background: var(--vc-cream);
+  color: var(--vc-deep-crimson);
 }
-
-#vichar-root button:disabled {
-  opacity: 0.5;
-  cursor: default;
-}
-
-#vichar-root .vc-footer {
-  margin-top: 6px;
-  text-align: center;
-}
+#vichar-root button:disabled { opacity: 0.5; cursor: default; }
+#vichar-root .vc-footer { margin-top: 6px; text-align: center; }
 
 #vichar-root .vc-reopen {
   display: none;
   margin-left: auto;
   margin-top: 8px;
-  border: 1px solid #d8e2f2;
+  border: 1px solid var(--vc-border);
   border-radius: 999px;
-  background: #ffffff;
-  color: var(--vc-navy);
+  background: var(--vc-cream);
+  color: var(--vc-deep-crimson);
   padding: 7px 11px;
-  box-shadow: 0 4px 14px rgba(11, 26, 58, 0.16);
+  box-shadow: 0 4px 14px rgba(122, 16, 37, 0.16);
   font: inherit;
   font-size: 12px;
   font-weight: 700;
 }
+#vichar-root.vc-dismissed .vc-card { display: none; }
+#vichar-root.vc-dismissed .vc-reopen { display: block; }
+#vichar-root.vc-loading .vc-suggestion { opacity: 0.6; }
+#vichar-root .vc-brand { color: var(--vc-deep-crimson); }
+#vichar-root .vc-word { letter-spacing: -0.2px; }
+#vichar-root .vc-ai-i { color: var(--vc-gold); }
+#vichar-root .vc-ai-a { color: var(--vc-orange); }
+#vichar-root .vc-primary:hover:not(:disabled) { background: var(--vc-red); }
 
-#vichar-root.vc-dismissed .vc-card {
-  display: none;
-}
-
-#vichar-root.vc-dismissed .vc-reopen {
-  display: block;
-}
-
-#vichar-root.vc-loading .vc-suggestion {
-  opacity: 0.6;
-}
-
-#vichar-root .vc-brand {
-  color: var(--vc-navy);
-}
-
-#vichar-root .vc-word {
-  letter-spacing: -0.2px;
-}
-
-#vichar-root .vc-ai-i {
-  color: var(--vc-blue);
-}
-
-#vichar-root .vc-ai-a {
-  color: var(--vc-orange);
-}
-
-#vichar-root .vc-primary:hover:not(:disabled) {
-  background: var(--vc-navy);
-}
-
-#vichar-root input:focus,
-#vichar-root textarea:focus {
-  outline: 2px solid rgba(9, 34, 255, 0.18);
-  border-color: var(--vc-blue);
+#vichar-root input:focus, #vichar-root textarea:focus {
+  outline: 2px solid rgba(220, 20, 60, 0.18);
+  border-color: var(--vc-crimson);
 }
