@@ -49,7 +49,9 @@ export function createUsageGuard(): UsageGuard {
 
       if (!namespace) {
         const testMode = (env as unknown as { VICHAR_TEST_MODE?: unknown }).VICHAR_TEST_MODE;
-        if (testMode === "1") return { allowed: true };
+        if (testMode === "1" || config.generatorMode === "placeholder") {
+          return { allowed: true };
+        }
         throw new Error("VICHAR_USAGE binding is not configured.");
       }
 
