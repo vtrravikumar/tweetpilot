@@ -3,6 +3,7 @@ import type { TweetGenerator } from "../generation/types";
 import { errorResponse, jsonResponse } from "../http/json";
 import type { Route } from "../router";
 import { allowAllUsageGuard, type UsageGuard } from "../usage/guard";
+import { checkWebUsage } from "../usage/webGuard";
 import { validateGenerateTweetRequest } from "../validation/generateTweet";
 import { isValidVicharWebToken } from "../webAuth";
 
@@ -52,10 +53,19 @@ export function createGenerateTweetRoute(
       const webSecret = typeof bag.VICHAR_WEB_SECRET === "string" ? bag.VICHAR_WEB_SECRET.trim() : "";
       const webAccess = await isValidVicharWebToken(request, webSecret);
 
-      const decision = webAccess ? { allowed: true as const } : await usageGuard.check(request, env);
+      const decision = webAccess
+        ? await checkWebUsage(request, env, webSecret)
+        : await usageGuard.check(request, env);
 
       if (!decision.allowed) {
         if (decision.reason === "unauthorized") {
+          if (webAccess) {
+            return errorResponse(
+              503,
+              "web_usage_unavailable",
+              "Vichar web usage protection is currently unavailable.",
+            );
+          }
           return errorResponse(401, "missing_usage_key", "Vichar usage key is required.");
         }
 
