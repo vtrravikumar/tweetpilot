@@ -8,7 +8,12 @@ import {
   outputTokenBudget,
 } from "../src/generation/openai";
 import { INTERESTS } from "../src/generation/personalization";
-import { DEFAULT_MAX_LENGTH, type TweetGenerator } from "../src/generation/types";
+import {
+  DEFAULT_MAX_LENGTH,
+  MIN_VICHAR_MAX_LENGTH,
+  VICHAR_ATTRIBUTION,
+  type TweetGenerator,
+} from "../src/generation/types";
 import { capture, openaiJson, openaiOk, queueFetch } from "./helpers";
 
 const KEY = "sk-test-not-a-real-key-123456";
@@ -36,7 +41,7 @@ describe("OpenAIProvider - interface and configuration", () => {
     const fetchMock = queueFetch(openaiOk("hello"));
     const generator: TweetGenerator = provider(fetchMock);
     expect(typeof generator.generate).toBe("function");
-    expect(await generator.generate({ topic: "x" })).toEqual({ tweet: "hello" });
+    expect(await generator.generate({ topic: "x" })).toEqual({ tweet: `hello\n${VICHAR_ATTRIBUTION}` });
   });
 
   it("refuses to be constructed without an API key", () => {
@@ -271,21 +276,21 @@ describe("OpenAIProvider - VTRRK links", () => {
       openaiOk(`Clean version ${PHOTO_URL}`),
     );
     const result = await provider(fetchMock, { links }).generate({ topic: "Photography" });
-    expect(result.tweet).toBe(`Clean version ${PHOTO_URL}`);
+    expect(result.tweet).toBe(`Clean version ${PHOTO_URL}\\n${VICHAR_ATTRIBUTION}`);
     expect(capture(fetchMock, 1).body.input).toContain("link that is not allowed");
   });
 
   it("does not treat a plain brand mention as a link", async () => {
     const fetchMock = queueFetch(openaiOk("Posting more on VTRRK soon."));
     const result = await provider(fetchMock).generate({ topic: "Cooking" });
-    expect(result.tweet).toBe("Posting more on VTRRK soon.");
+    expect(result.tweet).toBe(`Posting more on VTRRK soon.\\n${VICHAR_ATTRIBUTION}`);
   });
 });
 
 describe("OpenAIProvider - response normalization", () => {
   it("trims whitespace", async () => {
     const fetchMock = queueFetch(openaiOk("  \n A tweet.  \n"));
-    expect((await provider(fetchMock).generate({ topic: "x" })).tweet).toBe("A tweet.");
+    expect((await provider(fetchMock).generate({ topic: "x" })).tweet).toBe(`A tweet.\n${VICHAR_ATTRIBUTION}`);
   });
 
   it("removes one pair of wrapping double quotes", async () => {
@@ -314,7 +319,7 @@ describe("OpenAIProvider - response normalization", () => {
         ],
       }),
     );
-    expect((await provider(fetchMock).generate({ topic: "x" })).tweet).toBe("Part one. Part two.");
+    expect((await provider(fetchMock).generate({ topic: "x" })).tweet).toBe(`Part one. Part two.\n${VICHAR_ATTRIBUTION}`);
   });
 
   it("counts length by code point, so emoji are not over-counted", async () => {
@@ -451,7 +456,7 @@ describe("OpenAIProvider - over-length output", () => {
   it("retries once with feedback when the first draft is too long, then succeeds", async () => {
     const fetchMock = queueFetch(openaiOk("a".repeat(150)), openaiOk("b".repeat(100)));
     const result = await provider(fetchMock).generate({ topic: "x", maxLength: 140 });
-    expect(result.tweet).toBe("b".repeat(100));
+    expect(result.tweet).toBe(`b`.repeat(83) + `\\n${VICHAR_ATTRIBUTION}`);
     expect(fetchMock).toHaveBeenCalledTimes(2);
     const retryInput = capture(fetchMock, 1).body.input;
     expect(retryInput).toContain("150 characters");
@@ -491,5 +496,28 @@ describe("OpenAIProvider - over-length output", () => {
     const fetchMock = queueFetch(openaiOk("fine"));
     await provider(fetchMock).generate({ topic: "x" });
     expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+});
+
+
+describe("OpenAIProvider - Vichar attribution", () => {
+  it("always appends the exact attribution as the final line", async () => {
+    const fetchMock = queueFetch(openaiOk("A useful thought."));
+    const result = await provider(fetchMock).generate({ topic: "x" });
+    expect(result.tweet.endsWith(`\\n${VICHAR_ATTRIBUTION}`)).toBe(true);
+  });
+
+  it("does not duplicate attribution when the model already includes it", async () => {
+    const fetchMock = queueFetch(openaiOk(`A useful thought.\\n${VICHAR_ATTRIBUTION}`));
+    const result = await provider(fetchMock).generate({ topic: "x" });
+    expect(result.tweet).toBe(`A useful thought.\\n${VICHAR_ATTRIBUTION}`);
+    expect(result.tweet.match(/Vichar by @vtrrk/g)?.length).toBe(1);
+  });
+
+  it("counts attribution within maxLength", async () => {
+    const fetchMock = queueFetch(openaiOk("A"));
+    const result = await provider(fetchMock).generate({ topic: "x", maxLength: MIN_VICHAR_MAX_LENGTH });
+    expect(Array.from(result.tweet).length).toBe(MIN_VICHAR_MAX_LENGTH);
+    expect(result.tweet).toBe(VICHAR_ATTRIBUTION);
   });
 });
