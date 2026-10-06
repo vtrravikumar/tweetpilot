@@ -124,7 +124,7 @@
 
 #vichar-root .vc-primary {
   border: 0;
-  background: var(--vc-text);
+  background: #1d9bf0;
   color: #ffffff;
 }
 #vichar-root .vc-secondary {
@@ -155,7 +155,7 @@
 #vichar-root.vc-loading .vc-suggestion { opacity: 0.6; }
 #vichar-root .vc-word { letter-spacing: -0.2px; }
 #vichar-root .vc-ai-i, #vichar-root .vc-ai-a { color: inherit; }
-#vichar-root .vc-primary:hover:not(:disabled) { background: #272c30; }
+#vichar-root .vc-primary:hover:not(:disabled) { background: #1a8cd8; }
 
 #vichar-root input:focus, #vichar-root textarea:focus {
   outline: 2px solid rgba(29, 155, 240, 0.22);
