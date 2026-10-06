@@ -70,7 +70,16 @@ const X_COMPOSER_PLACEHOLDERS = new Set([
 ]);
 
 export function composerText(composer: HTMLElement): string {
-  const text = (composer.innerText || composer.textContent || "")
+  // Vichar is mounted into X's composer host. When X's contenteditable
+  // contains our panel, innerText would incorrectly treat Vichar's own
+  // suggestion as an existing X draft. Read the composer without our UI.
+  let textSource: HTMLElement = composer;
+  if (composer.querySelector("#vichar-root")) {
+    textSource = composer.cloneNode(true) as HTMLElement;
+    textSource.querySelector("#vichar-root")?.remove();
+  }
+
+  const text = (textSource.innerText || textSource.textContent || "")
     .replace(/\u00a0/g, " ")
     .trim();
 
