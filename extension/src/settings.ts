@@ -40,8 +40,9 @@ export async function getApiKey(): Promise<string> {
     unknown
   >;
 
-  if (typeof result[STORAGE_KEYS.apiKey] === "string") {
-    const existing = result[STORAGE_KEYS.apiKey].trim();
+  const storedApiKey = result[STORAGE_KEYS.apiKey];
+  if (typeof storedApiKey === "string") {
+    const existing = storedApiKey.trim();
     if (existing.length >= 20) return existing;
   }
 
