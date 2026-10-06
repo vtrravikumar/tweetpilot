@@ -1,6 +1,11 @@
 import { DEFAULT_MAX_LENGTH, PANEL_ID } from "./constants";
 import { TOPICS, type Topic } from "./types";
-import { composerHost, composerText, replaceComposerText } from "./dom";
+import {
+  composerHost,
+  composerText,
+  isPostButtonEnabled,
+  replaceComposerText
+} from "./dom";
 
 export interface PanelCallbacks {
   onGenerate: (topic: Topic, location: string) => void;
@@ -109,20 +114,31 @@ export function createPanel(callbacks: PanelCallbacks): TweetPanel {
     }
 
     const current = composerText(composer);
-
-    if (
-      current &&
-      current !== tweet &&
-      !window.confirm(
-        "Replace your current X draft with this TweetPilot suggestion?"
-      )
-    ) {
+    if (current === tweet) {
+      status.textContent =
+        "Already in X. Edit it if you like, then use X's native Post button.";
       return;
     }
 
-    replaceComposerText(composer, tweet);
-    status.textContent =
-      "Added to X. Edit it if you like, then use X's native Post button.";
+    status.textContent = "Adding to X…";
+    void (async () => {
+      const inserted = await replaceComposerText(composer, tweet);
+      if (!inserted || composerText(composer) !== tweet) {
+        status.textContent =
+          "X did not accept the suggestion. You can copy it and paste it into the composer.";
+        return;
+      }
+
+      await new Promise((resolve) => window.setTimeout(resolve, 150));
+      if (!isPostButtonEnabled(composer)) {
+        status.textContent =
+          "The text is in the X editor, but X has not enabled Post yet. Edit the draft or try Use this again.";
+        return;
+      }
+
+      status.textContent =
+        "Added to X. Edit it if you like, then use X's native Post button.";
+    })();
   });
 
   another.addEventListener("click", () =>
@@ -173,7 +189,16 @@ export function createPanel(callbacks: PanelCallbacks): TweetPanel {
       composer = value;
 
       const host = value ? composerHost(value) : document.body;
-      if (root.parentElement !== host) {
+      if (value && host) {
+        const toolbar = value.closest('[data-testid="toolBar"]');
+        if (toolbar?.parentElement === host) {
+          if (root.parentElement !== host || root.nextSibling !== toolbar) {
+            host.insertBefore(root, toolbar);
+          }
+        } else if (root.parentElement !== host) {
+          host.appendChild(root);
+        }
+      } else if (root.parentElement !== host) {
         host.appendChild(root);
       }
     },
