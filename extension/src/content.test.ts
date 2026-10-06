@@ -11,6 +11,10 @@ describe("topic resolution", () => {
     expect(resolveTopic("Surprise me")).not.toBe("Surprise me");
   });
 
+  it("keeps a custom topic supplied by the user", () => {
+    expect(resolveTopic("Vintage cameras")).toBe("Vintage cameras");
+  });
+
   it("avoids the previous topic when choosing Surprise me", () => {
     const previous = "Photography";
     for (let index = 0; index < 20; index += 1) {
