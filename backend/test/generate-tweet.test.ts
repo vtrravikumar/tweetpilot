@@ -1,7 +1,8 @@
 import { exports } from "cloudflare:workers";
 import { describe, expect, it } from "vitest";
 import { PLACEHOLDER_PREFIX } from "../src/generation/placeholder";
-import { validateGenerateTweetRequest } from "../src/validation/generateTweet";\nimport { MIN_VICHAR_MAX_LENGTH } from "../src/generation/types";
+import { validateGenerateTweetRequest } from "../src/validation/generateTweet";
+import { MIN_VICHAR_MAX_LENGTH } from "../src/generation/types";
 
 const URL_ = "https://example.com/v1/tweet/generate";
 
@@ -91,7 +92,7 @@ describe("POST /v1/tweet/generate - success", () => {
   });
 
   it("never exceeds maxLength", async () => {
-    for (const maxLength of [1, 2, 10, 50, 140]) {
+    for (const maxLength of [MIN_VICHAR_MAX_LENGTH, 50, 140]) {
       const json = (await (
         await post({ topic: "Photography", location: "Chennai", maxLength })
       ).json()) as { tweet: string };
@@ -215,7 +216,7 @@ describe("POST /v1/tweet/generate - maxLength validation", () => {
   });
 
   it("accepts the smallest valid maxLength", async () => {
-    const response = await post({ topic: "Photography", maxLength: 1 });
+    const response = await post({ topic: "Photography", maxLength: MIN_VICHAR_MAX_LENGTH });
     expect(response.status).toBe(200);
   });
 
