@@ -20,7 +20,7 @@ export interface TweetPanel {
   setTweet: (tweet: string, resolvedTopic: string) => void;
   setError: (message: string) => void;
   setVisible: (visible: boolean) => void;
-  getTopic: () => Topic;
+  getTopic: () => TopicSelection;
   getLocation: () => string;
   getComposer: () => HTMLElement | null;
   setComposer: (composer: HTMLElement | null) => void;
@@ -118,7 +118,7 @@ export function createPanel(callbacks: PanelCallbacks): TweetPanel {
     }
 
     if (!hasTweet) {
-      status.textContent = "Creating an idea…";
+      status.textContent = "Getting a tweet…";
       callbacks.onGenerate(topicInput.value.trim() || "Surprise me", locationInput.value);
       return;
     }
@@ -161,7 +161,7 @@ export function createPanel(callbacks: PanelCallbacks): TweetPanel {
   });
 
   another.addEventListener("click", () => {
-    status.textContent = "Creating another idea…";
+    status.textContent = "Getting another tweet…";
     callbacks.onGenerate(topicInput.value.trim() || "Surprise me", locationInput.value);
   });
 
@@ -176,12 +176,12 @@ export function createPanel(callbacks: PanelCallbacks): TweetPanel {
   };
 
   topicInput.addEventListener("input", () => {
-    invalidateSuggestion("Topic changed. Press Inspire Tweet when you're ready.");
+    invalidateSuggestion("Topic changed. Choose Get a Tweet when you're ready.");
   });
 
   locationInput.addEventListener("change", () => {
     invalidateSuggestion(
-      "Location changed. Press Inspire Tweet when you're ready."
+      "Location changed. Choose Get a Tweet when you're ready."
     );
   });
   dismiss.addEventListener("click", callbacks.onDismiss);
@@ -207,7 +207,7 @@ export function createPanel(callbacks: PanelCallbacks): TweetPanel {
       status.textContent = `Fresh idea for ${resolvedTopic}`;
       primary.textContent = "Use this";
       primary.disabled = false;
-      another.textContent = "Change tweet";
+      another.textContent = "Get Another";
       another.disabled = false;
     },
     setError(message) {
@@ -229,7 +229,7 @@ export function createPanel(callbacks: PanelCallbacks): TweetPanel {
         hasTweet = false;
         suggestion.value = "";
         updateCount();
-        primary.textContent = "Inspire Tweet";
+        primary.textContent = "Get a Tweet";
         another.textContent = "Change tweet";
         another.disabled = true;
         primary.disabled = false;
