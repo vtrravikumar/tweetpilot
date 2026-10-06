@@ -24,8 +24,8 @@ async function webRequest(ip: string, token: string): Promise<Request> {
   });
 }
 
-describe("Vichar web usage protection", () => {
-  it("applies the normal burst quota to a web session", async () => {
+describe("Vichar web usage policy", () => {
+  it("allows repeated web generations without the extension quota", async () => {
     const route = createGenerateTweetRoute(generator);
     const routeEnv = {
       ...env,
@@ -35,54 +35,51 @@ describe("Vichar web usage protection", () => {
     } as unknown as Env;
     const token = await issueVicharWebToken(WEB_SECRET);
 
-    expect((await route.handler(await webRequest("203.0.113.10", token), routeEnv, ctx)).status).toBe(200);
-    expect((await route.handler(await webRequest("203.0.113.10", token), routeEnv, ctx)).status).toBe(200);
-    expect((await route.handler(await webRequest("203.0.113.10", token), routeEnv, ctx)).status).toBe(200);
-
-    const blocked = await route.handler(await webRequest("203.0.113.10", token), routeEnv, ctx);
-    expect(blocked.status).toBe(429);
-    expect(blocked.headers.get("retry-after")).not.toBeNull();
+    for (let index = 0; index < 12; index += 1) {
+      const response = await route.handler(
+        await webRequest("203.0.113.10", token),
+        routeEnv,
+        ctx,
+      );
+      expect(response.status).toBe(200);
+    }
   });
 
-  it("isolates web usage counters by client IP", async () => {
+  it("does not couple web usage to client IP", async () => {
     const route = createGenerateTweetRoute(generator);
     const routeEnv = {
       ...env,
       VICHAR_WEB_SECRET: WEB_SECRET,
-      VICHAR_DAILY_LIMIT: "10",
-      VICHAR_BURST_PER_MINUTE: "3",
+      VICHAR_DAILY_LIMIT: "1",
+      VICHAR_BURST_PER_MINUTE: "1",
     } as unknown as Env;
     const token = await issueVicharWebToken(WEB_SECRET);
 
-    expect((await route.handler(await webRequest("203.0.113.20", token), routeEnv, ctx)).status).toBe(200);
-    expect((await route.handler(await webRequest("203.0.113.20", token), routeEnv, ctx)).status).toBe(200);
     expect((await route.handler(await webRequest("203.0.113.20", token), routeEnv, ctx)).status).toBe(200);
     expect((await route.handler(await webRequest("203.0.113.21", token), routeEnv, ctx)).status).toBe(200);
   });
 
-  it("fails closed when Cloudflare does not provide a client IP", async () => {
+  it("still requires a valid web session before generation", async () => {
     const route = createGenerateTweetRoute(generator);
     const routeEnv = {
       ...env,
       VICHAR_WEB_SECRET: WEB_SECRET,
     } as unknown as Env;
-    const token = await issueVicharWebToken(WEB_SECRET);
     const request = new Request(URL_, {
       method: "POST",
       headers: {
         Origin: "https://vtrrk.in",
-        Authorization: `Bearer ${token}`,
         "content-type": "application/json",
       },
       body: JSON.stringify({ topic: "Photography" }),
     });
 
     const response = await route.handler(request, routeEnv, ctx);
-    expect(response.status).toBe(503);
+    expect(response.status).toBe(401);
     expect(await response.json()).toEqual({
       error: {
-        code: "web_usage_unavailable",
-        message: "Vichar web usage protection is currently unavailable.",
+        code: "missing_usage_key",
+        message: "Vichar usage key is required.",
       },
     });
   });
