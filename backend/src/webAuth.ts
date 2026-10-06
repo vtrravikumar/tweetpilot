@@ -77,7 +77,11 @@ export async function isValidVicharWebToken(
   const match = /^Bearer\s+([A-Za-z0-9_-]+\.[A-Za-z0-9_-]+)$/.exec(authorization);
   if (!match) return false;
 
-  const [encoded, signature] = match[1].split(".");
+  const token = match[1];
+  if (!token) return false;
+
+  const [encoded, signature] = token.split(".");
+  if (!encoded || !signature) return false;
   if (!(await verify(encoded, signature, secret))) return false;
 
   try {
