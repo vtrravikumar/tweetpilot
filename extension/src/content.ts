@@ -4,10 +4,10 @@ import { findComposer } from "./dom";
 import { loadSettings, saveLocation } from "./settings";
 import { resolveTopic } from "./topic";
 import { createPanel } from "./ui";
-import type { Topic } from "./types";
+import type { TopicSelection } from "./types";
 
 let activeComposer: HTMLElement | null = null;
-let lastResolvedTopic: Exclude<Topic, "Surprise me"> | undefined;
+let lastResolvedTopic: string | undefined;
 let dismissedForComposer: HTMLElement | null = null;
 let generationSequence = 0;
 
@@ -26,7 +26,7 @@ const panel = createPanel({
 });
 
 async function generateSuggestion(
-  selectedTopic: Topic,
+  selectedTopic: TopicSelection,
   location: string
 ): Promise<void> {
   if (!activeComposer) {
@@ -61,7 +61,7 @@ async function generateSuggestion(
     panel.setError(
       error instanceof Error
         ? error.message
-        : "TweetPilot could not generate a suggestion."
+        : "TweetPilot could not generate a tweet."
     );
   } finally {
     if (requestId === generationSequence) {
