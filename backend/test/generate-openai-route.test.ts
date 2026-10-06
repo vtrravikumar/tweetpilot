@@ -20,7 +20,10 @@ function env(values: Record<string, string> = {}): Env {
 function request(body: unknown = { topic: "Photography" }, method = "POST"): Request {
   return new Request("https://example.com/v1/tweet/generate", {
     method,
-    headers: { "content-type": "application/json" },
+    headers: {
+      "content-type": "application/json",
+      authorization: "Bearer test-route-usage-key-123456",
+    },
     body: method === "POST" ? JSON.stringify(body) : null,
   });
 }
