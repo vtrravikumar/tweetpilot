@@ -110,7 +110,7 @@ describe("CORS", () => {
         headers: {
           origin: EXTENSION_ORIGIN,
           "access-control-request-method": "POST",
-          "access-control-request-headers": "authorization",
+          "access-control-request-headers": "x-not-allowed",
         },
       }),
       env({ CORS_ALLOWED_ORIGINS: EXTENSION_ORIGIN }),
