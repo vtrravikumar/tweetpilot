@@ -56,7 +56,7 @@ extension/dist/
 1. Open `chrome://extensions/`.
 2. Enable **Developer mode**.
 3. Choose **Load unpacked**.
-4. Select `tweetpilot/extension/dist`.
+4. Select `vichar/extension/dist`.
 5. Open or reload `https://x.com/`.
 6. Open the X **Post** composer.
 
