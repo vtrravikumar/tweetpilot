@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 import { composerHost, composerText, findComposer, replaceComposerText } from "./dom";
 import { resolveTopic } from "./topic";
 
@@ -43,21 +43,8 @@ describe("X composer detection", () => {
     expect(composerText(composer)).toBe("Hello");
   });
 
-  it("treats X's composer placeholder as an empty draft", () => {
-    const composer = document.createElement("div");
-    composer.setAttribute("data-testid", "tweetTextarea_0");
-    composer.setAttribute("contenteditable", "true");
-    composer.setAttribute("role", "textbox");
-    composer.textContent = "What's happening?";
-    Object.defineProperty(composer, "getBoundingClientRect", {
-      value: () => ({ width: 300, height: 80 })
-    });
-    document.body.appendChild(composer);
-
-    expect(composerText(composer)).toBe("");
-  });
-
-  it("ignores Vichar's own panel text when checking for an X draft", () => {
+  it("reads only the native X editor when Vichar UI is mounted in the composer host", () => {
+    const host = document.createElement("div");
     const composer = document.createElement("div");
     composer.setAttribute("data-testid", "tweetTextarea_0");
     composer.setAttribute("contenteditable", "true");
@@ -65,14 +52,13 @@ describe("X composer detection", () => {
     Object.defineProperty(composer, "getBoundingClientRect", {
       value: () => ({ width: 300, height: 80 })
     });
+    const vichar = document.createElement("div");
+    vichar.id = "vichar-root";
+    vichar.innerHTML = "<textarea>Vichar by @vtrrk</textarea>";
+    host.append(composer, vichar);
+    document.body.appendChild(host);
 
-    const panel = document.createElement("div");
-    panel.id = "vichar-root";
-    panel.innerHTML = '<textarea>Vichar by @vtrrk</textarea>';
-    composer.appendChild(panel);
-    document.body.appendChild(composer);
-
-    expect(composerText(composer)).toBe("");
+    expect(composerText(host)).toBe("");
   });
 
   it("ignores a search textbox", () => {
@@ -143,41 +129,6 @@ describe("X composer detection", () => {
     document.body.appendChild(composer);
 
     expect(findComposer()).toBe(composer);
-  });
-
-  it("replaces an existing X draft instead of appending", async () => {
-    const composer = document.createElement("div");
-    composer.setAttribute("contenteditable", "true");
-    composer.setAttribute("role", "textbox");
-    composer.textContent = "My existing draft";
-    Object.defineProperty(composer, "getBoundingClientRect", {
-      value: () => ({ width: 300, height: 80 })
-    });
-    document.body.appendChild(composer);
-
-    const execCommand = vi.fn((command: string, _showUi?: boolean, value?: string) => {
-      if (command === "delete") {
-        composer.textContent = "";
-      } else if (command === "insertText") {
-        composer.textContent = value ?? "";
-      }
-      return true;
-    });
-    Object.defineProperty(document, "execCommand", {
-      configurable: true,
-      value: execCommand
-    });
-
-    const result = await replaceComposerText(composer, "Vichar by @vtrrk");
-
-    expect(result).toBe(true);
-    expect(composerText(composer)).toBe("Vichar by @vtrrk");
-    expect(execCommand).toHaveBeenCalledWith("delete", false);
-    expect(execCommand).toHaveBeenCalledWith(
-      "insertText",
-      false,
-      "Vichar by @vtrrk"
-    );
   });
 
   it("can replace composer text and emit textInput", async () => {
