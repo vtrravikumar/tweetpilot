@@ -64,10 +64,17 @@ export function findComposer(root: ParentNode = document): HTMLElement | null {
   return dialogComposer ?? allCandidates[0] ?? null;
 }
 
+const X_COMPOSER_PLACEHOLDERS = new Set([
+  "what's happening?",
+  "what is happening?"
+]);
+
 export function composerText(composer: HTMLElement): string {
-  return (composer.innerText || composer.textContent || "")
+  const text = (composer.innerText || composer.textContent || "")
     .replace(/\u00a0/g, " ")
     .trim();
+
+  return X_COMPOSER_PLACEHOLDERS.has(text.toLowerCase()) ? "" : text;
 }
 
 export function composerToolbar(composer: HTMLElement): HTMLElement | null {
