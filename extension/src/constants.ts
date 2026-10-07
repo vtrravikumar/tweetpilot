@@ -4,7 +4,6 @@ export const API_GENERATE_URL =
 export const DEFAULT_MAX_LENGTH = 140;
 
 export const STORAGE_KEYS = {
-  location: "vichar.location",
   apiKey: "vichar.apiKey"
 } as const;
 
