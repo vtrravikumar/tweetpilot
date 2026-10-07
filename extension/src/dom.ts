@@ -38,12 +38,10 @@ function isReplyComposer(element: HTMLElement): boolean {
     '[data-testid="tweetButton"], [data-testid="tweetButtonInline"]'
   );
   const buttonText = (
-    postButton?.textContent ||
-    postButton?.getAttribute("aria-label") ||
-    ""
+    `${postButton?.textContent ?? ""} ${postButton?.getAttribute("aria-label") ?? ""}`
   ).trim().toLowerCase();
 
-  if (/\\breply\\b/.test(buttonText)) {
+  if (/\breply\b/.test(buttonText)) {
     return true;
   }
 
