@@ -29,7 +29,28 @@ function looksLikeSearchBox(element: HTMLElement): boolean {
   );
 }
 
+function hasReplyPlaceholder(element: HTMLElement): boolean {
+  // X's Draft.js reply editor exposes a native placeholder such as
+  // "Post your reply" inside the RichTextInputContainer. This is the most
+  // direct signal that the visible composer is a reply composer.
+  const container = element.closest('[data-testid$="RichTextInputContainer"]');
+  if (!container) {
+    return false;
+  }
+
+  const placeholders = container.querySelectorAll<HTMLElement>(
+    '[class*="DraftEditorPlaceholder"]'
+  );
+  return Array.from(placeholders).some((placeholder) =>
+    /\\bpost your reply\\b/i.test((placeholder.textContent || "").trim())
+  );
+}
+
 function isReplyComposer(element: HTMLElement): boolean {
+  if (hasReplyPlaceholder(element)) {
+    return true;
+  }
+
   // Inline reply composers are not necessarily descendants of the article
   // that opened them. X identifies the native submit action as "Reply",
   // which is a more reliable signal for the active composer.
