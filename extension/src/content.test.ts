@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { composerHost, composerText, findComposer, replaceComposerText } from "./dom";
 import { resolveTopic } from "./topic";
 
@@ -143,17 +143,46 @@ describe("X composer detection", () => {
     composer.textContent = "Old draft";
     const originalExecCommand = document.execCommand;
     const commands: string[] = [];
-    document.execCommand = ((command: string, _showUi?: boolean, value?: string) => {
+    document.execCommand = ((command: string) => {
       commands.push(command);
-      if (command === "selectAll") {
-        return true;
-      }
-      if (command === "insertText") {
-        composer.textContent = value ?? "";
-        return true;
-      }
-      return false;
+      return command === "selectAll";
     }) as typeof document.execCommand;
+
+    class FakeDataTransfer {
+      private readonly values = new Map<string, string>();
+
+      setData(type: string, value: string): void {
+        this.values.set(type, value);
+      }
+
+      getData(type: string): string {
+        return this.values.get(type) ?? "";
+      }
+
+      clearData(): void {
+        this.values.clear();
+      }
+    }
+
+    class FakeClipboardEvent extends Event {
+      readonly clipboardData: FakeDataTransfer;
+
+      constructor(type: string, init: { clipboardData: FakeDataTransfer }) {
+        super(type, { bubbles: true, cancelable: true });
+        this.clipboardData = init.clipboardData;
+      }
+    }
+
+    vi.stubGlobal("DataTransfer", FakeDataTransfer);
+    vi.stubGlobal("ClipboardEvent", FakeClipboardEvent);
+
+    const originalDispatchEvent = composer.dispatchEvent;
+    composer.dispatchEvent = ((event: Event) => {
+      const clipboardData = (event as ClipboardEvent).clipboardData;
+      composer.textContent = clipboardData?.getData("text/plain") ?? "";
+      event.preventDefault();
+      return false;
+    }) as typeof composer.dispatchEvent;
 
     try {
       const first = await replaceComposerText(composer, "New draft");
@@ -162,14 +191,11 @@ describe("X composer detection", () => {
       expect(first).toBe(true);
       expect(second).toBe(true);
       expect(composerText(composer)).toBe("Second draft");
-      expect(commands).toEqual([
-        "selectAll",
-        "insertText",
-        "selectAll",
-        "insertText"
-      ]);
+      expect(commands).toEqual(["selectAll", "selectAll"]);
     } finally {
       document.execCommand = originalExecCommand;
+      composer.dispatchEvent = originalDispatchEvent;
+      vi.unstubAllGlobals();
     }
   });
 });
