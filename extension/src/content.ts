@@ -1,7 +1,6 @@
 import "./styles.css";
 import { generateTweet } from "./api";
 import { findComposer } from "./dom";
-import { loadSettings, saveLocation } from "./settings";
 import { resolveTopic } from "./topic";
 import { createPanel } from "./ui";
 import type { TopicSelection } from "./types";
@@ -25,6 +24,23 @@ const panel = createPanel({
   }
 });
 
+const VICHAR_STYLES = [
+  "thoughtful",
+  "conversational",
+  "witty",
+  "observational",
+  "curious",
+  "provocative",
+  "inspirational",
+  "minimalist"
+] as const;
+
+type VicharStyle = (typeof VICHAR_STYLES)[number];
+
+function pickRandomStyle(): VicharStyle {
+  return VICHAR_STYLES[Math.floor(Math.random() * VICHAR_STYLES.length)];
+}
+
 async function generateSuggestion(
   selectedTopic: TopicSelection,
   location: string
@@ -37,14 +53,13 @@ async function generateSuggestion(
   const resolvedTopic = resolveTopic(selectedTopic, lastResolvedTopic);
   lastResolvedTopic = resolvedTopic;
 
-  await saveLocation(location);
   panel.setLoading(true);
 
   try {
     const tweet = await generateTweet({
       topic: resolvedTopic,
       location: location.trim(),
-      style: "thoughtful",
+      style: pickRandomStyle(),
       maxLength: 140
     });
 
@@ -91,17 +106,6 @@ async function handleComposer(composer: HTMLElement | null): Promise<void> {
   panel.setDismissed(false);
   dismissedForComposer = null;
   lastResolvedTopic = undefined;
-
-  const settings = await loadSettings();
-  if (composer !== activeComposer) {
-    return;
-  }
-
-  const locationInput =
-    panel.element.querySelector<HTMLInputElement>(".vc-location");
-  if (locationInput) {
-    locationInput.value = settings.location;
-  }
 
   // Deliberately do not generate here. Opening an X composer must not spend
   // OpenAI tokens unless the user explicitly asks for an idea.
