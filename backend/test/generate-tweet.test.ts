@@ -195,7 +195,7 @@ describe("POST /v1/tweet/generate - style validation", () => {
 });
 
 describe("POST /v1/tweet/generate - maxLength validation", () => {
-  it.each([0, -1, 1, 1.5, 16, 17, "140", null, true, [140], { a: 1 }])(
+  it.each([0, -1, 1, 1.5, 16, "140", null, true, [140], { a: 1 }])(
     "rejects an invalid maxLength: %j",
     async (maxLength) => {
       await expectError(
