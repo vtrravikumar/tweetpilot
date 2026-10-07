@@ -511,14 +511,14 @@ describe("OpenAIProvider - Vichar attribution", () => {
     const fetchMock = queueFetch(openaiOk(`A useful thought.\n${VICHAR_ATTRIBUTION}`));
     const result = await provider(fetchMock).generate({ topic: "x" });
     expect(result.tweet).toBe(`A useful thought.\n${VICHAR_ATTRIBUTION}`);
-    expect(result.tweet.match(/Vichar by @vtrrk/g)?.length).toBe(1);
+    expect(result.tweet.match(/Vichar by vtrrk/g)?.length).toBe(1);
   });
 
   it("normalizes punctuation the model adds to the attribution", async () => {
     const fetchMock = queueFetch(openaiOk(`A useful thought.\n${VICHAR_ATTRIBUTION}.`));
     const result = await provider(fetchMock).generate({ topic: "x" });
     expect(result.tweet).toBe(`A useful thought.\n${VICHAR_ATTRIBUTION}`);
-    expect(result.tweet.match(/Vichar by @vtrrk/g)?.length).toBe(1);
+    expect(result.tweet.match(/Vichar by vtrrk/g)?.length).toBe(1);
   });
 
   it("counts attribution within maxLength", async () => {
