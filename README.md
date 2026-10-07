@@ -4,11 +4,11 @@ Vichar is a personal AI-assisted writing companion for X (formerly Twitter).
 
 It is designed to help turn an idea into a concise, personal post while keeping the important parts human-controlled: **review, editing and the final decision to publish**.
 
-The production web client is live at [vtrrk.in/vichar/](https://vtrrk.in/vichar/), and the Chrome extension brings the same workflow into the X composer.
+The production web client is live at [vtrrk.in/vichar/](https://vtrrk.in/vichar/). The Chrome extension is packaged, CI-verified, submitted to the Chrome Web Store, and currently pending review.
 
-> **Status: V1 production foundation complete; Chrome extension integration remains in active development**
+> **Status: V1 web experience live; Chrome extension submitted to the Chrome Web Store and pending review**
 >
-> The backend is production deployed and hardened, the web client is live, and the first Vichar-generated post has been reviewed and manually published on X. The production generation path has also been revalidated through the web session and OpenAI provider.
+> The backend is production deployed and hardened, the web client is live, and the Chrome extension has passed packaging CI and been submitted for Chrome Web Store review. The production generation path has been revalidated through the web session and OpenAI provider.
 
 ---
 
@@ -36,7 +36,9 @@ Generate a tweet
      ↓
 Review / edit
      ↓
-Copy to X
+Review / edit
+     ↓
+Tweet this → X composer
      ↓
 User presses X's native Post button
 ```
@@ -57,9 +59,10 @@ The current web client provides:
 - optional location context;
 - AI tweet generation;
 - 140-character counting by default;
+- randomised writing style per generation;
 - editable tweet text;
 - Create Another;
-- Copy Tweet;
+- Tweet this, opening X with the edited text pre-filled;
 - manual publication through X.
 
 The current character limit is configured for a non-Premium X account and is not treated as a permanent Vichar limit.
@@ -394,14 +397,18 @@ The initial deployment uses the existing production OpenAI API setup. Provider a
 - generated tweet editor;
 - character counter;
 - Create Another;
-- Copy Tweet;
+- Tweet this action, opening X's composer with the edited text pre-filled;
+- custom topic input;
+- randomised writing style per generation;
+- Vichar Chrome extension teaser;
+- Privacy Policy link;
 - live production validation.
 
 ### M1 — Chrome extension
 
-**In progress**
+**Submitted — pending Chrome Web Store review**
 
-The extension will bring Vichar into the X composer.
+The extension brings Vichar directly into the X composer and is now submitted for Chrome Web Store review.
 
 Planned capabilities include:
 
@@ -415,9 +422,11 @@ Planned capabilities include:
 - explicit Use this / Another / Dismiss workflow;
 - user-controlled insertion into the composer;
 - native X Post remains the final action;
-- automated extension tests and CI verification.
+- automated extension tests and CI verification;
+- production package with manifest.json at ZIP root;
+- Chrome Web Store listing, privacy declarations, test instructions and privacy policy.
 
-The extension will **not** automatically click X's native Post button.
+The extension will **not** automatically click X's native Post button. The user explicitly chooses **Use this** before content is inserted.
 
 ### M3 — Hardening and product completion
 
@@ -455,7 +464,7 @@ vichar/
 └── README.md
 ```
 
-The repository is expected to grow to include the Chrome extension as M1 is implemented.
+The repository now includes the Chrome extension under `extension/`.
 
 ---
 
