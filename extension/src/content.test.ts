@@ -82,6 +82,36 @@ describe("X composer detection", () => {
     expect(findComposer()).toBeNull();
   });
 
+  it("ignores a reply composer identified by X's native placeholder", () => {
+    const container = document.createElement("div");
+    container.setAttribute(
+      "data-testid",
+      "tweetTextarea_0RichTextInputContainer"
+    );
+
+    const editorRoot = document.createElement("div");
+    const placeholderRoot = document.createElement("div");
+    placeholderRoot.className = "public-DraftEditorPlaceholder-root";
+    const placeholder = document.createElement("div");
+    placeholder.className = "public-DraftEditorPlaceholder-inner";
+    placeholder.textContent = "Post your reply";
+    placeholderRoot.appendChild(placeholder);
+
+    const replyComposer = document.createElement("div");
+    replyComposer.setAttribute("data-testid", "tweetTextarea_0");
+    replyComposer.setAttribute("contenteditable", "true");
+    replyComposer.setAttribute("role", "textbox");
+    Object.defineProperty(replyComposer, "getBoundingClientRect", {
+      value: () => ({ width: 300, height: 80 })
+    });
+
+    editorRoot.append(placeholderRoot, replyComposer);
+    container.appendChild(editorRoot);
+    document.body.appendChild(container);
+
+    expect(findComposer()).toBeNull();
+  });
+
   it("ignores a reply composer identified by X's Reply action", () => {
     const form = document.createElement("form");
     const replyComposer = document.createElement("div");
