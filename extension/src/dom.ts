@@ -179,6 +179,38 @@ export function resolveEditableComposer(element: HTMLElement): HTMLElement {
   return element;
 }
 
+export async function copyTextToClipboard(text: string): Promise<boolean> {
+  try {
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(text);
+      return true;
+    }
+  } catch {
+    // Fall through to the legacy copy command below.
+  }
+
+  const helper = document.createElement("textarea");
+  helper.value = text;
+  helper.setAttribute("readonly", "");
+  helper.style.position = "fixed";
+  helper.style.opacity = "0";
+  document.body.appendChild(helper);
+  helper.select();
+
+  let copied = false;
+  try {
+    copied =
+      typeof document.execCommand === "function" &&
+      document.execCommand("copy", false);
+  } catch {
+    copied = false;
+  } finally {
+    helper.remove();
+  }
+
+  return copied;
+}
+
 function dispatchPaste(composer: HTMLElement, text: string): boolean {
   const dataTransfer = new DataTransfer();
   dataTransfer.setData("text/plain", text);

@@ -1,5 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { composerHost, composerText, findComposer, replaceComposerText } from "./dom";
+import {
+  composerHost,
+  composerText,
+  copyTextToClipboard,
+  findComposer,
+  replaceComposerText
+} from "./dom";
 import { resolveTopic } from "./topic";
 
 describe("topic resolution", () => {
@@ -131,7 +137,33 @@ describe("X composer detection", () => {
     expect(findComposer()).toBe(composer);
   });
 
-  it("replaces an existing draft instead of appending", async () => {
+  it("copies text to the clipboard using the safe fallback", async () => {
+    const originalClipboard = navigator.clipboard;
+    const originalExecCommand = document.execCommand;
+    const commands: string[] = [];
+
+    Object.defineProperty(navigator, "clipboard", {
+      configurable: true,
+      value: undefined
+    });
+    document.execCommand = ((command: string) => {
+      commands.push(command);
+      return command === "copy";
+    }) as typeof document.execCommand;
+
+    try {
+      expect(await copyTextToClipboard("Vichar by vtrrk")).toBe(true);
+      expect(commands).toEqual(["copy"]);
+    } finally {
+      Object.defineProperty(navigator, "clipboard", {
+        configurable: true,
+        value: originalClipboard
+      });
+      document.execCommand = originalExecCommand;
+    }
+  });
+
+  it("replaces an existing draft instead of appending", async () =>
     const composer = document.createElement("div");
     composer.setAttribute("contenteditable", "true");
     composer.setAttribute("role", "textbox");

@@ -4,6 +4,7 @@ import {
   composerHost,
   composerToolbar,
   composerText,
+  copyTextToClipboard,
   isPostButtonEnabled,
   replaceComposerText
 } from "./dom";
@@ -144,10 +145,32 @@ export function createPanel(callbacks: PanelCallbacks): TweetPanel {
       return;
     }
 
-    if (current && replaceConfirmedForDraft !== current) {
-      replaceConfirmedForDraft = current;
-      primary.textContent = "Replace draft?";
-      status.textContent = "X already has a draft. Choose Replace draft? to overwrite it.";
+    if (current) {
+      if (replaceConfirmedForDraft !== current) {
+        replaceConfirmedForDraft = current;
+        primary.textContent = "Replace draft?";
+        status.textContent =
+          "X already has a draft. Choose Replace draft? to prepare a safe manual replacement.";
+        return;
+      }
+
+      status.textContent = "Copying Vichar to your clipboard…";
+      void (async () => {
+        const copied = await copyTextToClipboard(tweet);
+        replaceConfirmedForDraft = null;
+        composer.focus();
+
+        if (!copied) {
+          primary.textContent = "Copy & replace manually";
+          status.textContent =
+            "Vichar could not be copied automatically. Select the X draft and paste the Vichar manually.";
+          return;
+        }
+
+        primary.textContent = "Copy again";
+        status.textContent =
+          "Vichar copied. In X, press Cmd/Ctrl+A, then Cmd/Ctrl+V to replace your draft.";
+      })();
       return;
     }
 
