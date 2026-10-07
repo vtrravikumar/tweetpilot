@@ -13,16 +13,12 @@ export type TopicSelection = Topic | string;
 export interface GenerateRequest {
   topic: string;
   location?: string;
-  style: "thoughtful";
+  style: string;
   maxLength: 140;
 }
 
 export interface GenerateResponse {
   tweet: string;
-}
-
-export interface StoredSettings {
-  location: string;
 }
 
 export type BackgroundMessage =
