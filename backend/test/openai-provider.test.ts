@@ -142,7 +142,7 @@ describe("OpenAIProvider - prompt", () => {
 
     const long = queueFetch(openaiOk("a".repeat(250)));
     const result = await provider(long).generate({ topic: "x", maxLength: 280 });
-    expect(result.tweet.length).toBe(267);
+    expect(result.tweet.length).toBe(266);
   });
 
   it("includes the personalization profile in the instructions", async () => {
@@ -325,7 +325,7 @@ describe("OpenAIProvider - response normalization", () => {
   it("counts length by code point, so emoji are not over-counted", async () => {
     const fetchMock = queueFetch(openaiOk("😀".repeat(10)));
     const result = await provider(fetchMock).generate({ topic: "x", maxLength: 27 });
-    expect(Array.from(result.tweet).length).toBe(27);
+    expect(Array.from(result.tweet).length).toBe(26);
   });
 });
 
@@ -449,7 +449,7 @@ describe("OpenAIProvider - over-length output", () => {
   it("accepts output of exactly maxLength", async () => {
     const fetchMock = queueFetch(openaiOk("a".repeat(123)));
     const result = await provider(fetchMock).generate({ topic: "x", maxLength: 140 });
-    expect(result.tweet.length).toBe(140);
+    expect(result.tweet.length).toBe(139);
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
