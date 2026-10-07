@@ -253,7 +253,7 @@ export function withVicharAttribution(text: string, maxLength: number): string |
 
   // Models occasionally follow the instruction but add punctuation to the
   // attribution. Strip that variant before applying the canonical final line.
-  const attributionAtEnd = /(?:\s*\n\s*)?Vichar by @vtrrk[.!?…]*\s*$/;
+  const attributionAtEnd = /(?:\s*\n\s*)?Vichar by vtrrk[.!?…]*\s*$/;
   body = body.replace(attributionAtEnd, "").trimEnd();
 
   if (!body) return undefined;
