@@ -1,12 +1,14 @@
 {
   "manifest_version": 3,
-  "name": "Vichar — By VTRRK",
+  "name": "Vichar \u2014 By VTRRK",
   "short_name": "Vichar",
   "version": "1.0.0",
   "description": "A thoughtful AI writing companion for the X composer.",
   "homepage_url": "https://vtrrk.in/vichar/",
   "minimum_chrome_version": "120",
-  "permissions": ["storage"],
+  "permissions": [
+    "storage"
+  ],
   "host_permissions": [
     "https://tweetpilot-api.vtrravikumar.workers.dev/*"
   ],
@@ -15,12 +17,16 @@
     "type": "module"
   },
   "action": {
-    "default_title": "Vichar — By VTRRK",
+    "default_title": "Vichar \u2014 By VTRRK",
     "default_icon": {
+      "16": "icon16.png",
+      "48": "icon48.png",
       "128": "icon128.png"
     }
   },
   "icons": {
+    "16": "icon16.png",
+    "48": "icon48.png",
     "128": "icon128.png"
   },
   "content_scripts": [
@@ -29,14 +35,21 @@
         "https://x.com/*",
         "https://twitter.com/*"
       ],
-      "js": ["content.js"],
+      "js": [
+        "content.js"
+      ],
       "run_at": "document_idle"
     }
   ],
   "web_accessible_resources": [
     {
-      "resources": ["icon128.png"],
-      "matches": ["https://x.com/*", "https://twitter.com/*"]
+      "resources": [
+        "icon128.png"
+      ],
+      "matches": [
+        "https://x.com/*",
+        "https://twitter.com/*"
+      ]
     }
   ],
   "content_security_policy": {
