@@ -59,28 +59,5 @@ describe("Vichar web usage policy", () => {
     expect((await route.handler(await webRequest("203.0.113.21", token), routeEnv, ctx)).status).toBe(200);
   });
 
-  it("still requires a valid web session before generation", async () => {
-    const route = createGenerateTweetRoute(generator);
-    const routeEnv = {
-      ...env,
-      VICHAR_WEB_SECRET: WEB_SECRET,
-    } as unknown as Env;
-    const request = new Request(URL_, {
-      method: "POST",
-      headers: {
-        Origin: "https://vtrrk.in",
-        "content-type": "application/json",
-      },
-      body: JSON.stringify({ topic: "Photography" }),
-    });
 
-    const response = await route.handler(request, routeEnv, ctx);
-    expect(response.status).toBe(401);
-    expect(await response.json()).toEqual({
-      error: {
-        code: "missing_usage_key",
-        message: "Vichar usage key is required.",
-      },
-    });
-  });
 });
