@@ -145,6 +145,9 @@ describe("X composer detection", () => {
     const commands: string[] = [];
     document.execCommand = ((command: string, _showUi?: boolean, value?: string) => {
       commands.push(command);
+      if (command === "selectAll") {
+        return true;
+      }
       if (command === "insertText") {
         composer.textContent = value ?? "";
         return true;
@@ -159,7 +162,12 @@ describe("X composer detection", () => {
       expect(first).toBe(true);
       expect(second).toBe(true);
       expect(composerText(composer)).toBe("Second draft");
-      expect(commands).toEqual(["insertText", "insertText"]);
+      expect(commands).toEqual([
+        "selectAll",
+        "insertText",
+        "selectAll",
+        "insertText"
+      ]);
     } finally {
       document.execCommand = originalExecCommand;
     }
