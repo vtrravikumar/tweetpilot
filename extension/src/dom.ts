@@ -29,32 +29,73 @@ function looksLikeSearchBox(element: HTMLElement): boolean {
   );
 }
 
-function hasReplyPlaceholder(element: HTMLElement): boolean {
-  // X's Draft.js reply editor exposes a native placeholder such as
-  // "Post your reply" inside the RichTextInputContainer. This is the most
-  // direct signal that the visible composer is a reply composer.
-  const container = element.closest('[data-testid$="RichTextInputContainer"]');
-  if (!container) {
+// --- Reply detection --------------------------------------------------------
+//
+// X uses the same Draft.js-style editor for posts and replies, so Vichar
+// needs to classify the editor from X's surrounding UI. No single signal is
+// guaranteed to remain stable, so we use several signals in descending order
+// of confidence.
+//
+// 1. X's native "Post your reply" / "Tweet your reply" placeholder.
+// 2. A per-editor latch so the reply classification survives typing, which
+//    removes the placeholder.
+// 3. Reply-dialog contents: the original tweet or "Replying to @..." label.
+// 4. X's native Reply submit action.
+// 5. An article ancestor as a final fallback for inline reply composers.
+//
+// We intentionally do not use the /status/<id> URL as a global reply signal:
+// a tweet-detail page can still contain a legitimate new-post composer.
+
+const REPLY_PLACEHOLDER = /\b(post|tweet) your reply\b/i;
+const REPLYING_TO = /\breplying to\b/i;
+const knownReplyEditors = new WeakSet<HTMLElement>();
+
+function placeholderText(composer: HTMLElement): string | null {
+  const editor = resolveEditableComposer(composer);
+  const root =
+    editor.closest<HTMLElement>(".DraftEditor-root") ??
+    composer.closest<HTMLElement>(".DraftEditor-root") ??
+    composer;
+
+  const placeholder = root.querySelector<HTMLElement>(
+    '[class*="DraftEditorPlaceholder"]'
+  );
+
+  return placeholder ? (placeholder.textContent ?? "").trim() : null;
+}
+
+function dialogShowsOriginalPost(composer: HTMLElement): boolean {
+  const dialog = composer.closest<HTMLElement>(
+    '[role="dialog"], [aria-modal="true"]'
+  );
+  if (!dialog) {
     return false;
   }
 
-  const placeholders = container.querySelectorAll<HTMLElement>(
-    '[class*="DraftEditorPlaceholder"]'
-  );
-  return Array.from(placeholders).some((placeholder) =>
-    /\bpost your reply\b/i.test((placeholder.textContent || "").trim())
+  return (
+    Boolean(
+      dialog.querySelector(
+        'article, [data-testid="tweet"], [data-testid="tweetText"]'
+      )
+    ) || REPLYING_TO.test(dialog.textContent ?? "")
   );
 }
 
-function isReplyComposer(element: HTMLElement): boolean {
-  if (hasReplyPlaceholder(element)) {
+export function isReplyComposer(composer: HTMLElement): boolean {
+  const editor = resolveEditableComposer(composer);
+  const placeholder = placeholderText(composer);
+
+  if (placeholder !== null && REPLY_PLACEHOLDER.test(placeholder)) {
+    knownReplyEditors.add(editor);
     return true;
   }
 
-  // Inline reply composers are not necessarily descendants of the article
-  // that opened them. X identifies the native submit action as "Reply",
-  // which is a more reliable signal for the active composer.
-  const form = element.closest("form");
+  if (dialogShowsOriginalPost(composer)) {
+    knownReplyEditors.add(editor);
+    return true;
+  }
+
+  const form = composer.closest("form");
   const postButton = form?.querySelector<HTMLElement>(
     '[data-testid="tweetButton"], [data-testid="tweetButtonInline"]'
   );
@@ -63,12 +104,21 @@ function isReplyComposer(element: HTMLElement): boolean {
   ).trim().toLowerCase();
 
   if (/\breply\b/.test(buttonText)) {
+    knownReplyEditors.add(editor);
     return true;
   }
 
-  // Keep the article check as a fallback for inline reply composers that
-  // remain nested in the originating post.
-  return Boolean(element.closest("article"));
+  if (placeholder !== null) {
+    // A visible non-reply placeholder is strong evidence of a new post.
+    knownReplyEditors.delete(editor);
+    return false;
+  }
+
+  if (knownReplyEditors.has(editor)) {
+    return true;
+  }
+
+  return Boolean(composer.closest("article"));
 }
 
 function composerCandidates(root: ParentNode): HTMLElement[] {
@@ -79,7 +129,6 @@ function composerCandidates(root: ParentNode): HTMLElement[] {
       (candidate) =>
         isVisible(candidate) &&
         !looksLikeSearchBox(candidate) &&
-        !isReplyComposer(candidate) &&
         !candidate.closest("#vichar-root")
     );
 
@@ -99,12 +148,16 @@ function isInComposerDialog(element: HTMLElement): boolean {
 }
 
 export function findComposer(root: ParentNode = document): HTMLElement | null {
-  // TweetAI integrates with both X's inline composer and the Post dialog.
-  // Prefer the dialog when it exists, otherwise use the visible inline editor.
+  // Prefer a composer in an open dialog. If the dialog is a reply, return
+  // null rather than falling back to a Home composer behind the dialog.
   const allCandidates = composerCandidates(root);
-  const dialogComposer = allCandidates.find(isInComposerDialog);
+  const dialogCandidates = allCandidates.filter(isInComposerDialog);
 
-  return dialogComposer ?? allCandidates[0] ?? null;
+  if (dialogCandidates.length > 0) {
+    return dialogCandidates.find((candidate) => !isReplyComposer(candidate)) ?? null;
+  }
+
+  return allCandidates.find((candidate) => !isReplyComposer(candidate)) ?? null;
 }
 
 export function composerText(composer: HTMLElement): string {
