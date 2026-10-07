@@ -82,6 +82,26 @@ describe("X composer detection", () => {
     expect(findComposer()).toBeNull();
   });
 
+  it("ignores a reply composer identified by X's Reply action", () => {
+    const form = document.createElement("form");
+    const replyComposer = document.createElement("div");
+    replyComposer.setAttribute("data-testid", "tweetTextarea_reply");
+    replyComposer.setAttribute("contenteditable", "true");
+    replyComposer.setAttribute("role", "textbox");
+    Object.defineProperty(replyComposer, "getBoundingClientRect", {
+      value: () => ({ width: 300, height: 80 })
+    });
+
+    const replyButton = document.createElement("button");
+    replyButton.setAttribute("data-testid", "tweetButton");
+    replyButton.textContent = "Reply";
+
+    form.append(replyComposer, replyButton);
+    document.body.appendChild(form);
+
+    expect(findComposer()).toBeNull();
+  });
+
   it("prefers a fresh post composer over a reply composer", () => {
     const article = document.createElement("article");
     const replyComposer = document.createElement("div");
