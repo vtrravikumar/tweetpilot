@@ -25,3 +25,11 @@ jobs:
       - run: npm test
       - run: npm run typecheck
       - run: npm run build
+      - name: Package Vichar extension
+        run: zip -r vichar-extension.zip dist
+      - name: Upload Vichar extension ZIP
+        uses: actions/upload-artifact@v4
+        with:
+          name: vichar-extension
+          path: extension/vichar-extension.zip
+          if-no-files-found: error
