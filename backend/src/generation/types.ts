@@ -32,7 +32,7 @@ export interface TweetGenerator {
 export const DEFAULT_MAX_LENGTH = 140;
 
 /** V1 product attribution appended to every generated draft. */
-export const VICHAR_ATTRIBUTION = "Vichar by @vtrrk";
+export const VICHAR_ATTRIBUTION = "Vichar by vtrrk";
 export const VICHAR_ATTRIBUTION_SEPARATOR = "\n";
 export const MIN_VICHAR_MAX_LENGTH =
   Array.from("x" + VICHAR_ATTRIBUTION_SEPARATOR + VICHAR_ATTRIBUTION).length;
