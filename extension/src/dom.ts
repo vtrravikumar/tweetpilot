@@ -133,6 +133,19 @@ function wait(milliseconds: number): Promise<void> {
 function selectAllComposerText(composer: HTMLElement): void {
   composer.focus();
 
+  // Prefer the browser's native select-all command so X receives the same
+  // editing selection it would see from Cmd/Ctrl+A inside its composer.
+  try {
+    if (
+      typeof document.execCommand === "function" &&
+      document.execCommand("selectAll", false)
+    ) {
+      return;
+    }
+  } catch {
+    // Fall through to the DOM Range fallback below.
+  }
+
   const selection = window.getSelection();
   const range = document.createRange();
   range.selectNodeContents(composer);
@@ -176,7 +189,6 @@ export async function replaceComposerText(
   // particular, do not mutate X's contenteditable with Range.deleteContents():
   // that changes the DOM without updating X's internal editor state and can
   // leave the composer visually populated but no longer editable.
-  composer.focus();
   selectAllComposerText(composer);
 
   let replaced = false;
