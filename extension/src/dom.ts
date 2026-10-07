@@ -42,7 +42,7 @@ function hasReplyPlaceholder(element: HTMLElement): boolean {
     '[class*="DraftEditorPlaceholder"]'
   );
   return Array.from(placeholders).some((placeholder) =>
-    /\\bpost your reply\\b/i.test((placeholder.textContent || "").trim())
+    /\bpost your reply\b/i.test((placeholder.textContent || "").trim())
   );
 }
 
