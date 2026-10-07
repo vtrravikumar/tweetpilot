@@ -179,28 +179,41 @@ export function resolveEditableComposer(element: HTMLElement): HTMLElement {
   return element;
 }
 
+function dispatchPaste(composer: HTMLElement, text: string): boolean {
+  const dataTransfer = new DataTransfer();
+  dataTransfer.setData("text/plain", text);
+
+  const event = new ClipboardEvent("paste", {
+    clipboardData: dataTransfer,
+    bubbles: true,
+    cancelable: true
+  });
+
+  const dispatched = composer.dispatchEvent(event);
+  dataTransfer.clearData();
+
+  return dispatched || event.defaultPrevented;
+}
+
 export async function replaceComposerText(
   composer: HTMLElement,
   text: string
 ): Promise<boolean> {
   composer = resolveEditableComposer(composer);
 
-  // Keep the replacement inside Chromium's native editing pipeline. In
-  // particular, do not mutate X's contenteditable with Range.deleteContents():
-  // that changes the DOM without updating X's internal editor state and can
-  // leave the composer visually populated but no longer editable.
+  // X uses a Draft.js-style contenteditable editor. Direct DOM mutation and
+  // execCommand("insertText") can make text visible without committing the
+  // corresponding editor state. Use the editor's paste pathway instead.
   selectAllComposerText(composer);
 
   let replaced = false;
   try {
-    if (typeof document.execCommand === "function") {
-      replaced = document.execCommand("insertText", false, text);
-    }
+    replaced = dispatchPaste(composer, text);
   } catch {
-    // Leave the composer untouched if the browser/editor rejects the command.
+    // Leave the composer untouched if the browser rejects synthetic paste.
   }
 
-  await wait(250);
+  await wait(300);
 
   return replaced && composerText(composer) === text;
 }
