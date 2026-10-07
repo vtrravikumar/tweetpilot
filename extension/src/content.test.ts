@@ -202,7 +202,7 @@ describe("X composer detection", () => {
     }
   });
 
-  it("replaces an existing draft instead of appending", async () =>
+  it("replaces an existing draft instead of appending", async () => {
     const composer = document.createElement("div");
     composer.setAttribute("contenteditable", "true");
     composer.setAttribute("role", "textbox");
