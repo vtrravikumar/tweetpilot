@@ -30,8 +30,25 @@ function looksLikeSearchBox(element: HTMLElement): boolean {
 }
 
 function isReplyComposer(element: HTMLElement): boolean {
-  // Reply composers live inside the post/article they are replying to.
-  // Vichar is intentionally limited to creating fresh posts for V1.
+  // Inline reply composers are not necessarily descendants of the article
+  // that opened them. X identifies the native submit action as "Reply",
+  // which is a more reliable signal for the active composer.
+  const form = element.closest("form");
+  const postButton = form?.querySelector<HTMLElement>(
+    '[data-testid="tweetButton"], [data-testid="tweetButtonInline"]'
+  );
+  const buttonText = (
+    postButton?.textContent ||
+    postButton?.getAttribute("aria-label") ||
+    ""
+  ).trim().toLowerCase();
+
+  if (/\\breply\\b/.test(buttonText)) {
+    return true;
+  }
+
+  // Keep the article check as a fallback for inline reply composers that
+  // remain nested in the originating post.
   return Boolean(element.closest("article"));
 }
 
