@@ -29,6 +29,12 @@ function looksLikeSearchBox(element: HTMLElement): boolean {
   );
 }
 
+function isReplyComposer(element: HTMLElement): boolean {
+  // Reply composers live inside the post/article they are replying to.
+  // Vichar is intentionally limited to creating fresh posts for V1.
+  return Boolean(element.closest("article"));
+}
+
 function composerCandidates(root: ParentNode): HTMLElement[] {
   for (const selector of COMPOSER_SELECTORS) {
     const candidates = Array.from(
@@ -37,6 +43,7 @@ function composerCandidates(root: ParentNode): HTMLElement[] {
       (candidate) =>
         isVisible(candidate) &&
         !looksLikeSearchBox(candidate) &&
+        !isReplyComposer(candidate) &&
         !candidate.closest("#vichar-root")
     );
 
