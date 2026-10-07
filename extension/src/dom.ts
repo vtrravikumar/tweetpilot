@@ -52,9 +52,14 @@ const knownReplyEditors = new WeakSet<HTMLElement>();
 
 function placeholderText(composer: HTMLElement): string | null {
   const editor = resolveEditableComposer(composer);
+  const container = composer.closest<HTMLElement>(
+    '[data-testid$="RichTextInputContainer"]'
+  );
   const root =
+    container?.querySelector<HTMLElement>(".DraftEditor-root") ??
     editor.closest<HTMLElement>(".DraftEditor-root") ??
     composer.closest<HTMLElement>(".DraftEditor-root") ??
+    container ??
     composer;
 
   const placeholder = root.querySelector<HTMLElement>(
