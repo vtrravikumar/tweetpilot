@@ -29,6 +29,103 @@ function looksLikeSearchBox(element: HTMLElement): boolean {
   );
 }
 
+// --- Reply detection --------------------------------------------------------
+//
+// X uses the same Draft.js-style editor for posts and replies, so Vichar
+// needs to classify the editor from X's surrounding UI. No single signal is
+// guaranteed to remain stable, so we use several signals in descending order
+// of confidence.
+//
+// 1. X's native "Post your reply" / "Tweet your reply" placeholder.
+// 2. A per-editor latch so the reply classification survives typing, which
+//    removes the placeholder.
+// 3. Reply-dialog contents: the original tweet or "Replying to @..." label.
+// 4. X's native Reply submit action.
+// 5. An article ancestor as a final fallback for inline reply composers.
+//
+// We intentionally do not use the /status/<id> URL as a global reply signal:
+// a tweet-detail page can still contain a legitimate new-post composer.
+
+const REPLY_PLACEHOLDER = /\b(post|tweet) your reply\b/i;
+const REPLYING_TO = /\breplying to\b/i;
+const knownReplyEditors = new WeakSet<HTMLElement>();
+
+function placeholderText(composer: HTMLElement): string | null {
+  const editor = resolveEditableComposer(composer);
+  const container = composer.closest<HTMLElement>(
+    '[data-testid$="RichTextInputContainer"]'
+  );
+  const root =
+    container?.querySelector<HTMLElement>(".DraftEditor-root") ??
+    editor.closest<HTMLElement>(".DraftEditor-root") ??
+    composer.closest<HTMLElement>(".DraftEditor-root") ??
+    container ??
+    composer;
+
+  const placeholder = root.querySelector<HTMLElement>(
+    '[class*="DraftEditorPlaceholder"]'
+  );
+
+  return placeholder ? (placeholder.textContent ?? "").trim() : null;
+}
+
+function dialogShowsOriginalPost(composer: HTMLElement): boolean {
+  const dialog = composer.closest<HTMLElement>(
+    '[role="dialog"], [aria-modal="true"]'
+  );
+  if (!dialog) {
+    return false;
+  }
+
+  return (
+    Boolean(
+      dialog.querySelector(
+        'article, [data-testid="tweet"], [data-testid="tweetText"]'
+      )
+    ) || REPLYING_TO.test(dialog.textContent ?? "")
+  );
+}
+
+export function isReplyComposer(composer: HTMLElement): boolean {
+  const editor = resolveEditableComposer(composer);
+  const placeholder = placeholderText(composer);
+
+  if (placeholder !== null && REPLY_PLACEHOLDER.test(placeholder)) {
+    knownReplyEditors.add(editor);
+    return true;
+  }
+
+  if (dialogShowsOriginalPost(composer)) {
+    knownReplyEditors.add(editor);
+    return true;
+  }
+
+  const form = composer.closest("form");
+  const postButton = form?.querySelector<HTMLElement>(
+    '[data-testid="tweetButton"], [data-testid="tweetButtonInline"]'
+  );
+  const buttonText = (
+    `${postButton?.textContent ?? ""} ${postButton?.getAttribute("aria-label") ?? ""}`
+  ).trim().toLowerCase();
+
+  if (/\breply\b/.test(buttonText)) {
+    knownReplyEditors.add(editor);
+    return true;
+  }
+
+  if (placeholder !== null) {
+    // A visible non-reply placeholder is strong evidence of a new post.
+    knownReplyEditors.delete(editor);
+    return false;
+  }
+
+  if (knownReplyEditors.has(editor)) {
+    return true;
+  }
+
+  return Boolean(composer.closest("article"));
+}
+
 function composerCandidates(root: ParentNode): HTMLElement[] {
   for (const selector of COMPOSER_SELECTORS) {
     const candidates = Array.from(
@@ -56,12 +153,16 @@ function isInComposerDialog(element: HTMLElement): boolean {
 }
 
 export function findComposer(root: ParentNode = document): HTMLElement | null {
-  // TweetAI integrates with both X's inline composer and the Post dialog.
-  // Prefer the dialog when it exists, otherwise use the visible inline editor.
+  // Prefer a composer in an open dialog. If the dialog is a reply, return
+  // null rather than falling back to a Home composer behind the dialog.
   const allCandidates = composerCandidates(root);
-  const dialogComposer = allCandidates.find(isInComposerDialog);
+  const dialogCandidates = allCandidates.filter(isInComposerDialog);
 
-  return dialogComposer ?? allCandidates[0] ?? null;
+  if (dialogCandidates.length > 0) {
+    return dialogCandidates.find((candidate) => !isReplyComposer(candidate)) ?? null;
+  }
+
+  return allCandidates.find((candidate) => !isReplyComposer(candidate)) ?? null;
 }
 
 export function composerText(composer: HTMLElement): string {

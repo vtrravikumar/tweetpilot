@@ -8,6 +8,8 @@ Bring Vichar into the X composer without turning the X composer into an AI-only 
 
 When the X Post composer becomes visible:
 
+Vichar is for **new posts only**. It does not appear in reply composers. X's native reply placeholder is the primary signal; the extension also uses reply-dialog context, the native Reply action, and the existing article fallback. Once an editor is identified as a reply, that classification is remembered while the user types. If detection is uncertain, Vichar remains available rather than hiding a legitimate new-post composer.
+
 1. Vichar opens with **Surprise me** selected.
 2. It generates one suggestion using the production Cloudflare Worker.
 3. The suggestion remains outside the X composer until the user explicitly chooses **Use this**.
@@ -60,6 +62,6 @@ No second backend or development API key is required for M1.
 
 ## Testing
 
-Automated extension tests cover topic resolution, composer detection, search-box exclusion, text extraction, and composer replacement events.
+Automated extension tests cover topic resolution, composer detection, reply exclusion, search-box exclusion, text extraction, and composer replacement events.
 
 Real-browser validation remains necessary because X's DOM is dynamic and can change independently of the extension.

@@ -67,6 +67,95 @@ describe("X composer detection", () => {
     expect(composerText(host)).toBe("");
   });
 
+  it("ignores a reply composer inside an article", () => {
+    const article = document.createElement("article");
+    const replyComposer = document.createElement("div");
+    replyComposer.setAttribute("data-testid", "tweetTextarea_0");
+    replyComposer.setAttribute("contenteditable", "true");
+    replyComposer.setAttribute("role", "textbox");
+    Object.defineProperty(replyComposer, "getBoundingClientRect", {
+      value: () => ({ width: 300, height: 80 })
+    });
+    article.appendChild(replyComposer);
+    document.body.appendChild(article);
+
+    expect(findComposer()).toBeNull();
+  });
+
+  it("ignores a reply composer identified by X's native placeholder", () => {
+    const container = document.createElement("div");
+    container.setAttribute(
+      "data-testid",
+      "tweetTextarea_0RichTextInputContainer"
+    );
+
+    const editorRoot = document.createElement("div");
+    const placeholderRoot = document.createElement("div");
+    placeholderRoot.className = "public-DraftEditorPlaceholder-root";
+    const placeholder = document.createElement("div");
+    placeholder.className = "public-DraftEditorPlaceholder-inner";
+    placeholder.textContent = "Post your reply";
+    placeholderRoot.appendChild(placeholder);
+
+    const replyComposer = document.createElement("div");
+    replyComposer.setAttribute("data-testid", "tweetTextarea_0");
+    replyComposer.setAttribute("contenteditable", "true");
+    replyComposer.setAttribute("role", "textbox");
+    Object.defineProperty(replyComposer, "getBoundingClientRect", {
+      value: () => ({ width: 300, height: 80 })
+    });
+
+    editorRoot.append(placeholderRoot, replyComposer);
+    container.appendChild(editorRoot);
+    document.body.appendChild(container);
+
+    expect(findComposer()).toBeNull();
+  });
+
+  it("ignores a reply composer identified by X's Reply action", () => {
+    const form = document.createElement("form");
+    const replyComposer = document.createElement("div");
+    replyComposer.setAttribute("data-testid", "tweetTextarea_reply");
+    replyComposer.setAttribute("contenteditable", "true");
+    replyComposer.setAttribute("role", "textbox");
+    Object.defineProperty(replyComposer, "getBoundingClientRect", {
+      value: () => ({ width: 300, height: 80 })
+    });
+
+    const replyButton = document.createElement("button");
+    replyButton.setAttribute("data-testid", "tweetButton");
+    replyButton.textContent = "Reply";
+
+    form.append(replyComposer, replyButton);
+    document.body.appendChild(form);
+
+    expect(findComposer()).toBeNull();
+  });
+
+  it("prefers a fresh post composer over a reply composer", () => {
+    const article = document.createElement("article");
+    const replyComposer = document.createElement("div");
+    replyComposer.setAttribute("data-testid", "tweetTextarea_reply");
+    replyComposer.setAttribute("contenteditable", "true");
+    replyComposer.setAttribute("role", "textbox");
+    Object.defineProperty(replyComposer, "getBoundingClientRect", {
+      value: () => ({ width: 300, height: 80 })
+    });
+    article.appendChild(replyComposer);
+
+    const freshComposer = document.createElement("div");
+    freshComposer.setAttribute("data-testid", "tweetTextarea_post");
+    freshComposer.setAttribute("contenteditable", "true");
+    freshComposer.setAttribute("role", "textbox");
+    Object.defineProperty(freshComposer, "getBoundingClientRect", {
+      value: () => ({ width: 300, height: 80 })
+    });
+
+    document.body.append(article, freshComposer);
+
+    expect(findComposer()).toBe(freshComposer);
+  });
+
   it("ignores a search textbox", () => {
     const search = document.createElement("div");
     search.setAttribute("contenteditable", "true");
@@ -163,7 +252,7 @@ describe("X composer detection", () => {
     }
   });
 
-  it("replaces an existing draft instead of appending", async () =>
+  it("replaces an existing draft instead of appending", async () => {
     const composer = document.createElement("div");
     composer.setAttribute("contenteditable", "true");
     composer.setAttribute("role", "textbox");
