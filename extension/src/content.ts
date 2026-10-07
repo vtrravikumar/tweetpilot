@@ -107,19 +107,36 @@ async function handleComposer(composer: HTMLElement | null): Promise<void> {
   // OpenAI tokens unless the user explicitly asks for an idea.
 }
 
+let composerScanScheduled = false;
+
 function observeComposer(): void {
   void handleComposer(findComposer());
 }
 
+function scheduleComposerScan(): void {
+  if (composerScanScheduled) {
+    return;
+  }
+
+  composerScanScheduled = true;
+  window.requestAnimationFrame(() => {
+    composerScanScheduled = false;
+    observeComposer();
+  });
+}
+
 const observer = new MutationObserver(() => {
-  observeComposer();
+  // X changes classes/styles very frequently while scrolling and rendering.
+  // Watching all attribute mutations forces a full composer scan for each
+  // change. Child-list changes are sufficient to detect composer creation and
+  // removal, while the existing 1s safety poll covers state changes that do
+  // not involve DOM insertion/removal.
+  scheduleComposerScan();
 });
 
 observer.observe(document.documentElement, {
   subtree: true,
-  childList: true,
-  attributes: true,
-  attributeFilter: ["aria-hidden", "style", "class"]
+  childList: true
 });
 
 window.setInterval(observeComposer, 1000);
