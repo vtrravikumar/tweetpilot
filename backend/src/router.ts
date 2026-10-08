@@ -24,6 +24,11 @@ export const routes: readonly Route[] = [
   createGenerateTweetRoute((env) => createTweetGenerator(env), {
     usageGuard: createUsageGuard(),
   }),
+  createGenerateTweetRoute((env) => createTweetGenerator(env), {
+    usageGuard: createUsageGuard(),
+    path: "/v2/tweet/generate",
+    includeStyle: true,
+  }),
 ];
 
 export async function handleRequest(
