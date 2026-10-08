@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Vichar \u2014 By VTRRK",
   "short_name": "Vichar",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "A thoughtful AI writing companion for the X composer.",
   "homepage_url": "https://vtrrk.in/vichar/",
   "minimum_chrome_version": "120",
