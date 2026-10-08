@@ -13,6 +13,10 @@ const MAX_REQUEST_BODY_BYTES = 8 * 1024;
 
 export interface GenerateTweetRouteOptions {
   usageGuard?: UsageGuard;
+  /** Public API path. Defaults to the stable V1 extension contract. */
+  path?: string;
+  /** Include the selected style in the response for V2 web clients. */
+  includeStyle?: boolean;
 }
 
 export function createGenerateTweetRoute(
@@ -23,7 +27,7 @@ export function createGenerateTweetRoute(
 
   return {
     method: "POST",
-    path: "/v1/tweet/generate",
+    path: options.path ?? "/v1/tweet/generate",
     handler: async (request, env) => {
       const contentLength = request.headers.get("content-length");
       if (contentLength !== null) {
@@ -81,12 +85,15 @@ export function createGenerateTweetRoute(
 
       try {
         const generator = typeof source === "function" ? source(env) : source;
-        const { tweet } = await generator.generate(validation.value);
+        const result = await generator.generate(validation.value);
         const headers: Record<string, string> = {};
         if (decision.remaining !== undefined) headers["x-vichar-remaining"] = String(decision.remaining);
         if (decision.dailyLimit !== undefined) headers["x-vichar-daily-limit"] = String(decision.dailyLimit);
         if (webAccess) headers["x-vichar-access"] = "web";
-        return jsonResponse({ tweet }, 200, headers);
+        const payload = options.includeStyle
+          ? { tweet: result.tweet, style: validation.value.style ?? null }
+          : { tweet: result.tweet };
+        return jsonResponse(payload, 200, headers);
       } catch (err) {
         if (err instanceof GenerationError) return generationErrorResponse(err);
         throw err;
