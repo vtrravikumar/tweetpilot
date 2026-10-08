@@ -57,4 +57,4 @@ The identity should retain the crimson + gold/orange character across the extens
 
 ## Infrastructure note
 
-The existing Worker hostname remains tweetpilot-api.vtrravikumar.workers.dev for now. It is an infrastructure endpoint, not the product brand. A branded API hostname can be introduced separately without changing the extension's public identity.
+The production Vichar API is branded as `api.vtrrk.in/vichar`. The legacy `tweetpilot-api.vtrravikumar.workers.dev` hostname may remain available as an infrastructure endpoint, but it is not the public product API. The branded API path should be used by the extension and public documentation.
