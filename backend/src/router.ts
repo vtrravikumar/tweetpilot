@@ -32,7 +32,14 @@ export async function handleRequest(
   ctx: ExecutionContext,
 ): Promise<Response> {
   const { pathname } = new URL(request.url);
-  const pathMatches = routes.filter((route) => route.path === pathname);
+  // Keep the existing routes working while exposing the production Vichar API
+  // under the branded /vichar namespace on api.vtrrk.in.
+  const routePath = pathname.startsWith("/vichar/")
+    ? pathname.slice("/vichar".length)
+    : pathname === "/vichar"
+      ? "/"
+      : pathname;
+  const pathMatches = routes.filter((route) => route.path === routePath);
 
   if (pathMatches.length === 0) {
     return withCors(errorResponse(404, "not_found", "Route not found."), request, env);
