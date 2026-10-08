@@ -51,15 +51,18 @@ export function createPanel(callbacks: PanelCallbacks): TweetPanel {
       <div class="vc-controls">
         <label>
           <span>Topic</span>
+          <select class="vc-topic" aria-label="Topic">
+            ${TOPICS.map((topic) => `<option value="${topic}">${topic}</option>`).join("")}
+            <option value="__custom__">Write your own…</option>
+          </select>
           <input
-            class="vc-topic"
+            class="vc-custom-topic"
             type="text"
-            list="vc-topic-options"
             maxlength="100"
             autocomplete="off"
-            placeholder="Choose or type a topic"
+            placeholder="e.g. Vintage cameras"
+            hidden
           />
-          <datalist id="vc-topic-options"></datalist>
         </label>
         <label>
           <span>Location <em>optional</em></span>
@@ -87,14 +90,24 @@ export function createPanel(callbacks: PanelCallbacks): TweetPanel {
 
   document.body.appendChild(root);
 
-  const topicInput = root.querySelector<HTMLInputElement>(".vc-topic")!;
-  const topicOptions = root.querySelector<HTMLDataListElement>("#vc-topic-options")!;
-  for (const topic of TOPICS) {
-    const option = document.createElement("option");
-    option.value = topic;
-    topicOptions.appendChild(option);
-  }
+  const topicInput = root.querySelector<HTMLSelectElement>(".vc-topic")!;
+  const customTopicInput = root.querySelector<HTMLInputElement>(".vc-custom-topic")!;
   topicInput.value = "Surprise me";
+
+  const getSelectedTopic = () => {
+    if (topicInput.value === "__custom__") {
+      return customTopicInput.value.trim() || "Surprise me";
+    }
+    return topicInput.value.trim() || "Surprise me";
+  };
+
+  const updateCustomTopicVisibility = () => {
+    const isCustom = topicInput.value === "__custom__";
+    customTopicInput.hidden = !isCustom;
+    if (isCustom) customTopicInput.focus();
+  };
+
+  updateCustomTopicVisibility();
 
   const locationInput = root.querySelector<HTMLInputElement>(".vc-location")!;
   const status = root.querySelector<HTMLDivElement>(".vc-status")!;
@@ -124,7 +137,7 @@ export function createPanel(callbacks: PanelCallbacks): TweetPanel {
 
     if (!hasTweet) {
       status.textContent = "Vichāraṁ Labhatām… · Get a thought…";
-      callbacks.onGenerate(topicInput.value.trim() || "Surprise me", locationInput.value);
+      callbacks.onGenerate(getSelectedTopic(), locationInput.value);
       return;
     }
 
@@ -198,7 +211,7 @@ export function createPanel(callbacks: PanelCallbacks): TweetPanel {
 
   another.addEventListener("click", () => {
     status.textContent = "Vichāraṁ Labhatām… · Get a thought…";
-    callbacks.onGenerate(topicInput.value.trim() || "Surprise me", locationInput.value);
+    callbacks.onGenerate(getSelectedTopic(), locationInput.value);
   });
 
   const invalidateSuggestion = (message: string) => {
@@ -212,7 +225,12 @@ export function createPanel(callbacks: PanelCallbacks): TweetPanel {
     status.textContent = message;
   };
 
-  topicInput.addEventListener("input", () => {
+  topicInput.addEventListener("change", () => {
+    updateCustomTopicVisibility();
+    invalidateSuggestion("Topic changed. Choose Get a thought when you're ready.");
+  });
+
+  customTopicInput.addEventListener("input", () => {
     invalidateSuggestion("Topic changed. Choose Get a thought when you're ready.");
   });
 
@@ -260,7 +278,7 @@ export function createPanel(callbacks: PanelCallbacks): TweetPanel {
     setVisible(visible) {
       root.classList.toggle("vc-inactive", !visible);
     },
-    getTopic: () => (topicInput.value.trim() || "Surprise me") as TopicSelection,
+    getTopic: () => getSelectedTopic() as TopicSelection,
     getLocation: () => locationInput.value.trim(),
     getComposer: () => composer,
     setComposer: (value) => {
