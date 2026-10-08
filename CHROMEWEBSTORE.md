@@ -26,7 +26,7 @@ No passwords, OpenAI credentials, X credentials, or authentication cookies are s
 
 ### Host access: Vichar Cloudflare Worker
 
-**Host:** `https://tweetpilot-api.vtrravikumar.workers.dev/*`
+**Host:** `https://api.vtrrk.in/vichar/*`
 
 **Justification:** The MV3 service worker sends generation requests to the Vichar backend. The backend holds the OpenAI credential and enforces usage limits, so the OpenAI API key does not need to be included in the extension.
 
