@@ -128,6 +128,49 @@ describe("createTweetGenerator (factory)", () => {
   });
 });
 
+describe("POST /v2/tweet/generate with the OpenAI provider (mocked fetch)", () => {
+  it("returns the generated tweet and the selected style", async () => {
+    const fetchMock = stubFetch(openaiOk("A quiet frame can say more than a loud caption."));
+    const response = await handleRequest(
+      new Request("https://example.com/v2/tweet/generate", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          authorization: `Bearer test-route-usage-key-${crypto.randomUUID()}`,
+        },
+        body: JSON.stringify({
+          topic: "Photography",
+          location: "Chennai",
+          style: "observational",
+          maxLength: 140,
+        }),
+      }),
+      env({ OPENAI_API_KEY: KEY }),
+      ctx,
+    );
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({
+      tweet: "A quiet frame can say more than a loud caption.\\nVichar by vtrrk",
+      style: "observational",
+    });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("leaves the V1 response contract unchanged", async () => {
+    const fetchMock = stubFetch(openaiOk("Keep the original API stable."));
+    const response = await handleRequest(
+      request({ topic: "Technology", style: "witty" }),
+      env({ OPENAI_API_KEY: KEY }),
+      ctx,
+    );
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({
+      tweet: "Keep the original API stable.\\nVichar by vtrrk",
+    });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+});
+
 describe("POST /v1/tweet/generate with the OpenAI provider (mocked fetch)", () => {
   it("returns 200 { tweet } and keeps the HTTP contract unchanged", async () => {
     const fetchMock = stubFetch(openaiOk("Golden hour never gets old."));
