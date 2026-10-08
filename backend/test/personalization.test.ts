@@ -194,7 +194,7 @@ describe("provider request construction after M2.4", () => {
         ? queueFetch(newsEmpty(), openaiOk("hi"))
         : queueFetch(openaiOk("hi"));
       await provider(fetchMock).generate(input);
-      seen.add(capture(fetchMock).body.instructions);
+      seen.add(capture(fetchMock, input.location ? 1 : 0).body.instructions);
     }
     expect(seen.size).toBe(1);
     expect([...seen][0]).toBe(PERSONALIZATION_INSTRUCTIONS);
@@ -216,7 +216,7 @@ describe("provider request construction after M2.4", () => {
     expect(input.length).toBeLessThan(500);
   });
 
-  it("labels location as optional context in the per-request input", async () => {
+  it("labels location as current context in the per-request input", async () => {
     const fetchMock = queueFetch(newsEmpty(), openaiOk("hi"));
     await provider(fetchMock).generate({ topic: "Photography", location: "Chennai" });
     expect(capture(fetchMock, 1).body.input).toContain("Location: Chennai");
