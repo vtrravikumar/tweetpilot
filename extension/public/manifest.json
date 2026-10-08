@@ -10,7 +10,7 @@
     "storage"
   ],
   "host_permissions": [
-    "https://tweetpilot-api.vtrravikumar.workers.dev/*"
+    "https://api.vtrrk.in/vichar/*"
   ],
   "background": {
     "service_worker": "background.js",
