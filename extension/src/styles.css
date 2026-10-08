@@ -77,7 +77,7 @@
   font-style: normal;
 }
 
-#vichar-root input, #vichar-root textarea {
+#vichar-root input, #vichar-root select, #vichar-root textarea {
   width: 100%;
   border: 1px solid var(--vc-border);
   border-radius: 9px;
@@ -85,7 +85,7 @@
   color: var(--vc-text);
   font: inherit;
 }
-#vichar-root input { height: 36px; padding: 0 10px; }
+#vichar-root input, #vichar-root select { height: 36px; padding: 0 10px; }
 #vichar-root textarea {
   min-height: 56px;
   max-height: 80px;
@@ -157,7 +157,7 @@
 #vichar-root .vc-ai-i, #vichar-root .vc-ai-a { color: inherit; }
 #vichar-root .vc-primary:hover:not(:disabled) { background: #1a8cd8; }
 
-#vichar-root input:focus, #vichar-root textarea:focus {
+#vichar-root input:focus, #vichar-root select:focus, #vichar-root textarea:focus {
   outline: 2px solid rgba(29, 155, 240, 0.22);
   border-color: var(--vc-focus);
 }
