@@ -1,5 +1,5 @@
 export const API_GENERATE_URL =
-  "https://tweetpilot-api.vtrravikumar.workers.dev/v1/tweet/generate";
+  "https://api.vtrrk.in/vichar/v1/tweet/generate";
 
 export const DEFAULT_MAX_LENGTH = 140;
 
