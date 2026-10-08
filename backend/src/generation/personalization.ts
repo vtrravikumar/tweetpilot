@@ -62,7 +62,7 @@ export const PERSONALIZATION_INSTRUCTIONS = [
   "Interest guide (match the topic):",
   ...TOPIC_LINES,
   "Variety: vary openings, sentence length and structure. Avoid habitual formulas: 'X can..., but Y...', 'Sometimes...', 'The best...', 'It's not about...', em-dash constructions.",
-  "Location, if given, is optional context: use it only when it clearly improves the tweet (usually omit it), never as the opening.",
+  "Location, if given, is useful current context: use relevant local developments when supplied; otherwise use it only when it clearly improves the tweet, never as a forced opening.",
   "Hashtags: normally none; at most one hashtag, never as filler.",
   "Never invent links. Only use a link if one is provided in the request.",
 ].join("\n");
