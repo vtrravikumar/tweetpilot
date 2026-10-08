@@ -109,7 +109,7 @@ export function formatNewsContext(context: NewsContext): string {
 
 function readTag(block: string, tag: string): string {
   const match = block.match(
-    new RegExp(`<${tag}(?:\\\\s[^>]*)?>([\\\\s\\\\S]*?)<\\\\/${tag}>`, "i"),
+    new RegExp(`<${tag}(?:\\s[^>]*)?>([\\s\\S]*?)<\\/${tag}>`, "i"),
   );
   return match?.[1] ?? "";
 }
@@ -117,9 +117,9 @@ function readTag(block: string, tag: string): string {
 function cleanXmlText(value: string): string {
   return decodeEntities(
     value
-      .replace(/<!\\[CDATA\\[([\\s\\S]*?)\\]\\]>/g, "$1")
+      .replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, "$1")
       .replace(/<[^>]+>/g, " ")
-      .replace(/\\s+/g, " ")
+      .replace(/\s+/g, " ")
       .trim(),
   );
 }
