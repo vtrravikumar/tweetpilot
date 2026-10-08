@@ -70,7 +70,7 @@ describe("OpenAIProvider - interface and configuration", () => {
       style: "thoughtful",
     });
 
-    const call = capture(fetchMock);
+    const call = capture(fetchMock, 1);
     expect(call.headers.authorization).toBe(`Bearer ${KEY}`);
     expect(JSON.stringify(call.body)).not.toContain(KEY);
     expect(JSON.stringify(call.body)).not.toContain("sk-");
