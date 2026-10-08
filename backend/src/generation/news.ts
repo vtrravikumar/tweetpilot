@@ -75,7 +75,7 @@ export function shouldFetchNews(input: GenerateTweetInput): boolean {
 
 export function parseNewsItems(xml: string): NewsItem[] {
   const items: NewsItem[] = [];
-  const matches = xml.match(/<item[\\s\\S]*?<\\/item>/gi) ?? [];
+  const matches = xml.match(/<item[\s\S]*?<\/item>/gi) ?? [];
 
   for (const block of matches) {
     const title = cleanXmlText(readTag(block, "title"));
