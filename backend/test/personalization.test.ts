@@ -150,12 +150,12 @@ describe("personalization instructions - voice, angle and variety", () => {
 });
 
 describe("personalization instructions - location, hashtags, links", () => {
-  it("treats location as optional context, never mandatory or an opening", () => {
+  it("treats location as useful current context without forcing it into the opening", () => {
     const location = lines.find((l) => l.startsWith("Location")) ?? "";
-    expect(location).toMatch(/optional context/i);
+    expect(location).toMatch(/useful current context/i);
+    expect(location).toMatch(/relevant local developments/i);
     expect(location).toMatch(/only when it clearly improves/i);
-    expect(location).toMatch(/usually omit/i);
-    expect(location).toMatch(/never as the opening/i);
+    expect(location).toMatch(/never as a forced opening/i);
     expect(location).not.toMatch(/\b(always|must|include the location)\b/i);
   });
 
