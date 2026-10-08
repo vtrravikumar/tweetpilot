@@ -53,16 +53,8 @@ export function createPanel(callbacks: PanelCallbacks): TweetPanel {
           <span>Topic</span>
           <select class="vc-topic" aria-label="Topic">
             ${TOPICS.map((topic) => `<option value="${topic}">${topic}</option>`).join("")}
-            <option value="__custom__">Write your own…</option>
           </select>
-          <input
-            class="vc-custom-topic"
-            type="text"
-            maxlength="100"
-            autocomplete="off"
-            placeholder="e.g. Vintage cameras"
-            hidden
-          />
+
         </label>
         <label>
           <span>Location <em>optional</em></span>
@@ -91,23 +83,9 @@ export function createPanel(callbacks: PanelCallbacks): TweetPanel {
   document.body.appendChild(root);
 
   const topicInput = root.querySelector<HTMLSelectElement>(".vc-topic")!;
-  const customTopicInput = root.querySelector<HTMLInputElement>(".vc-custom-topic")!;
   topicInput.value = "Surprise me";
 
-  const getSelectedTopic = () => {
-    if (topicInput.value === "__custom__") {
-      return customTopicInput.value.trim() || "Surprise me";
-    }
-    return topicInput.value.trim() || "Surprise me";
-  };
-
-  const updateCustomTopicVisibility = () => {
-    const isCustom = topicInput.value === "__custom__";
-    customTopicInput.hidden = !isCustom;
-    if (isCustom) customTopicInput.focus();
-  };
-
-  updateCustomTopicVisibility();
+  const getSelectedTopic = () => topicInput.value.trim() || "Surprise me";
 
   const locationInput = root.querySelector<HTMLInputElement>(".vc-location")!;
   const status = root.querySelector<HTMLDivElement>(".vc-status")!;
@@ -226,11 +204,6 @@ export function createPanel(callbacks: PanelCallbacks): TweetPanel {
   };
 
   topicInput.addEventListener("change", () => {
-    updateCustomTopicVisibility();
-    invalidateSuggestion("Topic changed. Choose Get a thought when you're ready.");
-  });
-
-  customTopicInput.addEventListener("input", () => {
     invalidateSuggestion("Topic changed. Choose Get a thought when you're ready.");
   });
 
