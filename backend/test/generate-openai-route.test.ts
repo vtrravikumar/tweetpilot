@@ -130,7 +130,7 @@ describe("createTweetGenerator (factory)", () => {
 
 describe("POST /v2/tweet/generate with the OpenAI provider (mocked fetch)", () => {
   it("returns the generated tweet and the selected style", async () => {
-    const fetchMock = stubFetch(openaiOk("A quiet frame can say more than a loud caption."));
+    const fetchMock = stubFetch(new Response("<rss><channel></channel></rss>", { status: 200 }), openaiOk("A quiet frame can say more than a loud caption."));
     const response = await handleRequest(
       new Request("https://example.com/v2/tweet/generate", {
         method: "POST",
@@ -153,7 +153,7 @@ describe("POST /v2/tweet/generate with the OpenAI provider (mocked fetch)", () =
       tweet: "A quiet frame can say more than a loud caption.\\nVichar by vtrrk",
       style: "observational",
     });
-    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 
   it("leaves the V1 response contract unchanged", async () => {
