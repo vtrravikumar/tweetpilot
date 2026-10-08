@@ -20,6 +20,18 @@ export const INTERESTS = [
   "life & observations",
 ] as const;
 
+export const STYLE_GUIDANCE: Record<string, string> = {
+  thoughtful: "Reflect on the topic and leave the reader with a considered idea or tension.",
+  conversational: "Sound like something a real person would naturally say to another person.",
+  witty: "Look for a light twist, irony or dry humour without forcing a joke.",
+  observational: "Notice a specific detail, behaviour or contrast that makes the topic interesting.",
+  curious: "Frame the thought around an interesting question, uncertainty or thing worth noticing.",
+  provocative: "Take a clear, defensible angle that challenges an obvious assumption without rage-bait.",
+  inspirational: "Find a genuine positive insight without becoming motivational or preachy.",
+  minimalist: "Strip the idea down to its strongest few words; make every word earn its place.",
+  news: "Ground the thought in the supplied current news. Lead with the meaningful development or its human angle, not a generic fact about the topic. Do not invent or imply news that is not in the supplied context.",
+};
+
 export type Interest = (typeof INTERESTS)[number];
 
 /**
