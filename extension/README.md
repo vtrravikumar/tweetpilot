@@ -31,7 +31,7 @@ Vichar never clicks X's native **Post** button.
 
 The extension uses the deployed Vichar Cloudflare Worker:
 
-`https://tweetpilot-api.vtrravikumar.workers.dev`
+`https://api.vtrrk.in/vichar`
 
 The OpenAI API key is never shipped to the extension. The extension generates an opaque per-installation Vichar usage key, stores it in extension-local storage, and sends it to the Cloudflare Worker as a Bearer token. The backend uses that identifier for usage accounting and enforces the free quota (10 generations/day, 3/minute burst by default). It is not an OpenAI credential or API secret.
 
