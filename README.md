@@ -116,7 +116,7 @@ The initial web client lives in the separate **vtrrk.in** Astro repository.
 The production API is:
 
 ```
-https://tweetpilot-api.vtrravikumar.workers.dev
+https://api.vtrrk.in/vichar
 ```
 
 ---
@@ -157,7 +157,7 @@ GET /health
 Production:
 
 ```
-https://tweetpilot-api.vtrravikumar.workers.dev/health
+https://api.vtrrk.in/vichar/health
 ```
 
 ---
@@ -472,7 +472,7 @@ The repository now includes the Chrome extension under `extension/`.
 
 - **Live Vichar:** https://vtrrk.in/vichar/
 - **Personal website:** https://vtrrk.in/
-- **Vichar API:** https://tweetpilot-api.vtrravikumar.workers.dev/
+- **Vichar API:** https://api.vtrrk.in/vichar/
 - **VTRRK GitHub:** https://github.com/vtrravikumar
 - **Vichar project page:** https://vtrrk.in/vichar/
 
