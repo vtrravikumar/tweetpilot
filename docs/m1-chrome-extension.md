@@ -56,7 +56,7 @@ The service worker performs the cross-origin backend request using the extension
 
 Development and testing use the already deployed Worker:
 
-`https://tweetpilot-api.vtrravikumar.workers.dev/v1/tweet/generate`
+`https://api.vtrrk.in/vichar/v1/tweet/generate`
 
 No second backend or development API key is required for M1.
 
