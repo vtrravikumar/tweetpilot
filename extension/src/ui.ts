@@ -1,5 +1,5 @@
 import { DEFAULT_MAX_LENGTH, PANEL_ID } from "./constants";
-import { TOPICS, type TopicSelection } from "./types";
+import { TOPICS, type GenerateResponse, type TopicSelection } from "./types";
 import {
   composerHost,
   composerToolbar,
@@ -10,7 +10,7 @@ import {
 } from "./dom";
 
 export interface PanelCallbacks {
-  onGenerate: (topic: TopicSelection, location: string) => void;
+  onGenerate: (topic: TopicSelection, location: string, useNews: boolean) => void;
   onDismiss: () => void;
   onReopen: () => void;
 }
@@ -18,11 +18,12 @@ export interface PanelCallbacks {
 export interface TweetPanel {
   element: HTMLDivElement;
   setLoading: (loading: boolean) => void;
-  setTweet: (tweet: string, resolvedTopic: string) => void;
+  setTweet: (result: GenerateResponse, resolvedTopic: string) => void;
   setError: (message: string) => void;
   setVisible: (visible: boolean) => void;
   getTopic: () => TopicSelection;
   getLocation: () => string;
+  getUseNews: () => boolean;
   getComposer: () => HTMLElement | null;
   setComposer: (composer: HTMLElement | null) => void;
   setDismissed: (dismissed: boolean) => void;
@@ -57,12 +58,18 @@ export function createPanel(callbacks: PanelCallbacks): TweetPanel {
 
         </label>
         <label>
-          <span>Location <em>optional</em></span>
-          <input class="vc-location" type="text" maxlength="80" placeholder="e.g. Chennai" />
+          <span>Location <em>optional · worldwide</em></span>
+          <input class="vc-location" type="text" maxlength="80" placeholder="e.g. Tokyo or Chennai" />
         </label>
       </div>
 
+      <label class="vc-news-toggle">
+        <input class="vc-use-news" type="checkbox" />
+        <span>Use recent news <em>last 48 hours</em></span>
+      </label>
+
       <div class="vc-status" aria-live="polite"></div>
+      <div class="vc-news-sources" aria-label="News sources"></div>
 
       <div class="vc-suggestion-wrap">
         <textarea class="vc-suggestion" maxlength="${DEFAULT_MAX_LENGTH}" aria-label="Vichar thought"></textarea>
@@ -89,6 +96,8 @@ export function createPanel(callbacks: PanelCallbacks): TweetPanel {
 
   const locationInput = root.querySelector<HTMLInputElement>(".vc-location")!;
   const status = root.querySelector<HTMLDivElement>(".vc-status")!;
+  const newsToggle = root.querySelector<HTMLInputElement>(".vc-use-news")!;
+  const newsSources = root.querySelector<HTMLDivElement>(".vc-news-sources")!;
   const suggestion = root.querySelector<HTMLTextAreaElement>(".vc-suggestion")!;
   const count = root.querySelector<HTMLDivElement>(".vc-count")!;
   const primary = root.querySelector<HTMLButtonElement>(".vc-primary")!;
@@ -115,7 +124,7 @@ export function createPanel(callbacks: PanelCallbacks): TweetPanel {
 
     if (!hasTweet) {
       status.textContent = "Vichāraṁ Labhatām… · Get a thought…";
-      callbacks.onGenerate(getSelectedTopic(), locationInput.value);
+      callbacks.onGenerate(getSelectedTopic(), locationInput.value, newsToggle.checked);
       return;
     }
 
