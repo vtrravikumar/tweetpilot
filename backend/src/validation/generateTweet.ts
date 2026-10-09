@@ -34,6 +34,9 @@ export function validateGenerateTweetRequest(body: unknown): ValidationResult {
 
   const style = optionalString(input, "style");
   if (!style.ok) return style;
+  if (style.value?.toLowerCase() === "news") {
+    return fail("News is a content source, not a writing style. Set useNews to true.");
+  }
 
   const useNews = input.useNews;
   if (useNews !== undefined && typeof useNews !== "boolean") {
