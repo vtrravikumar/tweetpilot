@@ -129,3 +129,38 @@ Before declaring the first public release complete:
 - [ ] Public installation test
 - [ ] Public launch announcement
 
+
+
+---
+
+## Repository Ownership & Cross-Repository Dependencies
+
+### Ownership rule
+
+This repository owns the **Vichar backend/API and Chrome extension**: Cloudflare Worker endpoints, OpenAI integration, authentication, usage limits, security, shared generation logic, extension implementation, packaging, and extension-specific UX.
+
+The Vichar website UI at [`vtrrk.in/vichar/`](https://vtrrk.in/vichar/) is owned by [`vtrravikumar/vtrrk.in`](https://github.com/vtrravikumar/vtrrk.in). Website layout, content, SEO, accessibility, image/JavaScript performance, and browser-side website behaviour belong in that repository's backlog.
+
+### Consumer labels (required for backend/API work)
+
+Every backend/API backlog item that changes behaviour or contracts must state its consumer scope using one of these exact labels:
+
+- **Consumers: Website** — Vichar web experience on vtrrk.in.
+- **Consumers: Chrome extension** — Vichar extension on X.
+- **Consumers: Both** — the website and extension both depend on the change.
+- **Consumers: Backend/internal** — no direct client contract change; explain why.
+
+If consumer impact is not yet known, mark it **Consumers: To be assessed** and resolve it before implementation is considered complete. Do not assume a change affects both clients merely because they share a backend.
+
+### Cross-reference rules
+
+1. Backend/API and extension implementation tasks live here. Website UI implementation tasks live in the vtrrk.in backlog.
+2. If a website requirement needs a backend change, add the implementation task here and reference the website backlog item. The website backlog should retain its own integration/verification item and link back here.
+3. Each cross-repository reference must name the repository and item ID/title, and include a link when the item exists. Never invent an item ID or claim a dependency is linked before it is created.
+4. Track implementation and consumer integration independently. A backend task being Done does not prove the website or extension integration works; test every declared consumer.
+5. Keep release/deployment verification separate for the Worker, website, and Chrome extension.
+6. Do not add speculative backend work just because a client could use it. First agree on the product requirement and the affected consumer(s).
+
+### Current-information / news generation scope note
+
+`VICHAR-010` is the existing parked proposal for server-side current-information/web-search generation. It is **not implemented or approved for implementation by this backlog entry**. Google News is not currently specified as a selected provider. Before work begins, define the source/provider strategy and mark the intended consumers explicitly (`Website`, `Chrome extension`, or `Both`); then cross-reference the corresponding client integration item in `vtrravikumar/vtrrk.in` if the website is in scope.
