@@ -203,11 +203,13 @@ The 48-hour threshold is the initial product default, subject to review after re
    - Test global search configuration, success and source URLs, the 48-hour boundary, stale/missing/future timestamps, no qualifying results, malformed feeds, timeouts/provider failures, distinct fallback reasons, character limits, attribution, and all existing non-News behaviours.
    - Consumers: Both.
 3. **VICHAR-010C — Website API contract handoff**
+   - Status: In Progress
    - Document the stable request/response contract and no-news/unavailable semantics for the website consumer.
    - Coordinate with website item [`vtrravikumar/vtrrk.in` — VICHAR-WEB-002](https://github.com/vtrravikumar/vtrrk.in/blob/main/backlog.md).
    - Do not implement website UI in this repository.
    - Consumers: Website.
 4. **VICHAR-010D — Chrome extension integration**
+   - Status: In Progress
    - Add the same explicit News option and show source metadata; keep existing writing-style selection independent.
    - Handle no-news/unavailable responses without changing the manual posting flow.
    - Consumers: Chrome extension.
