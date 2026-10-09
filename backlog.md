@@ -165,7 +165,15 @@ If consumer impact is not yet known, mark it **Consumers: To be assessed** and r
 
 **Design direction agreed: 2026-10-09.** This is an approved direction for planning; implementation and release are not yet complete.
 
-Vichar will treat the **content source** and **writing style** as separate dimensions:
+Vichar will treat the **content source** and **writing style** as separate dimensions. Additional decisions confirmed on 2026-10-09:
+
+- **Initial recency window: 48 hours.** Only stories with a valid publication timestamp within the last 48 hours qualify. Stories older than 48 hours, future-dated, or missing/unparseable publication timestamps are excluded from News mode.
+- **Global reach:** retain Google News RSS as the initial provider candidate because topics and locations may be anywhere in the world. Search configuration must not hard-code India-only coverage; use the supplied location to focus the query without restricting sources to Indian publishers. Validate locale/region behaviour during provider proof of concept.
+- **Explicit fallback:** if News mode finds no qualifying recent story, generate an ordinary Vichar using OpenAI and the chosen/randomised writing style, and return a machine-readable `normal_fallback` outcome with `fallbackReason: no_recent_news`. The client must visibly state: “No recent news found for this topic. We've generated a normal Vichar instead.”
+- **Provider failure is distinct:** if retrieval times out, returns an error, or cannot be parsed, generate an ordinary Vichar if OpenAI is available, but return `fallbackReason: news_unavailable` and show a different message. Never imply that an outage proves no news exists.
+- **Successful News mode:** return the draft plus source metadata (headline, publisher, canonical/article URL, publication timestamp) for the selected story/stories. Do not label a draft news-grounded unless at least one source passes relevance and recency checks.
+
+The 48-hour threshold is the initial product default, subject to review after real-world use; do not silently widen it when results are sparse.
 
 - `useNews: true` explicitly requests a post grounded in recent news; `false` or an omitted field preserves ordinary topic-based generation.
 - `style` remains a writing-tone attribute (for example, witty, thoughtful, professional). News is **not** a writing style and must not be included in random style selection.
@@ -182,15 +190,15 @@ Vichar will treat the **content source** and **writing style** as separate dimen
 
 1. **VICHAR-010A — News retrieval contract and provider proof of concept**
    - Review the existing Google News RSS implementation for relevance, freshness, article URL extraction, malformed/empty responses, timeouts, and source attribution.
-   - Validate the intended production usage and provider suitability before treating Google News RSS as a permanent dependency.
-   - Define a typed news result and a distinct no-suitable-news outcome for explicit News mode.
+   - Validate the intended production usage, global query/locale behaviour, article URL quality, and provider suitability before treating Google News RSS as a permanent dependency.
+   - Define typed retrieval outcomes that distinguish recent results, no qualifying stories (including stale/missing timestamps), and provider failure.
    - Consumers: Backend/internal (proof of concept); no client contract change in this stage.
 2. **VICHAR-010B — Backend News mode**
    - Validate optional boolean `useNews`; preserve existing behaviour when omitted/false.
    - Keep `style` solely for tone; remove `news` from style-specific behaviour and ensure location alone does not trigger news retrieval.
-   - When `useNews: true`, retrieve news before generation and ground the draft in source facts.
-   - Return source metadata in the API response only for News mode; preserve the existing `tweet` response field and existing consumers' compatibility.
-   - Test success, no suitable results, stale/malformed feeds, timeouts, provider failures, character limits, attribution, and all existing non-News behaviours.
+   - When `useNews: true`, retrieve news independently from OpenAI, reject stories older than 48 hours or with missing/unreliable publication times, and ground the draft in a qualifying source. If no qualifying story exists, use normal OpenAI generation and return an explicit `normal_fallback` / `no_recent_news` outcome; if retrieval fails, use normal generation with `normal_fallback` / `news_unavailable`.
+   - Return source metadata in the API response for successful News mode, plus explicit mode/fallback metadata when News mode falls back. Preserve the existing `tweet` response field and existing non-News response compatibility.
+   - Test global search configuration, success and source URLs, the 48-hour boundary, stale/missing/future timestamps, no qualifying results, malformed feeds, timeouts/provider failures, distinct fallback reasons, character limits, attribution, and all existing non-News behaviours.
    - Consumers: Both.
 3. **VICHAR-010C — Website API contract handoff**
    - Document the stable request/response contract and no-news/unavailable semantics for the website consumer.
@@ -202,6 +210,6 @@ Vichar will treat the **content source** and **writing style** as separate dimen
    - Handle no-news/unavailable responses without changing the manual posting flow.
    - Consumers: Chrome extension.
 
-**Provider note:** Google News RSS is the current proof-of-concept candidate, not a final production commitment. Confirm permitted use, reliability and source-link quality before finalising provider choice. Do not add a paid provider or extra infrastructure without an explicit cost/benefit decision.
+**Provider note:** Google News RSS is the current proof-of-concept candidate because the product needs global coverage, not an India-only publisher feed; it is not a final production commitment. Confirm permitted use, reliability and source-link quality before finalising provider choice. Do not add a paid provider or extra infrastructure without an explicit cost/benefit decision.
 
 **Release note:** Vichar V4.0 is a product milestone, not a claim that all stages must ship together. Do not mark V4.0 complete until backend behaviour and both client integrations are verified independently.
