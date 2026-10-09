@@ -4,6 +4,7 @@ import {
   formatNewsContext,
   parseNewsItems,
   shouldFetchNews,
+  NEWS_MAX_AGE_MS,
 } from "../src/generation/news";
 import { queueFetch } from "./helpers";
 
@@ -61,6 +62,19 @@ describe("news context", () => {
   it("fails open when the news source is unavailable", async () => {
     const fetchMock = queueFetch(new Error("news unavailable"));
     expect(await fetchNewsContext({ topic: "Nana Patekar", useNews: true }, fetchMock)).toEqual({ status: "unavailable" });
+  });
+
+  it("enforces the 48-hour window and excludes missing or future timestamps", () => {
+    const now = Date.parse("2026-10-09T12:00:00.000Z");
+    const boundary = new Date(now - NEWS_MAX_AGE_MS).toUTCString();
+    const future = new Date(now + 1000).toUTCString();
+    const xml = "<rss><channel>" +
+      "<item><title>Boundary</title><link>https://publisher.example/boundary</link><pubDate>" + boundary + "</pubDate><source>Publisher</source></item>" +
+      "<item><title>Too old</title><link>https://publisher.example/old</link><pubDate>Thu, 01 Oct 2026 06:00:00 GMT</pubDate><source>Publisher</source></item>" +
+      "<item><title>Missing date</title><link>https://publisher.example/missing</link><source>Publisher</source></item>" +
+      "<item><title>Future date</title><link>https://publisher.example/future</link><pubDate>" + future + "</pubDate><source>Publisher</source></item>" +
+      "</channel></rss>";
+    expect(parseNewsItems(xml, now).map((item) => item.title)).toEqual(["Boundary"]);
   });
 
   it("parses titles, dates and sources while decoding RSS entities", () => {
