@@ -150,7 +150,7 @@ describe("POST /v2/tweet/generate with the OpenAI provider (mocked fetch)", () =
     );
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual({
-      tweet: "A quiet frame can say more than a loud caption.\\nVichar by vtrrk",
+      tweet: "A quiet frame can say more than a loud caption.\nVichar by vtrrk",
       style: "observational",
     });
     expect(fetchMock).toHaveBeenCalledTimes(2);
@@ -165,7 +165,7 @@ describe("POST /v2/tweet/generate with the OpenAI provider (mocked fetch)", () =
     );
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual({
-      tweet: "Keep the original API stable.\\nVichar by vtrrk",
+      tweet: "Keep the original API stable.\nVichar by vtrrk",
     });
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
