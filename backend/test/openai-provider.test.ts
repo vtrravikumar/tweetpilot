@@ -63,14 +63,14 @@ describe("OpenAIProvider - interface and configuration", () => {
   });
 
   it("keeps the API key only in the authorization header, never in the request body", async () => {
-    const fetchMock = queueFetch(newsEmpty(), openaiOk("hi"));
+    const fetchMock = queueFetch(openaiOk("hi"));
     await provider(fetchMock).generate({
       topic: "Photography",
       location: "Chennai",
       style: "thoughtful",
     });
 
-    const call = capture(fetchMock, 1);
+    const call = capture(fetchMock);
     expect(call.headers.authorization).toBe(`Bearer ${KEY}`);
     expect(JSON.stringify(call.body)).not.toContain(KEY);
     expect(JSON.stringify(call.body)).not.toContain("sk-");
@@ -105,13 +105,13 @@ describe("OpenAIProvider - prompt", () => {
   });
 
   it("includes topic, location and style", async () => {
-    const fetchMock = queueFetch(newsEmpty(), openaiOk("hi"));
+    const fetchMock = queueFetch(openaiOk("hi"));
     await provider(fetchMock).generate({
       topic: "Photography",
       location: "Chennai",
       style: "thoughtful",
     });
-    const { input } = capture(fetchMock, 1).body;
+    const { input } = capture(fetchMock).body;
     expect(input).toContain("Photography");
     expect(input).toContain("Chennai");
     expect(input).toContain("thoughtful");
@@ -170,13 +170,13 @@ describe("OpenAIProvider - prompt", () => {
   });
 
   it("clips oversized fields so they cannot inflate token cost", async () => {
-    const fetchMock = queueFetch(newsEmpty(), openaiOk("hi"));
+    const fetchMock = queueFetch(openaiOk("hi"));
     await provider(fetchMock).generate({
       topic: "t".repeat(50_000),
       location: "l".repeat(50_000),
       style: "s".repeat(50_000),
     });
-    const { input } = capture(fetchMock, 1).body;
+    const { input } = capture(fetchMock).body;
     expect(input.length).toBeLessThan(900);
     expect(input).not.toContain("t".repeat(201));
     expect(input).not.toContain("l".repeat(201));
@@ -289,26 +289,38 @@ describe("OpenAIProvider - VTRRK links", () => {
   });
 });
 
-describe("OpenAIProvider - current news enrichment", () => {
-  it("passes current news into the model for the news style", async () => {
-    const rss = `<rss><channel><item><title>Nana Patekar dies at 75</title><pubDate>Thu, 08 Oct 2026 07:00:00 GMT</pubDate><source>Example News</source></item></channel></rss>`;
+describe("OpenAIProvider - explicit news mode and fallback", () => {
+  const rss = '<rss><channel><item><title>Global technology development</title><link>https://news.google.com/rss/articles/example</link><pubDate>Fri, 09 Oct 2026 07:00:00 GMT</pubDate><source>World News</source></item></channel></rss>';
+
+  it("passes fresh news into OpenAI and returns source metadata", async () => {
     const fetchMock = queueFetch(new Response(rss, { status: 200 }), openaiOk("A current thought."));
-    await provider(fetchMock).generate({ topic: "Nana Patekar", style: "news" });
-    const { input } = capture(fetchMock, 1).body;
-    expect(input).toContain("Current news context");
-    expect(input).toContain("Nana Patekar dies at 75");
-    expect(input).toContain("Style guidance:");
+    const result = await provider(fetchMock).generate({ topic: "technology", location: "Tokyo", style: "witty", useNews: true });
+    expect(result.mode).toBe("news");
+    expect(result.sources?.[0]).toMatchObject({ title: "Global technology development", publisher: "World News", url: "https://news.google.com/rss/articles/example" });
+    expect(capture(fetchMock, 1).body.input).toContain("Current news context");
+    expect(capture(fetchMock, 1).body.input).toContain("Style: witty");
   });
 
-  it("uses current location news for non-news styles when a location is supplied", async () => {
-    const rss = `<rss><channel><item><title>Chennai sees a major local development</title></item></channel></rss>`;
-    const fetchMock = queueFetch(new Response(rss, { status: 200 }), openaiOk("A local thought."));
-    await provider(fetchMock).generate({ topic: "Chennai", location: "Chennai", style: "observational" });
-    const { input } = capture(fetchMock, 1).body;
-    expect(input).toContain("Chennai sees a major local development");
+  it("does not retrieve news just because location is supplied", async () => {
+    const fetchMock = queueFetch(openaiOk("A local thought."));
+    const result = await provider(fetchMock).generate({ topic: "Chennai", location: "Chennai", style: "observational" });
+    expect(result.mode).toBeUndefined();
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("falls back to normal generation when no recent story is found", async () => {
+    const fetchMock = queueFetch(newsEmpty(), openaiOk("A normal thought."));
+    const result = await provider(fetchMock).generate({ topic: "rare topic", style: "thoughtful", useNews: true });
+    expect(result).toMatchObject({ mode: "normal_fallback", fallbackReason: "no_recent_news" });
+    expect(capture(fetchMock, 1).body.input).toContain("No qualifying recent news");
+  });
+
+  it("distinguishes a news provider outage from no recent news", async () => {
+    const fetchMock = queueFetch(new Error("provider offline"), openaiOk("A normal thought."));
+    const result = await provider(fetchMock).generate({ topic: "technology", useNews: true });
+    expect(result).toMatchObject({ mode: "normal_fallback", fallbackReason: "news_unavailable" });
   });
 });
-
 describe("OpenAIProvider - response normalization", () => {
   it("trims whitespace", async () => {
     const fetchMock = queueFetch(openaiOk("  \n A tweet.  \n"));
