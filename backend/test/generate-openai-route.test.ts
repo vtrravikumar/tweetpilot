@@ -183,7 +183,7 @@ describe("POST /v1/tweet/generate News mode contract", () => {
     );
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual({
-      tweet: "A useful thought.\\nVichar by vtrrk",
+      tweet: "A useful thought.\nVichar by vtrrk",
       mode: "news",
       sources: [{
         title: "Global technology development",
@@ -202,7 +202,7 @@ describe("POST /v1/tweet/generate News mode contract", () => {
       ctx,
     );
     expect(await noNews.json()).toEqual({
-      tweet: "A normal thought.\\nVichar by vtrrk",
+      tweet: "A normal thought.\nVichar by vtrrk",
       mode: "normal_fallback",
       fallbackReason: "no_recent_news",
     });
@@ -214,7 +214,7 @@ describe("POST /v1/tweet/generate News mode contract", () => {
       ctx,
     );
     expect(await unavailable.json()).toEqual({
-      tweet: "Another normal thought.\\nVichar by vtrrk",
+      tweet: "Another normal thought.\nVichar by vtrrk",
       mode: "normal_fallback",
       fallbackReason: "news_unavailable",
     });
