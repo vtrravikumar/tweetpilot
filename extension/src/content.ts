@@ -11,8 +11,8 @@ let dismissedForComposer: HTMLElement | null = null;
 let generationSequence = 0;
 
 const panel = createPanel({
-  onGenerate: (topic, location) => {
-    void generateSuggestion(topic, location);
+  onGenerate: (topic, location, useNews) => {
+    void generateSuggestion(topic, location, useNews);
   },
   onDismiss: () => {
     dismissedForComposer = activeComposer;
@@ -43,7 +43,8 @@ function pickRandomStyle(): VicharStyle {
 
 async function generateSuggestion(
   selectedTopic: TopicSelection,
-  location: string
+  location: string,
+  useNews: boolean
 ): Promise<void> {
   if (!activeComposer) {
     return;
@@ -56,18 +57,19 @@ async function generateSuggestion(
   panel.setLoading(true);
 
   try {
-    const tweet = await generateTweet({
+    const result = await generateTweet({
       topic: resolvedTopic,
       location: location.trim(),
       style: pickRandomStyle(),
-      maxLength: 140
+      maxLength: 140,
+      useNews
     });
 
     if (requestId !== generationSequence || !activeComposer) {
       return;
     }
 
-    panel.setTweet(tweet, resolvedTopic);
+    panel.setTweet(result, resolvedTopic);
   } catch (error: unknown) {
     if (requestId !== generationSequence) {
       return;
