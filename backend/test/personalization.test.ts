@@ -20,8 +20,6 @@ import { capture, openaiOk, queueFetch } from "./helpers";
 /** Authoritative size budget for the stable prefix sent on every request. */
 const MAX_INSTRUCTION_CHARS = 1800;
 const KEY = "sk-test-not-a-real-key-m24";
-const EMPTY_NEWS = `<rss><channel></channel></rss>`;
-const newsEmpty = () => new Response(EMPTY_NEWS, { status: 200 });
 
 function provider(
   fetchImpl: ReturnType<typeof queueFetch>,
