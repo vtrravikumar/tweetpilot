@@ -173,7 +173,7 @@ describe("POST /v2/tweet/generate with the OpenAI provider (mocked fetch)", () =
 
 describe("POST /v1/tweet/generate with the OpenAI provider (mocked fetch)", () => {
   it("returns 200 { tweet } and keeps the HTTP contract unchanged", async () => {
-    const fetchMock = stubFetch(openaiOk("Golden hour never gets old."));
+    const fetchMock = stubFetch(new Response("<rss><channel></channel></rss>", { status: 200 }), openaiOk("Golden hour never gets old."));
     const response = await handleRequest(
       request({ topic: "Photography", location: "Chennai", style: "thoughtful", maxLength: 140 }),
       env({ OPENAI_API_KEY: KEY }),
@@ -181,8 +181,8 @@ describe("POST /v1/tweet/generate with the OpenAI provider (mocked fetch)", () =
     );
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual({ tweet: "Golden hour never gets old.\nVichar by vtrrk" });
-    expect(fetchMock).toHaveBeenCalledTimes(1);
-    expect(capture(fetchMock).body.input).toContain("at most 140 characters");
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(capture(fetchMock, 1).body.input).toContain("at most 140 characters");
   });
 
   it("does not call OpenAI at all for an invalid request", async () => {
