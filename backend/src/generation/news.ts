@@ -82,7 +82,7 @@ export function shouldFetchNews(input: GenerateTweetInput): boolean {
 
 export function parseNewsItems(xml: string, now = Date.now()): NewsItem[] {
   const items: NewsItem[] = [];
-  const matches = xml.match(/<item[\\s\\S]*?<\\/item>/gi) ?? [];
+  const matches = xml.match(/<item[\s\S]*?<\/item>/gi) ?? [];
 
   for (const block of matches) {
     const title = cleanXmlText(readTag(block, "title"));
@@ -109,7 +109,7 @@ export function formatNewsContext(context: NewsContext): string {
   const lines = context.items.map((item) =>
     `- ${item.title} | ${item.publishedAt} | ${item.publisher} | ${item.url}`,
   );
-  return clip(lines.join("\\n"), MAX_CONTEXT_CHARS);
+  return clip(lines.join("\n"), MAX_CONTEXT_CHARS);
 }
 
 function isSafeArticleUrl(value: string): boolean {
@@ -122,14 +122,14 @@ function isSafeArticleUrl(value: string): boolean {
 }
 
 function readTag(block: string, tag: string): string {
-  const match = block.match(new RegExp(`<${tag}(?:\\\\s[^>]*)?>([\\\\s\\\\S]*?)<\\\\/${tag}>`, "i"));
+  const match = block.match(new RegExp(`<${tag}(?:\\s[^>]*)?>([\\s\\S]*?)<\\/${tag}>`, "i"));
   return match?.[1] ?? "";
 }
 
 function cleanXmlText(value: string): string {
   return decodeEntities(
-    value.replace(/<!\\[CDATA\\[([\\s\\S]*?)\\]\\]>/g, "$1")
-      .replace(/<[^>]+>/g, " ").replace(/\\s+/g, " ").trim(),
+    value.replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, "$1")
+      .replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim(),
   );
 }
 
