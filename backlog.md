@@ -192,9 +192,10 @@ Vichar will treat the **content source** and **writing style** as separate dimen
    - Return source metadata in the API response only for News mode; preserve the existing `tweet` response field and existing consumers' compatibility.
    - Test success, no suitable results, stale/malformed feeds, timeouts, provider failures, character limits, attribution, and all existing non-News behaviours.
    - Consumers: Both.
-3. **VICHAR-010C — Website integration** (cross-reference required in the vtrrk.in backlog before implementation)
-   - Add an explicit News option separate from writing-style selection.
-   - Display the source headline/publisher/link with the editable draft and handle no-news/unavailable responses.
+3. **VICHAR-010C — Website API contract handoff**
+   - Document the stable request/response contract and no-news/unavailable semantics for the website consumer.
+   - Coordinate with website item [`vtrravikumar/vtrrk.in` — VICHAR-WEB-002](https://github.com/vtrravikumar/vtrrk.in/blob/main/backlog.md).
+   - Do not implement website UI in this repository.
    - Consumers: Website.
 4. **VICHAR-010D — Chrome extension integration**
    - Add the same explicit News option and show source metadata; keep existing writing-style selection independent.
