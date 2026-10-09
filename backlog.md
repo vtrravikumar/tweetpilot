@@ -161,6 +161,46 @@ If consumer impact is not yet known, mark it **Consumers: To be assessed** and r
 5. Keep release/deployment verification separate for the Worker, website, and Chrome extension.
 6. Do not add speculative backend work just because a client could use it. First agree on the product requirement and the affected consumer(s).
 
-### Current-information / news generation scope note
+### Vichar V4.0 — News-aware generation
 
-`VICHAR-010` is the existing parked proposal for server-side current-information/web-search generation. It is **not implemented or approved for implementation by this backlog entry**. Google News is not currently specified as a selected provider. Before work begins, define the source/provider strategy and mark the intended consumers explicitly (`Website`, `Chrome extension`, or `Both`); then cross-reference the corresponding client integration item in `vtrravikumar/vtrrk.in` if the website is in scope.
+**Design direction agreed: 2026-10-09.** This is an approved direction for planning; implementation and release are not yet complete.
+
+Vichar will treat the **content source** and **writing style** as separate dimensions:
+
+- `useNews: true` explicitly requests a post grounded in recent news; `false` or an omitted field preserves ordinary topic-based generation.
+- `style` remains a writing-tone attribute (for example, witty, thoughtful, professional). News is **not** a writing style and must not be included in random style selection.
+- In News mode, retrieve relevant recent coverage using the topic and optional location, then write an original Vichar in the requested/randomly selected style.
+- Return traceable source metadata (headline, publisher, article URL, and publication time when available) alongside the draft.
+- If explicit News mode cannot find a suitable source, return a clear no-news/unavailable outcome rather than silently generating a generic post or inventing an event.
+- Keep the existing editable-draft/manual-publishing workflow. No automatic publishing.
+
+**Current implementation finding:** `backend/src/generation/news.ts` already contains a partial Google News RSS fetch/parser. The current trigger also fetches news whenever a location is present, even if News was not requested; the context is optional and source article URLs are not returned to clients. V4.0 work should correct these behaviours rather than duplicate the existing implementation.
+
+**Consumers: Both** — the Vichar website and Chrome extension. Backend/API and extension work stays in this repository; website UI/integration stays in `vtrravikumar/vtrrk.in`.
+
+#### Delivery stages
+
+1. **VICHAR-010A — News retrieval contract and provider proof of concept**
+   - Review the existing Google News RSS implementation for relevance, freshness, article URL extraction, malformed/empty responses, timeouts, and source attribution.
+   - Validate the intended production usage and provider suitability before treating Google News RSS as a permanent dependency.
+   - Define a typed news result and a distinct no-suitable-news outcome for explicit News mode.
+   - Consumers: Backend/internal (proof of concept); no client contract change in this stage.
+2. **VICHAR-010B — Backend News mode**
+   - Validate optional boolean `useNews`; preserve existing behaviour when omitted/false.
+   - Keep `style` solely for tone; remove `news` from style-specific behaviour and ensure location alone does not trigger news retrieval.
+   - When `useNews: true`, retrieve news before generation and ground the draft in source facts.
+   - Return source metadata in the API response only for News mode; preserve the existing `tweet` response field and existing consumers' compatibility.
+   - Test success, no suitable results, stale/malformed feeds, timeouts, provider failures, character limits, attribution, and all existing non-News behaviours.
+   - Consumers: Both.
+3. **VICHAR-010C — Website integration** (cross-reference required in the vtrrk.in backlog before implementation)
+   - Add an explicit News option separate from writing-style selection.
+   - Display the source headline/publisher/link with the editable draft and handle no-news/unavailable responses.
+   - Consumers: Website.
+4. **VICHAR-010D — Chrome extension integration**
+   - Add the same explicit News option and show source metadata; keep existing writing-style selection independent.
+   - Handle no-news/unavailable responses without changing the manual posting flow.
+   - Consumers: Chrome extension.
+
+**Provider note:** Google News RSS is the current proof-of-concept candidate, not a final production commitment. Confirm permitted use, reliability and source-link quality before finalising provider choice. Do not add a paid provider or extra infrastructure without an explicit cost/benefit decision.
+
+**Release note:** Vichar V4.0 is a product milestone, not a claim that all stages must ship together. Do not mark V4.0 complete until backend behaviour and both client integrations are verified independently.
