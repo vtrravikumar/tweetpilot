@@ -1,6 +1,6 @@
 # Vichar — Backlog
 
-Updated: 2026-10-07
+Updated: 2026-10-09
 
 ## Current status
 
@@ -163,7 +163,7 @@ If consumer impact is not yet known, mark it **Consumers: To be assessed** and r
 
 ### Vichar V4.0 — News-aware generation
 
-**Design direction agreed: 2026-10-09.** This is an approved direction for planning; implementation and release are not yet complete.
+**Design and implementation verified: 2026-10-09.** News mode is merged and deployed for the backend, website and extension. Ravi confirmed the production website renders correctly in light and dark modes and generated a relevant news-based Vichar. This records functional smoke verification, not a guarantee that the provisional news provider is suitable indefinitely.
 
 Vichar will treat the **content source** and **writing style** as separate dimensions. Additional decisions confirmed on 2026-10-09:
 
@@ -182,20 +182,20 @@ The 48-hour threshold is the initial product default, subject to review after re
 - If explicit News mode cannot find a suitable source, return a clear no-news/unavailable outcome rather than silently generating a generic post or inventing an event.
 - Keep the existing editable-draft/manual-publishing workflow. No automatic publishing.
 
-**Current implementation finding:** `backend/src/generation/news.ts` already contains a partial Google News RSS fetch/parser. The current trigger also fetches news whenever a location is present, even if News was not requested; the context is optional and source article URLs are not returned to clients. V4.0 work should correct these behaviours rather than duplicate the existing implementation.
+**Implementation and verification record (2026-10-09):** News retrieval is now explicitly requested through `useNews`; location alone does not trigger it. The backend filters for valid stories published within the last 48 hours, returns source metadata for successful News mode, and distinguishes no qualifying news from provider failure. Website and extension expose the explicit News toggle and fallback state. Backend/extension CI passed, production deployments completed, and Ravi confirmed a relevant news-based draft on the production website. Google News RSS remains the initial provider and should be reviewed for permitted use, reliability and source-link quality before being treated as a permanent dependency.
 
 **Consumers: Both** — the Vichar website and Chrome extension. Backend/API and extension work stays in this repository; website UI/integration stays in `vtrravikumar/vtrrk.in`.
 
 #### Delivery stages
 
 1. **VICHAR-010A — News retrieval contract and provider proof of concept**
-   - Status: In Progress
+   - Status: Done
    - Review the existing Google News RSS implementation for relevance, freshness, article URL extraction, malformed/empty responses, timeouts, and source attribution.
    - Validate the intended production usage, global query/locale behaviour, article URL quality, and provider suitability before treating Google News RSS as a permanent dependency.
    - Define typed retrieval outcomes that distinguish recent results, no qualifying stories (including stale/missing timestamps), and provider failure.
    - Consumers: Backend/internal (proof of concept); no client contract change in this stage.
 2. **VICHAR-010B — Backend News mode**
-   - Status: In Progress
+   - Status: Done
    - Validate optional boolean `useNews`; preserve existing behaviour when omitted/false.
    - Keep `style` solely for tone; remove `news` from style-specific behaviour and ensure location alone does not trigger news retrieval.
    - When `useNews: true`, retrieve news independently from OpenAI, reject stories older than 48 hours or with missing/unreliable publication times, and ground the draft in a qualifying source. If no qualifying story exists, use normal OpenAI generation and return an explicit `normal_fallback` / `no_recent_news` outcome; if retrieval fails, use normal generation with `normal_fallback` / `news_unavailable`.
@@ -203,17 +203,17 @@ The 48-hour threshold is the initial product default, subject to review after re
    - Test global search configuration, success and source URLs, the 48-hour boundary, stale/missing/future timestamps, no qualifying results, malformed feeds, timeouts/provider failures, distinct fallback reasons, character limits, attribution, and all existing non-News behaviours.
    - Consumers: Both.
 3. **VICHAR-010C — Website API contract handoff**
-   - Status: In Progress
+   - Status: Done
    - Document the stable request/response contract and no-news/unavailable semantics for the website consumer.
    - Coordinate with website item [`vtrravikumar/vtrrk.in` — VICHAR-WEB-002](https://github.com/vtrravikumar/vtrrk.in/blob/main/backlog.md).
    - Do not implement website UI in this repository.
    - Consumers: Website.
 4. **VICHAR-010D — Chrome extension integration**
-   - Status: In Progress
+   - Status: Done
    - Add the same explicit News option and show source metadata; keep existing writing-style selection independent.
    - Handle no-news/unavailable responses without changing the manual posting flow.
    - Consumers: Chrome extension.
 
 **Provider note:** Google News RSS is the current proof-of-concept candidate because the product needs global coverage, not an India-only publisher feed; it is not a final production commitment. Confirm permitted use, reliability and source-link quality before finalising provider choice. Do not add a paid provider or extra infrastructure without an explicit cost/benefit decision.
 
-**Release note:** Vichar V4.0 is a product milestone, not a claim that all stages must ship together. Do not mark V4.0 complete until backend behaviour and both client integrations are verified independently.
+**Release note:** Vichar V4.0 News mode was merged and deployed on 2026-10-09. Backend and extension CI passed; the production website and news generation were manually smoke-tested by Ravi. Keep the provider-suitability review as follow-up operational work; do not imply that a smoke test replaces ongoing monitoring.
