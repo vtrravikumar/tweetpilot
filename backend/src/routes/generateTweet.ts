@@ -90,9 +90,18 @@ export function createGenerateTweetRoute(
         if (decision.remaining !== undefined) headers["x-vichar-remaining"] = String(decision.remaining);
         if (decision.dailyLimit !== undefined) headers["x-vichar-daily-limit"] = String(decision.dailyLimit);
         if (webAccess) headers["x-vichar-access"] = "web";
+        const newsMetadata = validation.value.useNews
+          ? {
+              mode: result.mode ?? "normal_fallback",
+              ...(result.mode === "normal_fallback"
+                ? { fallbackReason: result.fallbackReason ?? "news_unavailable" }
+                : {}),
+              ...(result.mode === "news" && result.sources ? { sources: result.sources } : {}),
+            }
+          : {};
         const payload = options.includeStyle
-          ? { tweet: result.tweet, style: validation.value.style ?? null }
-          : { tweet: result.tweet };
+          ? { tweet: result.tweet, style: validation.value.style ?? null, ...newsMetadata }
+          : { tweet: result.tweet, ...newsMetadata };
         return jsonResponse(payload, 200, headers);
       } catch (err) {
         if (err instanceof GenerationError) return generationErrorResponse(err);
