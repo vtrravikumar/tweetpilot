@@ -6,7 +6,7 @@ import type {
 
 export async function generateTweet(
   request: GenerateRequest
-): Promise<string> {
+): Promise<import("./types").GenerateResponse> {
   const message: BackgroundMessage = { type: "generate", request };
   const response = (await chrome.runtime.sendMessage(
     message
@@ -16,5 +16,10 @@ export async function generateTweet(
     throw new Error(response?.error || "Tweet generation failed.");
   }
 
-  return response.tweet;
+  return {
+    tweet: response.tweet,
+    ...(response.mode ? { mode: response.mode } : {}),
+    ...(response.fallbackReason ? { fallbackReason: response.fallbackReason } : {}),
+    ...(response.sources ? { sources: response.sources } : {})
+  };
 }
