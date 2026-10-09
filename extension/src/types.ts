@@ -15,10 +15,21 @@ export interface GenerateRequest {
   location?: string;
   style: string;
   maxLength: 140;
+  useNews?: boolean;
+}
+
+export interface NewsSource {
+  title: string;
+  publisher: string;
+  url: string;
+  publishedAt: string;
 }
 
 export interface GenerateResponse {
   tweet: string;
+  mode?: "news" | "normal_fallback";
+  fallbackReason?: "no_recent_news" | "news_unavailable";
+  sources?: NewsSource[];
 }
 
 export type BackgroundMessage =
@@ -26,5 +37,5 @@ export type BackgroundMessage =
   | { type: "health" };
 
 export type BackgroundResponse =
-  | { ok: true; tweet: string }
+  | { ok: true; tweet: string; mode?: GenerateResponse["mode"]; fallbackReason?: GenerateResponse["fallbackReason"]; sources?: NewsSource[] }
   | { ok: false; error: string };
