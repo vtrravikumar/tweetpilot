@@ -130,7 +130,7 @@ describe("createTweetGenerator (factory)", () => {
 
 describe("POST /v2/tweet/generate with the OpenAI provider (mocked fetch)", () => {
   it("returns the generated tweet and the selected style", async () => {
-    const fetchMock = stubFetch(new Response("<rss><channel></channel></rss>", { status: 200 }), openaiOk("A quiet frame can say more than a loud caption."));
+    const fetchMock = stubFetch(openaiOk("A quiet frame can say more than a loud caption."));
     const response = await handleRequest(
       new Request("https://example.com/v2/tweet/generate", {
         method: "POST",
@@ -153,7 +153,7 @@ describe("POST /v2/tweet/generate with the OpenAI provider (mocked fetch)", () =
       tweet: "A quiet frame can say more than a loud caption.\nVichar by vtrrk",
       style: "observational",
     });
-    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
   it("leaves the V1 response contract unchanged", async () => {
@@ -171,9 +171,59 @@ describe("POST /v2/tweet/generate with the OpenAI provider (mocked fetch)", () =
   });
 });
 
+describe("POST /v1/tweet/generate News mode contract", () => {
+  it("returns the draft and traceable source metadata when recent news is found", async () => {
+    const published = new Date().toUTCString();
+    const rss = '<rss><channel><item><title>Global technology development</title><link>https://news.google.com/rss/articles/example</link><pubDate>' + published + '</pubDate><source>World News</source></item></channel></rss>';
+    stubFetch(new Response(rss, { status: 200 }), openaiOk("A useful thought."));
+    const response = await handleRequest(
+      request({ topic: "technology", location: "Tokyo", useNews: true, style: "witty" }),
+      env({ OPENAI_API_KEY: KEY }),
+      ctx,
+    );
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({
+      tweet: "A useful thought.\nVichar by vtrrk",
+      mode: "news",
+      sources: [{
+        title: "Global technology development",
+        publisher: "World News",
+        url: "https://news.google.com/rss/articles/example",
+        publishedAt: new Date(published).toISOString(),
+      }],
+    });
+  });
+
+  it("reports no recent news separately from a provider outage", async () => {
+    stubFetch(new Response("<rss><channel></channel></rss>", { status: 200 }), openaiOk("A normal thought."));
+    const noNews = await handleRequest(
+      request({ topic: "rare topic", useNews: true }),
+      env({ OPENAI_API_KEY: KEY }),
+      ctx,
+    );
+    expect(await noNews.json()).toEqual({
+      tweet: "A normal thought.\nVichar by vtrrk",
+      mode: "normal_fallback",
+      fallbackReason: "no_recent_news",
+    });
+
+    stubFetch(new Error("news provider offline"), openaiOk("Another normal thought."));
+    const unavailable = await handleRequest(
+      request({ topic: "rare topic", useNews: true }),
+      env({ OPENAI_API_KEY: KEY }),
+      ctx,
+    );
+    expect(await unavailable.json()).toEqual({
+      tweet: "Another normal thought.\nVichar by vtrrk",
+      mode: "normal_fallback",
+      fallbackReason: "news_unavailable",
+    });
+  });
+});
+
 describe("POST /v1/tweet/generate with the OpenAI provider (mocked fetch)", () => {
   it("returns 200 { tweet } and keeps the HTTP contract unchanged", async () => {
-    const fetchMock = stubFetch(new Response("<rss><channel></channel></rss>", { status: 200 }), openaiOk("Golden hour never gets old."));
+    const fetchMock = stubFetch(openaiOk("Golden hour never gets old."));
     const response = await handleRequest(
       request({ topic: "Photography", location: "Chennai", style: "thoughtful", maxLength: 140 }),
       env({ OPENAI_API_KEY: KEY }),
@@ -181,8 +231,8 @@ describe("POST /v1/tweet/generate with the OpenAI provider (mocked fetch)", () =
     );
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual({ tweet: "Golden hour never gets old.\nVichar by vtrrk" });
-    expect(fetchMock).toHaveBeenCalledTimes(2);
-    expect(capture(fetchMock, 1).body.input).toContain("at most 140 characters");
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(capture(fetchMock).body.input).toContain("at most 140 characters");
   });
 
   it("does not call OpenAI at all for an invalid request", async () => {

@@ -189,11 +189,13 @@ The 48-hour threshold is the initial product default, subject to review after re
 #### Delivery stages
 
 1. **VICHAR-010A — News retrieval contract and provider proof of concept**
+   - Status: In Progress
    - Review the existing Google News RSS implementation for relevance, freshness, article URL extraction, malformed/empty responses, timeouts, and source attribution.
    - Validate the intended production usage, global query/locale behaviour, article URL quality, and provider suitability before treating Google News RSS as a permanent dependency.
    - Define typed retrieval outcomes that distinguish recent results, no qualifying stories (including stale/missing timestamps), and provider failure.
    - Consumers: Backend/internal (proof of concept); no client contract change in this stage.
 2. **VICHAR-010B — Backend News mode**
+   - Status: In Progress
    - Validate optional boolean `useNews`; preserve existing behaviour when omitted/false.
    - Keep `style` solely for tone; remove `news` from style-specific behaviour and ensure location alone does not trigger news retrieval.
    - When `useNews: true`, retrieve news independently from OpenAI, reject stories older than 48 hours or with missing/unreliable publication times, and ground the draft in a qualifying source. If no qualifying story exists, use normal OpenAI generation and return an explicit `normal_fallback` / `no_recent_news` outcome; if retrieval fails, use normal generation with `normal_fallback` / `news_unavailable`.
@@ -201,11 +203,13 @@ The 48-hour threshold is the initial product default, subject to review after re
    - Test global search configuration, success and source URLs, the 48-hour boundary, stale/missing/future timestamps, no qualifying results, malformed feeds, timeouts/provider failures, distinct fallback reasons, character limits, attribution, and all existing non-News behaviours.
    - Consumers: Both.
 3. **VICHAR-010C — Website API contract handoff**
+   - Status: In Progress
    - Document the stable request/response contract and no-news/unavailable semantics for the website consumer.
    - Coordinate with website item [`vtrravikumar/vtrrk.in` — VICHAR-WEB-002](https://github.com/vtrravikumar/vtrrk.in/blob/main/backlog.md).
    - Do not implement website UI in this repository.
    - Consumers: Website.
 4. **VICHAR-010D — Chrome extension integration**
+   - Status: In Progress
    - Add the same explicit News option and show source metadata; keep existing writing-style selection independent.
    - Handle no-news/unavailable responses without changing the manual posting flow.
    - Consumers: Chrome extension.

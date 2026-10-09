@@ -20,8 +20,6 @@ import { capture, openaiOk, queueFetch } from "./helpers";
 /** Authoritative size budget for the stable prefix sent on every request. */
 const MAX_INSTRUCTION_CHARS = 1800;
 const KEY = "sk-test-not-a-real-key-m24";
-const EMPTY_NEWS = `<rss><channel></channel></rss>`;
-const newsEmpty = () => new Response(EMPTY_NEWS, { status: 200 });
 
 function provider(
   fetchImpl: ReturnType<typeof queueFetch>,
@@ -191,24 +189,24 @@ describe("provider request construction after M2.4", () => {
       { topic: "x", maxLength: 500 },
     ]) {
       const fetchMock = input.location
-        ? queueFetch(newsEmpty(), openaiOk("hi"))
+        ? queueFetch(openaiOk("hi"))
         : queueFetch(openaiOk("hi"));
       await provider(fetchMock).generate(input);
-      seen.add(capture(fetchMock, input.location ? 1 : 0).body.instructions);
+      seen.add(capture(fetchMock, 0).body.instructions);
     }
     expect(seen.size).toBe(1);
     expect([...seen][0]).toBe(PERSONALIZATION_INSTRUCTIONS);
   });
 
   it("does not duplicate the personality profile in the per-request input", async () => {
-    const fetchMock = queueFetch(newsEmpty(), openaiOk("hi"));
+    const fetchMock = queueFetch(openaiOk("hi"));
     await provider(fetchMock).generate({
       topic: "Photography",
       location: "Chennai",
       style: "thoughtful",
       maxLength: 140,
     });
-    const { input } = capture(fetchMock, 1).body;
+    const { input } = capture(fetchMock).body;
     expect(input).not.toMatch(/Voice:|Angle:|Variety:|Hashtags:|Interest guide/);
     for (const interest of INTERESTS) {
       expect(input).not.toContain(TOPIC_GUIDANCE[interest]);
@@ -217,9 +215,9 @@ describe("provider request construction after M2.4", () => {
   });
 
   it("labels location as current context in the per-request input", async () => {
-    const fetchMock = queueFetch(newsEmpty(), openaiOk("hi"));
+    const fetchMock = queueFetch(openaiOk("hi"));
     await provider(fetchMock).generate({ topic: "Photography", location: "Chennai" });
-    expect(capture(fetchMock, 1).body.input).toContain("Location: Chennai");
+    expect(capture(fetchMock).body.input).toContain("Location: Chennai");
   });
 
   it("omits the location line entirely when none is given", async () => {

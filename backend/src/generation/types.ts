@@ -11,14 +11,32 @@ export interface GenerateTweetInput {
   topic: string;
   /** Optional free-text context, not precise location tracking. */
   location?: string;
-  /** Optional style hint, e.g. "thoughtful". */
+  /** Optional style hint, e.g. "thoughtful". News is a separate content-source option. */
   style?: string;
+  /** Explicitly request recent-news-grounded generation. Omitted/false preserves normal generation. */
+  useNews?: boolean;
   /** Optional maximum tweet length; a positive integer when present. */
   maxLength?: number;
 }
 
+export interface NewsSource {
+  title: string;
+  publisher: string;
+  url: string;
+  publishedAt: string;
+}
+
+export type GenerationMode = "news" | "normal_fallback";
+export type NewsFallbackReason = "no_recent_news" | "news_unavailable";
+
 export interface GenerateTweetResult {
   tweet: string;
+  /** Present only when the caller explicitly requested News mode. */
+  mode?: GenerationMode;
+  /** Present when News mode falls back to ordinary generation. */
+  fallbackReason?: NewsFallbackReason;
+  /** Traceable article metadata for successful News mode. */
+  sources?: NewsSource[];
 }
 
 export interface TweetGenerator {

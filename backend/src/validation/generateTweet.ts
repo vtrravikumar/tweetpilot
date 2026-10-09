@@ -13,6 +13,7 @@ export type ValidationResult =
  * - topic: required, non-empty string (surrounding whitespace is trimmed).
  * - location, style: optional; when present they must be strings. A string
  *   that is empty after trimming is treated as not supplied.
+ * - useNews: optional boolean; news retrieval is never inferred from location/style.
  * - maxLength: optional; when present it must be a positive safe integer.
  * - Unknown fields are ignored so the contract can grow without breaking
  *   existing clients.
@@ -33,6 +34,14 @@ export function validateGenerateTweetRequest(body: unknown): ValidationResult {
 
   const style = optionalString(input, "style");
   if (!style.ok) return style;
+  if (style.value?.toLowerCase() === "news") {
+    return fail("News is a content source, not a writing style. Set useNews to true.");
+  }
+
+  const useNews = input.useNews;
+  if (useNews !== undefined && typeof useNews !== "boolean") {
+    return fail("useNews must be a boolean when supplied.");
+  }
 
   const maxLength = input.maxLength;
   if (
@@ -48,6 +57,7 @@ export function validateGenerateTweetRequest(body: unknown): ValidationResult {
   if (location.value !== undefined) value.location = location.value;
   if (style.value !== undefined) value.style = style.value;
   if (maxLength !== undefined) value.maxLength = maxLength;
+  if (useNews !== undefined) value.useNews = useNews;
   return { ok: true, value };
 }
 

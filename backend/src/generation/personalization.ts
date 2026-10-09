@@ -29,7 +29,6 @@ export const STYLE_GUIDANCE: Record<string, string> = {
   provocative: "Take a clear, defensible angle that challenges an obvious assumption without rage-bait.",
   inspirational: "Find a genuine positive insight without becoming motivational or preachy.",
   minimalist: "Strip the idea down to its strongest few words; make every word earn its place.",
-  news: "Ground the thought in the supplied current news. Lead with the meaningful development or its human angle, not a generic fact about the topic. Do not invent or imply news that is not in the supplied context.",
 };
 
 export type Interest = (typeof INTERESTS)[number];

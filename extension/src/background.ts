@@ -65,7 +65,13 @@ chrome.runtime.onMessage.addListener(
           return;
         }
 
-        sendResponse({ ok: true, tweet: payload.tweet });
+        sendResponse({
+          ok: true,
+          tweet: payload.tweet,
+          ...("mode" in payload && payload.mode ? { mode: payload.mode } : {}),
+          ...("fallbackReason" in payload && payload.fallbackReason ? { fallbackReason: payload.fallbackReason } : {}),
+          ...("sources" in payload && Array.isArray(payload.sources) ? { sources: payload.sources } : {})
+        });
       })
       .catch((error: unknown) => {
         sendResponse({

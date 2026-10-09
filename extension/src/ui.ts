@@ -1,5 +1,5 @@
 import { DEFAULT_MAX_LENGTH, PANEL_ID } from "./constants";
-import { TOPICS, type TopicSelection } from "./types";
+import { TOPICS, type GenerateResponse, type TopicSelection } from "./types";
 import {
   composerHost,
   composerToolbar,
@@ -10,7 +10,7 @@ import {
 } from "./dom";
 
 export interface PanelCallbacks {
-  onGenerate: (topic: TopicSelection, location: string) => void;
+  onGenerate: (topic: TopicSelection, location: string, useNews: boolean) => void;
   onDismiss: () => void;
   onReopen: () => void;
 }
@@ -18,11 +18,12 @@ export interface PanelCallbacks {
 export interface TweetPanel {
   element: HTMLDivElement;
   setLoading: (loading: boolean) => void;
-  setTweet: (tweet: string, resolvedTopic: string) => void;
+  setTweet: (result: GenerateResponse, resolvedTopic: string) => void;
   setError: (message: string) => void;
   setVisible: (visible: boolean) => void;
   getTopic: () => TopicSelection;
   getLocation: () => string;
+  getUseNews: () => boolean;
   getComposer: () => HTMLElement | null;
   setComposer: (composer: HTMLElement | null) => void;
   setDismissed: (dismissed: boolean) => void;
@@ -57,12 +58,18 @@ export function createPanel(callbacks: PanelCallbacks): TweetPanel {
 
         </label>
         <label>
-          <span>Location <em>optional</em></span>
-          <input class="vc-location" type="text" maxlength="80" placeholder="e.g. Chennai" />
+          <span>Location <em>optional · worldwide</em></span>
+          <input class="vc-location" type="text" maxlength="80" placeholder="e.g. Tokyo or Chennai" />
         </label>
       </div>
 
+      <label class="vc-news-toggle">
+        <input class="vc-use-news" type="checkbox" />
+        <span>Use recent news <em>last 48 hours</em></span>
+      </label>
+
       <div class="vc-status" aria-live="polite"></div>
+      <div class="vc-news-sources" aria-label="News sources"></div>
 
       <div class="vc-suggestion-wrap">
         <textarea class="vc-suggestion" maxlength="${DEFAULT_MAX_LENGTH}" aria-label="Vichar thought"></textarea>
@@ -89,6 +96,8 @@ export function createPanel(callbacks: PanelCallbacks): TweetPanel {
 
   const locationInput = root.querySelector<HTMLInputElement>(".vc-location")!;
   const status = root.querySelector<HTMLDivElement>(".vc-status")!;
+  const newsToggle = root.querySelector<HTMLInputElement>(".vc-use-news")!;
+  const newsSources = root.querySelector<HTMLDivElement>(".vc-news-sources")!;
   const suggestion = root.querySelector<HTMLTextAreaElement>(".vc-suggestion")!;
   const count = root.querySelector<HTMLDivElement>(".vc-count")!;
   const primary = root.querySelector<HTMLButtonElement>(".vc-primary")!;
@@ -105,6 +114,38 @@ export function createPanel(callbacks: PanelCallbacks): TweetPanel {
     count.textContent = `${suggestion.value.length}/${DEFAULT_MAX_LENGTH}`;
   };
 
+  const clearNewsSources = () => newsSources.replaceChildren();
+
+  const renderNewsSources = (sources: NonNullable<GenerateResponse["sources"]> = []) => {
+    clearNewsSources();
+    if (sources.length === 0) return;
+    const heading = document.createElement("div");
+    heading.className = "vc-news-heading";
+    heading.textContent = "Recent sources";
+    newsSources.appendChild(heading);
+    for (const source of sources) {
+      try {
+        const url = new URL(source.url);
+        if (url.protocol !== "https:") continue;
+        const link = document.createElement("a");
+        link.href = url.toString();
+        link.target = "_blank";
+        link.rel = "noopener noreferrer";
+        link.textContent = source.publisher + ": " + source.title;
+        newsSources.appendChild(link);
+        const published = new Date(source.publishedAt);
+        if (Number.isFinite(published.getTime())) {
+          const time = document.createElement("span");
+          time.className = "vc-news-time";
+          time.textContent = published.toLocaleString();
+          newsSources.appendChild(time);
+        }
+      } catch {
+        // Ignore malformed source metadata rather than rendering an unsafe link.
+      }
+    }
+  };
+
   suggestion.addEventListener("input", updateCount);
 
   primary.addEventListener("click", () => {
@@ -115,7 +156,7 @@ export function createPanel(callbacks: PanelCallbacks): TweetPanel {
 
     if (!hasTweet) {
       status.textContent = "Vichāraṁ Labhatām… · Get a thought…";
-      callbacks.onGenerate(getSelectedTopic(), locationInput.value);
+      callbacks.onGenerate(getSelectedTopic(), locationInput.value, newsToggle.checked);
       return;
     }
 
@@ -189,7 +230,7 @@ export function createPanel(callbacks: PanelCallbacks): TweetPanel {
 
   another.addEventListener("click", () => {
     status.textContent = "Vichāraṁ Labhatām… · Get a thought…";
-    callbacks.onGenerate(getSelectedTopic(), locationInput.value);
+    callbacks.onGenerate(getSelectedTopic(), locationInput.value, newsToggle.checked);
   });
 
   const invalidateSuggestion = (message: string) => {
@@ -201,6 +242,7 @@ export function createPanel(callbacks: PanelCallbacks): TweetPanel {
     primary.disabled = false;
     another.disabled = true;
     status.textContent = message;
+    clearNewsSources();
   };
 
   topicInput.addEventListener("change", () => {
@@ -224,16 +266,30 @@ export function createPanel(callbacks: PanelCallbacks): TweetPanel {
       another.disabled = loading || !hasTweet;
       topicInput.disabled = loading;
       locationInput.disabled = loading;
+      newsToggle.disabled = loading;
       if (loading) {
+        clearNewsSources();
         status.textContent = "Vichāraḥ Sṛjyate… · Creating a thought…";
       }
     },
-    setTweet(tweet, resolvedTopic) {
+    setTweet(result, resolvedTopic) {
       hasTweet = true;
       replaceConfirmedForDraft = null;
-      suggestion.value = tweet;
+      suggestion.value = result.tweet;
       updateCount();
-      status.textContent = `Vichāraḥ · ${resolvedTopic} · Thought`;
+      if (result.mode === "news") {
+        status.textContent = "News-based Vichar · " + resolvedTopic;
+        renderNewsSources(result.sources);
+      } else if (result.fallbackReason === "no_recent_news") {
+        status.textContent = "No recent news found for this topic. A normal Vichar was generated instead.";
+        clearNewsSources();
+      } else if (result.fallbackReason === "news_unavailable") {
+        status.textContent = "News retrieval was unavailable. This is a normal Vichar instead.";
+        clearNewsSources();
+      } else {
+        status.textContent = "Vichāraḥ · " + resolvedTopic + " · Thought";
+        clearNewsSources();
+      }
       primary.textContent = "Use this";
       primary.disabled = false;
       another.textContent = "Another thought";
@@ -244,6 +300,7 @@ export function createPanel(callbacks: PanelCallbacks): TweetPanel {
       replaceConfirmedForDraft = null;
       root.classList.remove("vc-loading");
       status.textContent = message;
+      clearNewsSources();
       primary.textContent = "Get a thought";
       primary.disabled = false;
       another.disabled = true;
@@ -253,6 +310,7 @@ export function createPanel(callbacks: PanelCallbacks): TweetPanel {
     },
     getTopic: () => getSelectedTopic() as TopicSelection,
     getLocation: () => locationInput.value.trim(),
+    getUseNews: () => newsToggle.checked,
     getComposer: () => composer,
     setComposer: (value) => {
       if (value !== composer) {
@@ -260,6 +318,7 @@ export function createPanel(callbacks: PanelCallbacks): TweetPanel {
         replaceConfirmedForDraft = null;
         suggestion.value = "";
         updateCount();
+        clearNewsSources();
         primary.textContent = "Get a thought";
         another.textContent = "Another thought";
         another.disabled = true;

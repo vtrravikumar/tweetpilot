@@ -175,3 +175,33 @@
   #vichar-root .vc-primary { background: #e7e9ea; color: #0f1419; }
   #vichar-root .vc-primary:hover:not(:disabled) { background: #ffffff; }
 }
+
+
+#vichar-root .vc-news-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 2px 0 6px;
+  font-size: 12px;
+}
+#vichar-root .vc-news-toggle input {
+  width: 15px;
+  height: 15px;
+  margin: 0;
+  flex: 0 0 15px;
+  accent-color: #1d9bf0;
+}
+#vichar-root .vc-news-sources {
+  display: grid;
+  gap: 3px;
+  margin: 0 0 6px;
+  font-size: 11px;
+}
+#vichar-root .vc-news-sources:empty { display: none; }
+#vichar-root .vc-news-heading { color: var(--vc-muted); font-weight: 700; }
+#vichar-root .vc-news-sources a {
+  color: var(--vc-focus);
+  overflow-wrap: anywhere;
+  text-decoration: underline;
+}
+#vichar-root .vc-news-time { color: var(--vc-muted); font-size: 10px; }
