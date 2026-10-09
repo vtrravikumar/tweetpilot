@@ -175,6 +175,14 @@ describe("POST /v1/tweet/generate - location validation", () => {
 });
 
 describe("POST /v1/tweet/generate - style validation", () => {
+  it("rejects news as a writing style and points to useNews", async () => {
+    await expectError(
+      await post({ topic: "Technology", style: "news" }),
+      400,
+      "invalid_request",
+      "useNews",
+    );
+  });
   it.each([123, null, false, ["thoughtful"], { a: 1 }])(
     "rejects a non-string style: %j",
     async (style) => {
@@ -191,6 +199,28 @@ describe("POST /v1/tweet/generate - style validation", () => {
     const response = await post({ topic: "Photography", style: "   " });
     expect(response.status).toBe(200);
     expect(await response.text()).not.toContain("Style:");
+  });
+});
+
+describe("POST /v1/tweet/generate - useNews validation", () => {
+  it("accepts an explicit boolean and preserves it in the validated input", () => {
+    expect(validateGenerateTweetRequest({ topic: "Technology", useNews: true })).toEqual({
+      ok: true,
+      value: { topic: "Technology", useNews: true },
+    });
+    expect(validateGenerateTweetRequest({ topic: "Technology", useNews: false })).toEqual({
+      ok: true,
+      value: { topic: "Technology", useNews: false },
+    });
+  });
+
+  it.each(["true", 1, null, [], {}])("rejects a non-boolean useNews value: %j", async (useNews) => {
+    await expectError(
+      await post({ topic: "Technology", useNews }),
+      400,
+      "invalid_request",
+      "useNews",
+    );
   });
 });
 
@@ -286,6 +316,7 @@ describe("validateGenerateTweetRequest", () => {
         location: "  Chennai  ",
         style: "  thoughtful  ",
         maxLength: 280,
+        useNews: true,
         unexpected: "ignored",
       }),
     ).toEqual({
@@ -295,6 +326,7 @@ describe("validateGenerateTweetRequest", () => {
         location: "Chennai",
         style: "thoughtful",
         maxLength: 280,
+        useNews: true,
       },
     });
   });
