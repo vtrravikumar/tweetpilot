@@ -206,7 +206,7 @@ describe("provider request construction after M2.4", () => {
       style: "thoughtful",
       maxLength: 140,
     });
-    const { input } = capture(fetchMock, 1).body;
+    const { input } = capture(fetchMock).body;
     expect(input).not.toMatch(/Voice:|Angle:|Variety:|Hashtags:|Interest guide/);
     for (const interest of INTERESTS) {
       expect(input).not.toContain(TOPIC_GUIDANCE[interest]);
