@@ -281,7 +281,7 @@ export function createPanel(callbacks: PanelCallbacks): TweetPanel {
         status.textContent = "News-based Vichar · " + resolvedTopic;
         renderNewsSources(result.sources);
       } else if (result.fallbackReason === "no_recent_news") {
-        status.textContent = "No recent news found for this topic. No recent news was found, so this is a normal Vichar instead.";
+        status.textContent = "No recent news found for this topic. A normal Vichar was generated instead.";
         clearNewsSources();
       } else if (result.fallbackReason === "news_unavailable") {
         status.textContent = "News retrieval was unavailable. This is a normal Vichar instead.";
