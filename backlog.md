@@ -189,11 +189,13 @@ The 48-hour threshold is the initial product default, subject to review after re
 #### Delivery stages
 
 1. **VICHAR-010A — News retrieval contract and provider proof of concept**
+   - Status: In Progress
    - Review the existing Google News RSS implementation for relevance, freshness, article URL extraction, malformed/empty responses, timeouts, and source attribution.
    - Validate the intended production usage, global query/locale behaviour, article URL quality, and provider suitability before treating Google News RSS as a permanent dependency.
    - Define typed retrieval outcomes that distinguish recent results, no qualifying stories (including stale/missing timestamps), and provider failure.
    - Consumers: Backend/internal (proof of concept); no client contract change in this stage.
 2. **VICHAR-010B — Backend News mode**
+   - Status: In Progress
    - Validate optional boolean `useNews`; preserve existing behaviour when omitted/false.
    - Keep `style` solely for tone; remove `news` from style-specific behaviour and ensure location alone does not trigger news retrieval.
    - When `useNews: true`, retrieve news independently from OpenAI, reject stories older than 48 hours or with missing/unreliable publication times, and ground the draft in a qualifying source. If no qualifying story exists, use normal OpenAI generation and return an explicit `normal_fallback` / `no_recent_news` outcome; if retrieval fails, use normal generation with `normal_fallback` / `news_unavailable`.
