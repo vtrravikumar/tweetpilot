@@ -6,6 +6,8 @@ import { allowAllUsageGuard, type UsageGuard } from "../usage/guard";
 import { checkWebUsage } from "../usage/webGuard";
 import { validateGenerateTweetRequest } from "../validation/generateTweet";
 import { isValidVicharWebToken } from "../webAuth";
+import { hashLicenseKey } from "../usage/licenseKeys";
+import { VicharUsage } from "../usage/durableObject";
 
 export type GeneratorSource = TweetGenerator | ((env: Env) => TweetGenerator);
 
@@ -57,6 +59,39 @@ export function createGenerateTweetRoute(
       const webSecret = typeof bag.VICHAR_WEB_SECRET === "string" ? bag.VICHAR_WEB_SECRET.trim() : "";
       const webAccess = await isValidVicharWebToken(request, webSecret);
 
+      // A license key is distinct from the legacy per-installation usage identifier.
+      const authorization = request.headers.get("authorization")?.trim() ?? "";
+      const licenseMatch = !webAccess ? /^Bearer\s+(vichar_[A-Za-z0-9_-]{43})$/.exec(authorization) : null;
+      if (licenseMatch) {
+        const keyHash = await hashLicenseKey(licenseMatch[1]);
+        const namespace = (env as unknown as { VICHAR_USAGE?: DurableObjectNamespace<VicharUsage> }).VICHAR_USAGE;
+        if (!keyHash) return errorResponse(401, "invalid_license_key", "This Vichar license key is invalid.");
+        if (!namespace) return errorResponse(503, "license_service_unavailable", "License service is temporarily unavailable.");
+        const licenseStub = namespace.get(namespace.idFromName("license:" + keyHash));
+        const license = await licenseStub.getLicense();
+        if (!license) return errorResponse(401, "invalid_license_key", "This Vichar license key is invalid.");
+        const burstRaw = Number.parseInt(String(bag.VICHAR_BURST_PER_MINUTE ?? "3"), 10);
+        const burstLimit = Number.isSafeInteger(burstRaw) && burstRaw > 0 ? burstRaw : 3;
+        const burstStub = namespace.get(namespace.idFromName("license-burst:" + keyHash));
+        const burst = await burstStub.checkBurst(Date.now(), burstLimit);
+        if (!burst.allowed) return errorResponse(429, "rate_limited", "Too many Vichar generation requests. Please try again shortly.", { "retry-after": String(burst.retryAfterSeconds ?? 60) });
+        const reservation = await licenseStub.consumeCredit();
+        if (!reservation.consumed) return errorResponse(402, "credits_exhausted", "Your Vichar generation balance is empty. Add credits to continue.", { "x-vichar-remaining": String(reservation.balance ?? 0) });
+        try {
+          const generator = typeof source === "function" ? source(env) : source;
+          const result = await generator.generate({ ...validation.value, includeAttribution: false });
+          const headers = { "x-vichar-remaining": String(reservation.balance ?? 0) };
+          const newsMetadata = validation.value.useNews
+            ? { mode: result.mode ?? "normal_fallback", ...(result.mode === "normal_fallback" ? { fallbackReason: result.fallbackReason ?? "news_unavailable" } : {}), ...(result.mode === "news" && result.sources ? { sources: result.sources } : {}) }
+            : {};
+          const payload = options.includeStyle ? { tweet: result.tweet, style: validation.value.style ?? null, ...newsMetadata } : { tweet: result.tweet, ...newsMetadata };
+          return jsonResponse(payload, 200, headers);
+        } catch (err) {
+          await licenseStub.addCredits(1);
+          if (err instanceof GenerationError) return generationErrorResponse(err);
+          throw err;
+        }
+      }
       const decision = webAccess
         ? await checkWebUsage(request, env, webSecret)
         : await usageGuard.check(request, env);
