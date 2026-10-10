@@ -238,58 +238,40 @@ The 48-hour threshold is the initial product default, subject to review after re
 
 **Release note:** Vichar V4.0 News mode was merged and deployed on 2026-10-09. Backend and extension CI passed; the production website and news generation were manually smoke-tested by Ravi. Keep the provider-suitability review as follow-up operational work; do not imply that a smoke test replaces ongoing monitoring.
 
-## VICHAR-PAY-001 — Prepaid credits and one-time free trial
+## VICHAR-PAY-001 — Extension licensing, free trial and prepaid credits
 
-- Priority: P1 (launch monetisation)
-- Status: Planned — product direction agreed; implementation details remain open
-- Area: Backend/API, website, Chrome extension, payments
-- Consumers: Both
+- Priority: P1 (extension monetisation)
+- Status: Product direction agreed; implementation planned
+- Area: Backend/API, Chrome extension, Razorpay payments
+- Consumers: Chrome extension. The website is a separate, free product surface.
 
-### Agreed pricing direction (provisional)
+### Product boundary
 
-| Pack | Price | Credits / generations | Price per credit |
-|---|---:|---:|---:|
-| Starter | ₹19 | 1,000 | ₹0.019 |
-| Value | ₹49 | 5,000 | ₹0.0098 |
-| Power | ₹99 | 15,000 | ₹0.0066 |
+- **Vichar website (vtrrk.in/vichar): remains free.** Website generations must not consume extension trial or purchased credits. Keep website access/session handling separate from extension entitlement checks.
+- **Vichar Chrome extension: monetised through a one-time free trial and prepaid credit packs.**
+- The extension offers **Get 50 free generations** and **Activate with an existing key**. Free users receive a license automatically from the backend; no payment gateway or manual key entry is required for the free trial.
+- The free allowance is granted once per eligible identity, has no time-based expiry or recurring daily quota in the initial plan, and is enforced server-side.
+- After the 50 free generations are exhausted, extension generation stops until the user purchases credits.
+- Paid credit packs are provisional: ₹19 for 1,000 generations, ₹49 for 5,000, and ₹99 for 15,000. Razorpay is the selected payment provider; use sandbox first and do not enable live purchases before end-to-end checks.
+- A reusable random license key is shared across devices without device-count restrictions. Store only a key hash server-side; the backend owns the balance. Subsequent purchases add credits to the same license.
+- Ravi has a permanent server-controlled owner entitlement for the extension: no credit counter or payment, while retaining basic infrastructure safeguards.
+- Keep `Vichar by @vtrrk` attribution for free extension generations; omit it for valid paid-license and owner generations. The free website retains its existing website behaviour and must not inherit extension credit rules.
+- One credit is deducted only for each successful completed extension generation. Failed generations must not silently consume credits. Balance must never become negative; backend balance is authoritative. Basic rate/burst protections remain separate from credits.
+- No automatic publishing. Vichar continues to generate editable drafts for manual review and posting.
 
-These prices are a provisional launch proposal, not yet a public commitment. Validate end-to-end economics—including actual model usage, retries, payment processing fees, applicable taxes/refunds and operational overhead—before publishing or enabling purchases.
+### Implementation sequence
 
-### Agreed free allowance and credit behaviour
+- [ ] **PAY-001A — Backend license and credit ledger:** introduce hashed license credentials, one-time free-grant eligibility, authoritative balances, owner entitlement, and atomic credit deductions. Preserve free website access and existing web-session flow. Add focused tests for grants, activation, balance, failed generation and concurrency.
+- [ ] **PAY-001B — Extension activation and balance UX:** add Get 50 free generations and Activate with an existing key; persist the returned key in extension storage; show authoritative remaining credits and useful exhausted-balance messaging.
+- [ ] **PAY-001C — Razorpay sandbox fulfilment:** create server-priced orders, verify payment server-side, grant credits idempotently, and add purchased credits to the same license.
+- [ ] **PAY-001D — Website integration for purchases only:** keep website generation free; add a purchase/activation route only where needed to let users buy extension credits and receive their extension key. Website generations must not debit extension credits.
+- [ ] **PAY-001E — Release checks:** test free website generation, extension trial, key reuse across devices, paid top-ups, owner access, attribution rules, payment duplicates/failures, and store packaging. Submit the updated extension for Chrome Web Store review; do not disrupt the current pending submission.
 
-- Offer a one-time allowance of 50 successful generations. No recurring daily quota or time-based expiry in the initial plan; keep the allowance configurable server-side.
-- When the free allowance is exhausted, generation stops until the user purchases credits.
-- Enforce trial eligibility, balances and deductions on the server. Client state must never be authoritative and must not permit users to alter balances.
-- Deduct one credit for each successful completed generation. Failed provider/server requests must not silently consume a credit.
-- Make payment fulfilment idempotent so duplicate callbacks or retries cannot add the same purchased credits more than once.
-- Keep burst/rate limits separate from purchased entitlements; purchasing credits does not imply unlimited request speed or bypass abuse protection.
-- Do not introduce automatic publishing. Vichar continues to generate editable drafts for the user to review and post manually.
+### Guardrails
 
-### Implementation and release checklist
-
-- [x] Select Razorpay for the initial payment provider; implement in sandbox first.
-- [x] Choose a reusable random license key, shared across devices without device-count restrictions; store only a key hash server-side.
-- [ ] Implement one-time 50-credit free allowance with server-side eligibility and proportionate anti-abuse controls.
-- [ ] Design the server-side ledger/balance model, transaction boundaries, idempotency keys and reconciliation/audit path.
-- [ ] Define behaviour for provider retries, validation failures, timeouts, duplicate requests and ambiguous outcomes so credits are charged consistently.
-- [ ] Decide and publish credit expiry, refund, cancellation, payment-failure and service-shutdown policies; obtain appropriate legal/tax review before launch.
-- [ ] Confirm current OpenAI model pricing and measure cost across enough completed generations, including retries. Current Cloudflare telemetry logs per-response token usage but does not yet correlate every provider response with one completed generation.
-- [ ] Reassess the provisional pack prices after payment fees, taxes and measured usage are included.
-- [ ] Implement consistent balance/free-credit/low-credit/exhausted-credit UX in both the website and extension; the backend remains authoritative.
-- [ ] Issue/activate/recover/revoke license keys; add each subsequent purchase to the same license.
-- [ ] Implement permanent server-controlled owner entitlement with no credit counter; preserve infrastructure safeguards.
-- [ ] Remove `Vichar by @vtrrk` attribution for valid paid licenses and the owner, while retaining it for free users.
-- [ ] Display backend-reported remaining credits after each generation in the extension and website.
-- [ ] Add tests for concurrent requests, trial reuse, expired trials, insufficient balance, failed generations, duplicate payment events, refunds and ledger consistency.
-- [ ] Add operational monitoring for payment reconciliation, credit grants/deductions and unusual abuse without logging prompts or generated content.
-- [ ] Verify end-to-end in a payment sandbox before enabling live payments.
-
-### Open decisions / guardrails
-
-- Razorpay is selected; live purchases must remain disabled until sandbox and launch checks pass.
-- License key is the initial paid-access credential; it is a random revocable credential, not an encrypted balance. The server is authoritative.
-- The same key can be used across devices; do not add device counting or device restrictions.
-- Credit expiry and refund policy are not yet decided.
-- Do not advertise unlimited use unless the actual entitlement and safeguards support that claim.
-- Do not enable purchases or present these prices as final until the above launch gates are reviewed.
-
+- Razorpay is selected; live purchases remain disabled until sandbox and launch checks pass.
+- Do not accept client-supplied prices, credit amounts, payment status, balance, trial status or owner status as authoritative.
+- Do not put balance data inside or derive it from the license key. A key is a random revocable credential, not an encoded entitlement.
+- Keep extension rate/burst limits independent of credits; paid credits do not promise unlimited request speed.
+- Credit expiry/refund/service-shutdown policies still need to be decided before live sales.
+- Keep generation telemetry privacy-preserving; do not log prompts, locations or generated posts as part of the financial ledger.
