@@ -24,7 +24,7 @@ describe("Vichar license issuance and activation", () => {
       body: JSON.stringify({ licenseKey: data.licenseKey }),
     }), env, ctx);
     expect(activated.status).toBe(200);
-    expect(await activated.json()).toEqual({ active: true, balance: 50 });
+    expect(await activated.json()).toEqual({ active: true, owner: false, unlimited: false, balance: 50 });
   });
 
   it("rejects a second free trial claim for the same network on the same day", async () => {
