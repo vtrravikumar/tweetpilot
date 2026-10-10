@@ -38,6 +38,17 @@ describe("Vichar license issuance and activation", () => {
     expect((await second.json() as { error: { code: string } }).error.code).toBe("free_trial_already_claimed");
   });
 
+  it("activates the configured owner key as unlimited without a credit ledger", async () => {
+    const ownerKey = "vichar_ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz012";
+    const response = await activateLicenseRoute.handler(new Request("https://api.example/v1/license/activate", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ licenseKey: ownerKey }),
+    }), { ...env, VICHAR_OWNER_LICENSE_KEY: ownerKey } as Env, ctx);
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ active: true, owner: true, unlimited: true, balance: null });
+  });
+
   it("rejects malformed and unknown license keys", async () => {
     const response = await activateLicenseRoute.handler(new Request("https://api.example/v1/license/activate", {
       method: "POST",
