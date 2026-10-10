@@ -149,6 +149,22 @@ export class VicharUsage extends DurableObject {
     return true;
   }
 
+  /** Burst-only limiter for license-backed generation; no daily quota. */
+  async checkBurst(nowMs: number, burstLimit: number): Promise<{ allowed: boolean; retryAfterSeconds?: number }> {
+    const minute = Math.floor(nowMs / 60_000);
+    const row = this.ctx.storage.sql.exec<{ day: string; day_count: number; minute: number; minute_count: number }>(
+      "SELECT day, day_count, minute, minute_count FROM usage WHERE id = 1",
+    ).toArray()[0];
+    const count = !row || row.minute !== minute ? 0 : row.minute_count;
+    if (count >= burstLimit) return { allowed: false, retryAfterSeconds: secondsUntilNextMinute(nowMs) };
+    const day = new Date(nowMs).toISOString().slice(0, 10);
+    const dayCount = !row || row.day !== day ? 0 : row.day_count;
+    this.ctx.storage.sql.exec(
+      "INSERT INTO usage (id, day, day_count, minute, minute_count) VALUES (1, ?, ?, ?, ?) ON CONFLICT(id) DO UPDATE SET day = excluded.day, day_count = excluded.day_count, minute = excluded.minute, minute_count = excluded.minute_count",
+      day, dayCount, minute, count + 1,
+    );
+    return { allowed: true };
+  }
   /** Create a license once. Repeated calls never reset an existing balance. */
   async createLicense(initialCredits: number, nowMs = Date.now()): Promise<LicenseCreation> {
     if (!Number.isSafeInteger(initialCredits) || initialCredits < 0) {
