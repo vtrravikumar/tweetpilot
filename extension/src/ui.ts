@@ -11,6 +11,8 @@ import {
 
 export interface PanelCallbacks {
   onGenerate: (topic: TopicSelection, location: string, useNews: boolean) => void;
+  onFreeTrial: () => void;
+  onActivate: (licenseKey: string) => void;
   onDismiss: () => void;
   onReopen: () => void;
 }
@@ -18,7 +20,8 @@ export interface PanelCallbacks {
 export interface TweetPanel {
   element: HTMLDivElement;
   setLoading: (loading: boolean) => void;
-  setTweet: (result: GenerateResponse, resolvedTopic: string) => void;
+  setTweet: (result: GenerateResponse, resolvedTopic: string, remaining?: number | null, owner?: boolean) => void;
+  setLicense: (remaining: number | null, owner: boolean, message?: string) => void;
   setError: (message: string) => void;
   setVisible: (visible: boolean) => void;
   getTopic: () => TopicSelection;
@@ -47,6 +50,17 @@ export function createPanel(callbacks: PanelCallbacks): TweetPanel {
           </div>
         </div>
         <button type="button" class="vc-icon-button" aria-label="Dismiss Vichar">×</button>
+      </div>
+
+      <div class="vc-license">
+        <div class="vc-license-status" aria-live="polite">Extension access: activate a license or claim your free trial.</div>
+        <div class="vc-license-actions">
+          <button type="button" class="vc-secondary vc-free-trial">Get 50 free generations</button>
+        </div>
+        <div class="vc-license-activate">
+          <input class="vc-license-key" type="password" autocomplete="off" spellcheck="false" aria-label="Vichar license key" placeholder="Paste license key" />
+          <button type="button" class="vc-secondary vc-activate">Activate</button>
+        </div>
       </div>
 
       <div class="vc-controls">
@@ -89,6 +103,10 @@ export function createPanel(callbacks: PanelCallbacks): TweetPanel {
 
   document.body.appendChild(root);
 
+  const licenseStatus = root.querySelector<HTMLDivElement>(".vc-license-status")!;
+  const freeTrial = root.querySelector<HTMLButtonElement>(".vc-free-trial")!;
+  const licenseKeyInput = root.querySelector<HTMLInputElement>(".vc-license-key")!;
+  const activateButton = root.querySelector<HTMLButtonElement>(".vc-activate")!;
   const topicInput = root.querySelector<HTMLSelectElement>(".vc-topic")!;
   topicInput.value = "Surprise me";
 
@@ -145,6 +163,29 @@ export function createPanel(callbacks: PanelCallbacks): TweetPanel {
       }
     }
   };
+
+  freeTrial.addEventListener("click", () => {
+    freeTrial.disabled = true;
+    activateButton.disabled = true;
+    licenseStatus.textContent = "Requesting your free trial…";
+    callbacks.onFreeTrial();
+  });
+
+  activateButton.addEventListener("click", () => {
+    const key = licenseKeyInput.value.trim();
+    if (!key) {
+      licenseStatus.textContent = "Paste your Vichar license key first.";
+      return;
+    }
+    freeTrial.disabled = true;
+    activateButton.disabled = true;
+    licenseStatus.textContent = "Activating license…";
+    callbacks.onActivate(key);
+  });
+
+  licenseKeyInput.addEventListener("keydown", (event) => {
+    if (event.key === "Enter") activateButton.click();
+  });
 
   suggestion.addEventListener("input", updateCount);
 
@@ -272,9 +313,25 @@ export function createPanel(callbacks: PanelCallbacks): TweetPanel {
         status.textContent = "Vichāraḥ Sṛjyate… · Creating a thought…";
       }
     },
-    setTweet(result, resolvedTopic) {
+    setLicense(remaining, owner, message) {
+      freeTrial.disabled = false;
+      activateButton.disabled = false;
+      if (owner) {
+        licenseStatus.textContent = message || "Owner access · Unlimited generations";
+      } else if (typeof remaining === "number") {
+        licenseStatus.textContent = `Extension balance · ${remaining.toLocaleString()} generations remaining`;
+      } else {
+        licenseStatus.textContent = message || "Extension access: activate a license or claim your free trial.";
+      }
+    },
+    setTweet(result, resolvedTopic, remaining, owner) {
       hasTweet = true;
       replaceConfirmedForDraft = null;
+      if (owner) {
+        licenseStatus.textContent = "Owner access · Unlimited generations";
+      } else if (typeof remaining === "number") {
+        licenseStatus.textContent = `Extension balance · ${remaining.toLocaleString()} generations remaining`;
+      }
       suggestion.value = result.tweet;
       updateCount();
       if (result.mode === "news") {

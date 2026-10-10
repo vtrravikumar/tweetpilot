@@ -14,6 +14,25 @@ const panel = createPanel({
   onGenerate: (topic, location, useNews) => {
     void generateSuggestion(topic, location, useNews);
   },
+  onFreeTrial: () => {
+    void chrome.runtime.sendMessage({ type: "free-trial" }).then((response) => {
+      if (!response?.ok) {
+        panel.setLicense(null, false, response?.error || "Unable to start the free trial.");
+        return;
+      }
+      panel.setLicense(response.remaining ?? null, false, "Free trial activated · 50 generations available.");
+    }).catch(() => panel.setLicense(null, false, "Unable to reach the Vichar licensing service."));
+  },
+  onActivate: (licenseKey) => {
+    void chrome.runtime.sendMessage({ type: "activate-license", licenseKey }).then((response) => {
+      if (!response?.ok) {
+        panel.setLicense(null, false, response?.error || "Unable to activate this license.");
+        return;
+      }
+      panel.setLicense(response.remaining ?? null, response.owner === true,
+        response.owner ? "Owner access · Unlimited generations" : undefined);
+    }).catch(() => panel.setLicense(null, false, "Unable to reach the Vichar licensing service."));
+  },
   onDismiss: () => {
     dismissedForComposer = activeComposer;
     panel.setDismissed(true);
@@ -69,7 +88,7 @@ async function generateSuggestion(
       return;
     }
 
-    panel.setTweet(result, resolvedTopic);
+    panel.setTweet(result, resolvedTopic, result.remaining, result.owner);
   } catch (error: unknown) {
     if (requestId !== generationSequence) {
       return;
@@ -147,3 +166,7 @@ observer.observe(document.documentElement, {
 
 window.setInterval(observeComposer, 1000);
 observeComposer();
+
+void chrome.runtime.sendMessage({ type: "license-status" }).then((response) => {
+  if (response?.ok) panel.setLicense(response.remaining ?? null, response.owner === true);
+}).catch(() => { /* The panel remains usable; activation can be retried manually. */ });

@@ -205,3 +205,27 @@
   text-decoration: underline;
 }
 #vichar-root .vc-news-time { color: var(--vc-muted); font-size: 10px; }
+
+
+#vichar-root .vc-license {
+  border: 1px solid var(--vc-border);
+  border-radius: 9px;
+  padding: 8px;
+  margin: 0 0 8px;
+  background: var(--vc-surface-muted);
+}
+#vichar-root .vc-license-status {
+  color: var(--vc-muted);
+  font-size: 11px;
+  margin-bottom: 6px;
+}
+#vichar-root .vc-license-actions { display: flex; gap: 6px; }
+#vichar-root .vc-license-activate {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 6px;
+  margin-top: 6px;
+}
+#vichar-root .vc-license-activate input { min-width: 0; font-size: 11px; }
+#vichar-root .vc-license button { min-height: 30px; padding: 0 10px; }
+#vichar-root .vc-free-trial { color: var(--vc-focus); }
