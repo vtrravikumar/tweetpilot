@@ -187,29 +187,6 @@ export function createPanel(callbacks: PanelCallbacks): TweetPanel {
     if (event.key === "Enter") activateButton.click();
   });
 
-  freeTrial.addEventListener("click", () => {
-    freeTrial.disabled = true;
-    activateButton.disabled = true;
-    licenseStatus.textContent = "Requesting your free trial…";
-    callbacks.onFreeTrial();
-  });
-
-  activateButton.addEventListener("click", () => {
-    const key = licenseKeyInput.value.trim();
-    if (!key) {
-      licenseStatus.textContent = "Paste your Vichar license key first.";
-      return;
-    }
-    freeTrial.disabled = true;
-    activateButton.disabled = true;
-    licenseStatus.textContent = "Activating license…";
-    callbacks.onActivate(key);
-  });
-
-  licenseKeyInput.addEventListener("keydown", (event) => {
-    if (event.key === "Enter") activateButton.click();
-  });
-
   suggestion.addEventListener("input", updateCount);
 
   primary.addEventListener("click", () => {
