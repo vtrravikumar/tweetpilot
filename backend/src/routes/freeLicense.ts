@@ -3,7 +3,7 @@ import type { Route } from "../router";
 import { generateLicenseKey, hashLicenseKey } from "../usage/licenseKeys";
 import { VicharUsage } from "../usage/durableObject";
 
-const FREE_CREDITS = 50;
+const FREE_CREDITS = 5;
 
 async function sha256(value: string): Promise<string> {
   const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(value));
