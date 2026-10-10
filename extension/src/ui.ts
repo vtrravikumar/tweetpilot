@@ -104,6 +104,8 @@ export function createPanel(callbacks: PanelCallbacks): TweetPanel {
   document.body.appendChild(root);
 
   const licenseStatus = root.querySelector<HTMLDivElement>(".vc-license-status")!;
+  const licenseActions = root.querySelector<HTMLDivElement>(".vc-license-actions")!;
+  const licenseActivate = root.querySelector<HTMLDivElement>(".vc-license-activate")!;
   const freeTrial = root.querySelector<HTMLButtonElement>(".vc-free-trial")!;
   const licenseKeyInput = root.querySelector<HTMLInputElement>(".vc-license-key")!;
   const activateButton = root.querySelector<HTMLButtonElement>(".vc-activate")!;
@@ -316,8 +318,15 @@ export function createPanel(callbacks: PanelCallbacks): TweetPanel {
     setLicense(remaining, owner, message) {
       freeTrial.disabled = false;
       activateButton.disabled = false;
+      const active = owner || typeof remaining === "number";
+      licenseActions.style.display = active ? "none" : "";
+      licenseActivate.style.display = active ? "none" : "";
       if (owner) {
         licenseStatus.textContent = message || "Owner access · Unlimited generations";
+      } else if (typeof remaining === "number" && remaining === 0) {
+        licenseStatus.textContent = "No generations remaining · Credit top-ups are not available yet.";
+      } else if (typeof remaining === "number" && remaining <= 10) {
+        licenseStatus.textContent = `Low balance · ${remaining.toLocaleString()} generations remaining`;
       } else if (typeof remaining === "number") {
         licenseStatus.textContent = `Extension balance · ${remaining.toLocaleString()} generations remaining`;
       } else {
@@ -327,10 +336,8 @@ export function createPanel(callbacks: PanelCallbacks): TweetPanel {
     setTweet(result, resolvedTopic, remaining, owner) {
       hasTweet = true;
       replaceConfirmedForDraft = null;
-      if (owner) {
-        licenseStatus.textContent = "Owner access · Unlimited generations";
-      } else if (typeof remaining === "number") {
-        licenseStatus.textContent = `Extension balance · ${remaining.toLocaleString()} generations remaining`;
+      if (owner || typeof remaining === "number") {
+        this.setLicense(remaining ?? null, owner === true);
       }
       suggestion.value = result.tweet;
       updateCount();
