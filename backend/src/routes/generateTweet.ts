@@ -64,6 +64,7 @@ export function createGenerateTweetRoute(
       const licenseMatch = !webAccess ? /^Bearer\s+(vichar_[A-Za-z0-9_-]{43})$/.exec(authorization) : null;
       if (licenseMatch) {
         const licenseKey = licenseMatch[1];
+        if (!licenseKey) return errorResponse(401, "invalid_license_key", "This Vichar license key is invalid.");
         const keyHash = await hashLicenseKey(licenseKey);
         const namespace = (env as unknown as { VICHAR_USAGE?: DurableObjectNamespace<VicharUsage> }).VICHAR_USAGE;
         if (!keyHash) return errorResponse(401, "invalid_license_key", "This Vichar license key is invalid.");
