@@ -39,7 +39,7 @@ describe("Vichar license issuance and activation", () => {
   });
 
   it("activates the configured owner key as unlimited without a credit ledger", async () => {
-    const ownerKey = "vichar_ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz012";
+    const ownerKey = "vichar_" + "A".repeat(43);
     const response = await activateLicenseRoute.handler(new Request("https://api.example/v1/license/activate", {
       method: "POST",
       headers: { "content-type": "application/json" },
