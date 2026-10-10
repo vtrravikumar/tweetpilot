@@ -143,9 +143,12 @@ export class VicharUsage extends DurableObject {
       nowMs,
     );
 
+    const changes = this.ctx.storage.sql
+      .exec<{ changes: number }>("SELECT changes() AS changes")
+      .toArray()[0]?.changes ?? 0;
     const license = this.getLicense();
     if (!license) throw new Error("License creation did not persist.");
-    return { created: license.createdAt === nowMs && license.updatedAt === nowMs, balance: license.balance };
+    return { created: changes === 1, balance: license.balance };
   }
 
   getLicense(): LicenseBalance | null {
