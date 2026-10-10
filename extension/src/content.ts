@@ -69,7 +69,7 @@ async function generateSuggestion(
       return;
     }
 
-    panel.setTweet(result, resolvedTopic);
+    panel.setTweet(result, resolvedTopic, result.remaining, result.owner);
   } catch (error: unknown) {
     if (requestId !== generationSequence) {
       return;
