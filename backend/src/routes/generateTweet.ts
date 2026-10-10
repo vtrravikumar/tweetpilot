@@ -3,7 +3,6 @@ import type { TweetGenerator } from "../generation/types";
 import { errorResponse, jsonResponse } from "../http/json";
 import type { Route } from "../router";
 import { allowAllUsageGuard, type UsageGuard } from "../usage/guard";
-import { checkWebUsage } from "../usage/webGuard";
 import { validateGenerateTweetRequest } from "../validation/generateTweet";
 import { isValidVicharWebToken } from "../webAuth";
 import { hashLicenseKey } from "../usage/licenseKeys";
@@ -62,14 +61,15 @@ export function createGenerateTweetRoute(
       // A license key is distinct from the legacy per-installation usage identifier.
       const authorization = request.headers.get("authorization")?.trim() ?? "";
       const licenseMatch = !webAccess ? /^Bearer\s+(vichar_[A-Za-z0-9_-]{43})$/.exec(authorization) : null;
-      if (licenseMatch) {
-        const licenseKey = licenseMatch[1];
-        if (!licenseKey) return errorResponse(401, "invalid_license_key", "This Vichar license key is invalid.");
-        const keyHash = await hashLicenseKey(licenseKey);
+      if (licenseMatch || webAccess) {
+        const licenseKey = licenseMatch?.[1];
+        const keyHash = licenseKey ? await hashLicenseKey(licenseKey) : null;
         const ownerKey = typeof bag.VICHAR_OWNER_LICENSE_KEY === "string" ? bag.VICHAR_OWNER_LICENSE_KEY.trim() : "";
         const ownerHash = ownerKey ? await hashLicenseKey(ownerKey) : null;
         const namespace = (env as unknown as { VICHAR_USAGE?: DurableObjectNamespace<VicharUsage> }).VICHAR_USAGE;
-        if (ownerHash && keyHash === ownerHash) {
+        // A signed first-party website session is the server-side equivalent of presenting
+        // the owner key: the secret stays on the Worker and is never exposed to browser code.
+        if (ownerHash && (webAccess || (keyHash !== null && keyHash === ownerHash))) {
           if (!namespace) return errorResponse(503, "license_service_unavailable", "License service is temporarily unavailable.");
           const burstRaw = Number.parseInt(String(bag.VICHAR_BURST_PER_MINUTE ?? "3"), 10);
           const burstLimit = Number.isSafeInteger(burstRaw) && burstRaw > 0 ? burstRaw : 3;
@@ -88,6 +88,7 @@ export function createGenerateTweetRoute(
             throw err;
           }
         }
+        if (webAccess) return errorResponse(503, "owner_entitlement_unavailable", "Vichar owner access is not configured.");
         if (!keyHash) return errorResponse(401, "invalid_license_key", "This Vichar license key is invalid.");
         if (!namespace) return errorResponse(503, "license_service_unavailable", "License service is temporarily unavailable.");
         const licenseStub = namespace.get(namespace.idFromName("license:" + keyHash));
@@ -115,19 +116,10 @@ export function createGenerateTweetRoute(
           throw err;
         }
       }
-      const decision = webAccess
-        ? await checkWebUsage(request, env, webSecret)
-        : await usageGuard.check(request, env);
+      const decision = await usageGuard.check(request, env);
 
       if (!decision.allowed) {
         if (decision.reason === "unauthorized") {
-          if (webAccess) {
-            return errorResponse(
-              503,
-              "web_usage_unavailable",
-              "Vichar web usage protection is currently unavailable.",
-            );
-          }
           return errorResponse(401, "missing_usage_key", "Vichar usage key is required.");
         }
 
@@ -147,7 +139,6 @@ export function createGenerateTweetRoute(
         const headers: Record<string, string> = {};
         if (decision.remaining !== undefined) headers["x-vichar-remaining"] = String(decision.remaining);
         if (decision.dailyLimit !== undefined) headers["x-vichar-daily-limit"] = String(decision.dailyLimit);
-        if (webAccess) headers["x-vichar-access"] = "web";
         const newsMetadata = validation.value.useNews
           ? {
               mode: result.mode ?? "normal_fallback",
