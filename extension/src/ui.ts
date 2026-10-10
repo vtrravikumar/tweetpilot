@@ -11,6 +11,8 @@ import {
 
 export interface PanelCallbacks {
   onGenerate: (topic: TopicSelection, location: string, useNews: boolean) => void;
+  onFreeTrial: () => void;
+  onActivate: (licenseKey: string) => void;
   onDismiss: () => void;
   onReopen: () => void;
 }
@@ -18,7 +20,8 @@ export interface PanelCallbacks {
 export interface TweetPanel {
   element: HTMLDivElement;
   setLoading: (loading: boolean) => void;
-  setTweet: (result: GenerateResponse, resolvedTopic: string) => void;
+  setTweet: (result: GenerateResponse, resolvedTopic: string, remaining?: number | null, owner?: boolean) => void;
+  setLicense: (remaining: number | null, owner: boolean, message?: string) => void;
   setError: (message: string) => void;
   setVisible: (visible: boolean) => void;
   getTopic: () => TopicSelection;
@@ -184,6 +187,29 @@ export function createPanel(callbacks: PanelCallbacks): TweetPanel {
     if (event.key === "Enter") activateButton.click();
   });
 
+  freeTrial.addEventListener("click", () => {
+    freeTrial.disabled = true;
+    activateButton.disabled = true;
+    licenseStatus.textContent = "Requesting your free trial…";
+    callbacks.onFreeTrial();
+  });
+
+  activateButton.addEventListener("click", () => {
+    const key = licenseKeyInput.value.trim();
+    if (!key) {
+      licenseStatus.textContent = "Paste your Vichar license key first.";
+      return;
+    }
+    freeTrial.disabled = true;
+    activateButton.disabled = true;
+    licenseStatus.textContent = "Activating license…";
+    callbacks.onActivate(key);
+  });
+
+  licenseKeyInput.addEventListener("keydown", (event) => {
+    if (event.key === "Enter") activateButton.click();
+  });
+
   suggestion.addEventListener("input", updateCount);
 
   primary.addEventListener("click", () => {
@@ -324,6 +350,11 @@ export function createPanel(callbacks: PanelCallbacks): TweetPanel {
     setTweet(result, resolvedTopic, remaining, owner) {
       hasTweet = true;
       replaceConfirmedForDraft = null;
+      if (owner) {
+        licenseStatus.textContent = "Owner access · Unlimited generations";
+      } else if (typeof remaining === "number") {
+        licenseStatus.textContent = `Extension balance · ${remaining.toLocaleString()} generations remaining`;
+      }
       suggestion.value = result.tweet;
       updateCount();
       if (result.mode === "news") {
