@@ -55,7 +55,7 @@ describe("VicharUsage Durable Object", () => {
     const stub = env.VICHAR_USAGE.getByName("license-create-once");
     expect(await stub.createLicense(50, 1_000)).toEqual({ created: true, balance: 50 });
     expect(await stub.createLicense(50, 2_000)).toEqual({ created: false, balance: 50 });
-    expect(stub.getLicense()).toEqual({ balance: 50, createdAt: 1_000, updatedAt: 1_000 });
+    expect(await stub.getLicense()).toEqual({ balance: 50, createdAt: 1_000, updatedAt: 1_000 });
   });
 
   it("adds purchased credits and consumes them atomically without going negative", async () => {
@@ -70,13 +70,13 @@ describe("VicharUsage Durable Object", () => {
     const stub = env.VICHAR_USAGE.getByName("license-empty");
     await stub.createLicense(0, 1_000);
     expect(await stub.consumeCredit(2_000)).toEqual({ consumed: false, balance: 0 });
-    expect(stub.getLicense()?.balance).toBe(0);
+    expect((await stub.getLicense())?.balance).toBe(0);
   });
 
   it("does not create a missing license when adding or consuming credits", async () => {
     const stub = env.VICHAR_USAGE.getByName("license-missing");
     expect(await stub.addCredits(10)).toBeNull();
     expect(await stub.consumeCredit()).toEqual({ consumed: false, balance: null });
-    expect(stub.getLicense()).toBeNull();
+    expect(await stub.getLicense()).toBeNull();
   });
 });
