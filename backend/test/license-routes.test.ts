@@ -6,7 +6,7 @@ import { activateLicenseRoute } from "../src/routes/activateLicense";
 const ctx = {} as ExecutionContext;
 
 describe("Vichar license issuance and activation", () => {
-  it("issues 50 credits and allows activation to read the balance", async () => {
+  it("issues 5 credits and allows activation to read the balance", async () => {
     const request = new Request("https://api.example/v1/license/free", {
       method: "POST",
       headers: { "CF-Connecting-IP": "198.51.100.81" },
@@ -15,8 +15,8 @@ describe("Vichar license issuance and activation", () => {
     expect(issued.status).toBe(201);
     const data = await issued.json() as { licenseKey: string; balance: number; freeCredits: number };
     expect(data.licenseKey).toMatch(/^vichar_[A-Za-z0-9_-]{43}$/);
-    expect(data.balance).toBe(50);
-    expect(data.freeCredits).toBe(50);
+    expect(data.balance).toBe(5);
+    expect(data.freeCredits).toBe(5);
 
     const activated = await activateLicenseRoute.handler(new Request("https://api.example/v1/license/activate", {
       method: "POST",
@@ -24,7 +24,7 @@ describe("Vichar license issuance and activation", () => {
       body: JSON.stringify({ licenseKey: data.licenseKey }),
     }), env, ctx);
     expect(activated.status).toBe(200);
-    expect(await activated.json()).toEqual({ active: true, owner: false, unlimited: false, balance: 50 });
+    expect(await activated.json()).toEqual({ active: true, owner: false, unlimited: false, balance: 5 });
   });
 
   it("rejects a second free trial claim for the same network on the same day", async () => {
