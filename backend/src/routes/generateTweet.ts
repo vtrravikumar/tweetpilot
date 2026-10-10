@@ -79,7 +79,7 @@ export function createGenerateTweetRoute(
         if (!reservation.consumed) return errorResponse(402, "credits_exhausted", "Your Vichar generation balance is empty. Add credits to continue.", { "x-vichar-remaining": String(reservation.balance ?? 0) });
         try {
           const generator = typeof source === "function" ? source(env) : source;
-          const result = await generator.generate({ ...validation.value, includeAttribution: false });
+          const result = await generator.generate({ ...validation.value, includeAttribution: license.attributionRequired });
           const headers = { "x-vichar-remaining": String(reservation.balance ?? 0) };
           const newsMetadata = validation.value.useNews
             ? { mode: result.mode ?? "normal_fallback", ...(result.mode === "normal_fallback" ? { fallbackReason: result.fallbackReason ?? "news_unavailable" } : {}), ...(result.mode === "news" && result.sources ? { sources: result.sources } : {}) }
