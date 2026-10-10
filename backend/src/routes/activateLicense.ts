@@ -21,8 +21,13 @@ export const activateLicenseRoute: Route = {
       return errorResponse(400, "invalid_request", "A licenseKey is required.");
     }
 
-    const hash = await hashLicenseKey((body as { licenseKey: string }).licenseKey);
+    const submittedKey = (body as { licenseKey: string }).licenseKey;
+    const hash = await hashLicenseKey(submittedKey);
     if (!hash) return errorResponse(401, "invalid_license_key", "This Vichar license key is invalid.");
+    const bag = env as unknown as Record<string, unknown>;
+    const ownerKey = typeof bag.VICHAR_OWNER_LICENSE_KEY === "string" ? bag.VICHAR_OWNER_LICENSE_KEY.trim() : "";
+    const ownerHash = ownerKey ? await hashLicenseKey(ownerKey) : null;
+    if (ownerHash && hash === ownerHash) return jsonResponse({ active: true, owner: true, unlimited: true, balance: null }, 200);
 
     const namespace = (env as unknown as { VICHAR_USAGE?: DurableObjectNamespace<VicharUsage> }).VICHAR_USAGE;
     if (!namespace) return errorResponse(503, "license_service_unavailable", "License service is temporarily unavailable.");
@@ -30,6 +35,6 @@ export const activateLicenseRoute: Route = {
     const license = await stub.getLicense();
     if (!license) return errorResponse(401, "invalid_license_key", "This Vichar license key is invalid.");
 
-    return jsonResponse({ active: true, balance: license.balance }, 200);
+    return jsonResponse({ active: true, owner: false, unlimited: false, balance: license.balance }, 200);
   },
 };
