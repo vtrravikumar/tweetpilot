@@ -1,6 +1,6 @@
 # Vichar — Backlog
 
-Updated: 2026-10-09
+Updated: 2026-10-10
 
 ## Current status
 
@@ -105,7 +105,7 @@ When a user hits the current generation rate limit (for example, three requests 
 ## Post-launch improvements
 
 ### UX
-- [ ] Evaluate whether `Vichar by @vtrrk` attribution should remain mandatory after beta
+- [ ] Review free-tier `Vichar by @vtrrk` attribution after launch feedback
 - [ ] Improve error/retry messaging if real users encounter failures
 - [ ] Consider lightweight generation history only if users request it
 - [ ] Improve duplicate-idea avoidance across repeated generations
@@ -255,10 +255,10 @@ The 48-hour threshold is the initial product default, subject to review after re
 
 These prices are a provisional launch proposal, not yet a public commitment. Validate end-to-end economics—including actual model usage, retries, payment processing fees, applicable taxes/refunds and operational overhead—before publishing or enabling purchases.
 
-### Agreed trial and credit behaviour
+### Agreed free allowance and credit behaviour
 
-- Offer a one-time trial lasting 14 days, with a maximum of 20 successful generations.
-- When the trial expires or its allowance is exhausted, generation stops until the user purchases credits.
+- Offer a one-time allowance of 50 successful generations. No recurring daily quota or time-based expiry in the initial plan; keep the allowance configurable server-side.
+- When the free allowance is exhausted, generation stops until the user purchases credits.
 - Enforce trial eligibility, balances and deductions on the server. Client state must never be authoritative and must not permit users to alter balances.
 - Deduct one credit for each successful completed generation. Failed provider/server requests must not silently consume a credit.
 - Make payment fulfilment idempotent so duplicate callbacks or retries cannot add the same purchased credits more than once.
@@ -267,22 +267,28 @@ These prices are a provisional launch proposal, not yet a public commitment. Val
 
 ### Implementation and release checklist
 
-- [ ] Choose the durable identity/account approach for trial eligibility and credit ownership; document privacy and anti-abuse trade-offs before implementation.
-- [ ] Select and document a payment provider; verify payments server-side before crediting an account.
+- [x] Select Razorpay for the initial payment provider; implement in sandbox first.
+- [x] Choose a reusable random license key, shared across devices without device-count restrictions; store only a key hash server-side.
+- [ ] Implement one-time 50-credit free allowance with server-side eligibility and proportionate anti-abuse controls.
 - [ ] Design the server-side ledger/balance model, transaction boundaries, idempotency keys and reconciliation/audit path.
 - [ ] Define behaviour for provider retries, validation failures, timeouts, duplicate requests and ambiguous outcomes so credits are charged consistently.
 - [ ] Decide and publish credit expiry, refund, cancellation, payment-failure and service-shutdown policies; obtain appropriate legal/tax review before launch.
 - [ ] Confirm current OpenAI model pricing and measure cost across enough completed generations, including retries. Current Cloudflare telemetry logs per-response token usage but does not yet correlate every provider response with one completed generation.
 - [ ] Reassess the provisional pack prices after payment fees, taxes and measured usage are included.
-- [ ] Implement consistent balance/trial/low-credit/exhausted-credit UX in both the website and extension; the backend remains authoritative.
+- [ ] Implement consistent balance/free-credit/low-credit/exhausted-credit UX in both the website and extension; the backend remains authoritative.
+- [ ] Issue/activate/recover/revoke license keys; add each subsequent purchase to the same license.
+- [ ] Implement permanent server-controlled owner entitlement with no credit counter; preserve infrastructure safeguards.
+- [ ] Remove `Vichar by @vtrrk` attribution for valid paid licenses and the owner, while retaining it for free users.
+- [ ] Display backend-reported remaining credits after each generation in the extension and website.
 - [ ] Add tests for concurrent requests, trial reuse, expired trials, insufficient balance, failed generations, duplicate payment events, refunds and ledger consistency.
 - [ ] Add operational monitoring for payment reconciliation, credit grants/deductions and unusual abuse without logging prompts or generated content.
 - [ ] Verify end-to-end in a payment sandbox before enabling live payments.
 
 ### Open decisions / guardrails
 
-- Payment provider is not selected. Razorpay may be evaluated, but is not an approved decision.
-- The identity strategy is not selected; an installation identifier alone may be easier to abuse than an account-bound balance.
+- Razorpay is selected; live purchases must remain disabled until sandbox and launch checks pass.
+- License key is the initial paid-access credential; it is a random revocable credential, not an encrypted balance. The server is authoritative.
+- The same key can be used across devices; do not add device counting or device restrictions.
 - Credit expiry and refund policy are not yet decided.
 - Do not advertise unlimited use unless the actual entitlement and safeguards support that claim.
 - Do not enable purchases or present these prices as final until the above launch gates are reviewed.
