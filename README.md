@@ -8,9 +8,7 @@ The production web client is live at [vtrrk.in/vichar/](https://vtrrk.in/vichar/
 
 > **Status: V1 web experience live; Chrome extension submitted to the Chrome Web Store and pending review**
 >
-> The backend is production deployed and hardened, the web client is live, and the Chrome extension has passed packaging CI and been submitted for Chrome Web Store review. The production generation path has been revalidated through the web session and OpenAI provider.
-
----
+> The backend is production deployed and hardened, the web client is live, and the Chrome extension has passed packaging CI and been submitted for Chrome Web Store review. Website generation uses a short-lived first-party web session mapped server-side to owner entitlement. A production smoke test confirmed generation works without a website license-key prompt.
 
 ## What Vichar does
 
@@ -23,7 +21,7 @@ Vichar generates short, personalized tweet drafts based on:
 - **Life & Observations**
 - **Surprise me**
 
-The request can also include optional location context and a writing style such as `thoughtful`.
+The request can also include optional location context, a writing style such as `thoughtful`, and an optional recent-news mode.
 
 The generated tweet is returned to the user for review and editing. Vichar does **not** automatically publish the final post.
 
@@ -36,16 +34,12 @@ Generate a tweet
      ↓
 Review / edit
      ↓
-Review / edit
-     ↓
 Tweet this → X composer
      ↓
 User presses X's native Post button
 ```
 
 This separation is deliberate. Vichar is an assistant, not an autonomous publisher.
-
----
 
 ## Live version
 
@@ -55,8 +49,9 @@ This separation is deliberate. Vichar is an assistant, not an autonomous publish
 
 The current web client provides:
 
-- topic selection;
+- topic selection and custom topic input;
 - optional location context;
+- optional recent-news generation, with source links when available;
 - AI tweet generation;
 - 140-character counting by default;
 - randomised writing style per generation;
@@ -67,34 +62,25 @@ The current web client provides:
 
 The current character limit is configured for a non-Premium X account and is not treated as a permanent Vichar limit.
 
----
-
 ## Architecture
 
 Vichar is intentionally small and cost-conscious.
 
 ```text
-┌──────────────────────────┐
-│       vtrrk.in/tweet     │
-│      Astro web client    │
-└────────────┬─────────────┘
-             │ HTTPS
-             ▼
-┌──────────────────────────┐
-│   Cloudflare Worker      │
-│      vichar-api      │
-│                          │
-│  HTTP validation         │
-│  CORS                    │
-│  TweetGenerator          │
-│  OpenAI provider         │
-└────────────┬─────────────┘
-             │ Responses API
-             ▼
-┌──────────────────────────┐
-│          OpenAI          │
-└──────────────────────────┘
+vtrrk.in Astro web client
+       │ POST /v1/web/session (first-party Origin)
+       ▼
+Cloudflare Worker ── issues 10-minute signed web token
+       │
+       │ POST /v1/tweet/generate + Bearer token
+       ▼
+Owner entitlement path ── owner burst guard
+       │
+       ▼
+TweetGenerator / OpenAI Responses API
 ```
+
+The extension uses a separate route through the same generation endpoint with its license key and server-side credit balance.
 
 ### Backend
 
@@ -104,34 +90,71 @@ Vichar is intentionally small and cost-conscious.
 - OpenAI Responses API
 - Vitest
 - Cloudflare Workers Vitest pool
-- No conventional database; Durable Object SQLite stores only anonymous usage counters
-- Durable usage protection for extension installations; Vichar web generation is unlimited in V1
+- No conventional database; Durable Object SQLite stores usage, license balances and burst-control state
+- Durable usage protection for extension installations; website generations use owner entitlement and do not consume extension credits
 - No dedicated server or VM
 - No Docker/Kubernetes requirement
 
 ### Web client
 
-The initial web client lives in the separate **vtrrk.in** Astro repository.
+The web client lives in the separate **vtrrk.in** Astro repository.
 
-The production API is:
+- Website source: [`src/pages/vichar.astro`](https://github.com/vtrravikumar/vtrrk.in/blob/main/src/pages/vichar.astro)
+- Website integration notes: [`docs/VICHAR.md`](https://github.com/vtrravikumar/vtrrk.in/blob/main/docs/VICHAR.md)
+- Production API base: `https://api.vtrrk.in/vichar`
 
-```
-https://api.vtrrk.in/vichar
-```
+## Website session and owner entitlement
 
----
+The website does not ask visitors for a license key and does not store one in browser storage.
+
+1. The frontend requests `POST /v1/web/session` from the exact allowed origin `https://vtrrk.in`.
+2. The Worker requires `VICHAR_WEB_SECRET` and issues a signed HMAC-SHA-256 token with audience `vichar-web` and a 10-minute lifetime. The response is marked `Cache-Control: no-store`.
+3. The frontend keeps the token in memory and sends it as a Bearer token to `POST /v1/tweet/generate`; it refreshes the session when close to expiry and clears it after an authentication failure.
+4. The generation route verifies the signature, expiry, audience and first-party origin.
+5. A valid web token maps to the existing owner entitlement. The Worker requires `VICHAR_OWNER_LICENSE_KEY` to be configured, uses its hash for the owner burst-control namespace, and returns owner headers including `x-vichar-access: owner` and `x-vichar-remaining: unlimited`.
+6. Owner generation omits the free-tier attribution and does not consume extension credits. The shared owner burst guard still applies.
+7. If the owner key is missing, website generation fails closed with `503 owner_entitlement_unavailable`; it does not fall back to the extension's anonymous/free usage path.
+
+The owner key and web-signing secret are Worker-side secrets. Neither is sent to website JavaScript. The website token is not a license key and is not persisted in localStorage.
+
+### Extension entitlement remains separate
+
+- Owner license key: unlimited generation, no free-tier attribution, owner burst protection.
+- Free extension license: server-controlled free credit balance and required attribution.
+- Paid extension license: server-controlled purchased credit balance and the configured attribution policy.
+- A valid website session is treated as owner entitlement only on the website's allowed first-party origin; it does not change extension license credit handling.
 
 ## API
 
-The main endpoint is:
+### Create a web session
 
-```
-POST /v1/tweet/generate
+```http
+POST /v1/web/session
+Origin: https://vtrrk.in
+Content-Type: application/json
+
+{}
 ```
 
-Example request:
+Successful response (token redacted):
 
 ```json
+{
+  "token": "<signed-short-lived-token>",
+  "expiresIn": 600
+}
+```
+
+A disallowed/missing origin receives `403 forbidden_origin`. Missing `VICHAR_WEB_SECRET` returns `503 web_session_unavailable`.
+
+### Generate a tweet
+
+```http
+POST /v1/tweet/generate
+Origin: https://vtrrk.in
+Authorization: Bearer <signed-short-lived-token>
+Content-Type: application/json
+
 {
   "topic": "Photography",
   "location": "Chennai",
@@ -140,363 +163,149 @@ Example request:
 }
 ```
 
-Example response:
+Successful owner response includes the tweet body and headers:
 
-```json
-{
-  "tweet": "Good photographs don't always reveal more. Sometimes they simply make you notice what you'd been walking past."
-}
-```
+- `x-vichar-access: owner`
+- `x-vichar-remaining: unlimited`
+
+Missing owner entitlement configuration returns `503 owner_entitlement_unavailable`. Burst protection may return `429 rate_limited`.
+
+### Extension generation
+
+The extension continues to send its license key as a Bearer token. The backend validates the key, applies its entitlement and credit rules, enforces burst protection, and reports the remaining balance. Do not change extension request semantics when modifying the website session flow.
 
 ### Health check
 
-```
-GET /health
-```
+`GET /health`
 
 Production:
 
-```
-https://api.vtrrk.in/vichar/health
+`https://api.vtrrk.in/vichar/health`
+
+Returns:
+
+```json
+{ "status": "ok" }
 ```
 
----
+The health route does not call OpenAI and does not expose internal configuration.
 
 ## Generation design
 
-The backend separates the HTTP layer from the generation provider through a `TweetGenerator` interface.
-
-This keeps the API independent of the AI provider and allows another provider to be introduced later without changing the HTTP contract.
-
-The current production provider is OpenAI.
+The backend separates the HTTP layer from the generation provider through a `TweetGenerator` interface. The current production provider is OpenAI.
 
 The generator:
 
 - uses the OpenAI Responses API directly;
 - keeps the API key server-side;
-- does not expose credentials to the browser;
-- uses a configurable model;
-- defaults to a cost-conscious generation configuration;
-- derives an output-token budget from the requested tweet length;
+- uses a configurable model and bounded output-token budget;
 - limits oversized prompt fields;
-- validates the returned tweet length;
-- enforces the exact final `Vichar by @vtrrk` attribution and counts it within `maxLength`;
-- prevents duplicate attribution variants from model output;
-- prevents unapproved links;
-- allows one corrective generation when the output violates length/link rules;
-- does not store responses through the OpenAI request (`store: false`);
+- validates returned tweet length and allowed links;
+- applies attribution according to server-side entitlement;
+- allows one corrective generation when output violates length/link rules;
+- uses `store: false` on OpenAI requests;
 - does not silently fall back to placeholder content in production.
 
-The current default model is configured in code but can be overridden through the Worker environment.
+The default model is configured in code and can be overridden through the Worker environment.
 
----
+## Personalization and news
 
-## Personalization
+Vichar supports conversational, thoughtful, witty, observational, curious, provocative, inspirational and minimalist styles. The website selects a style for each generation. Location is optional context supplied by the user; precise location tracking is not required.
 
-Vichar is intended for V.T.R. Ravi Kumar's personal voice and interests rather than generic social-media copy.
+The website can optionally request recent-news mode. When news is available, the response can include source metadata for display. If recent news is unavailable or no sufficiently recent stories are found, the backend can return a normal-generation fallback with a reason. Source URLs are validated by the frontend before rendering links.
 
-The current personalization favours:
+## Configuration and secrets
 
-- conversational writing;
-- thoughtful observations;
-- occasional wit;
-- fresh angles;
-- natural language;
-- minimal hashtags;
-- avoiding repetitive rhetorical patterns;
-- avoiding generic engagement bait.
+Production values are configured through Cloudflare Worker secrets/variables, not committed files.
 
-Location is optional context supplied by the user. Vichar does not require precise location tracking.
-
----
-
-## Links
-
-VTRRK links can be configured separately from the generation prompt.
-
-The backend supports an optional `VTRRK_LINKS` JSON configuration. Links are selected deterministically by topic where configured, rather than asking the model to invent URLs.
-
-If no links are configured, the generator does not add links.
-
----
-
-## Configuration
-
-The Worker reads these values from its environment:
-
-| Variable | Required | Purpose |
+| Name | Required | Purpose |
 |---|---|---|
 | `OPENAI_API_KEY` | Yes | Server-side OpenAI credential |
+| `VICHAR_WEB_SECRET` | Yes for website session access | Signs short-lived first-party web tokens |
+| `VICHAR_OWNER_LICENSE_KEY` | Yes for owner entitlement | Server-side owner key used to identify owner entitlement; never expose it to the browser |
+| `CORS_ALLOWED_ORIGINS` | Yes for browser access | Exact allowed browser origins, including `https://vtrrk.in` and the production extension origin as appropriate |
 | `OPENAI_MODEL` | No | Override the default model |
-| `OPENAI_REASONING_EFFORT` | No | Override reasoning effort; `omit` removes the field |
+| `OPENAI_REASONING_EFFORT` | No | Override reasoning effort |
 | `VTRRK_LINKS` | No | JSON configuration of topic-specific VTRRK links |
-| `CORS_ALLOWED_ORIGINS` | No | Comma-separated browser origins allowed to call the API |
+| `VICHAR_DAILY_LIMIT` | No | Extension per-installation daily limit |
+| `VICHAR_BURST_PER_MINUTE` | No | Per-minute burst protection setting |
 | `TWEETPILOT_GENERATOR` | No | Set to `placeholder` only for offline/test generation |
-| `VICHAR_DAILY_LIMIT` | No | Extension installation daily generation limit; production default is `10` |
-| `VICHAR_BURST_PER_MINUTE` | No | Extension installation per-minute generation limit; production default is `3` |
-| `VICHAR_WEB_SECRET` | Yes for web session access | Server-side secret used to issue short-lived Vichar web session tokens |
 
-**Never commit an API key or `.dev.vars` to Git.**
-
-For local development, the API key can be placed in:
-
-```text
-backend/.dev.vars
-```
-
-That file is intended to remain outside source control.
-
----
+Do not commit secrets, API keys, or `backend/.dev.vars`. Never add `VICHAR_OWNER_LICENSE_KEY` or `VICHAR_WEB_SECRET` to Astro frontend environment variables or client-side bundles.
 
 ## Local development
-
-From the repository root:
 
 ```bash
 cd backend
 npm install
-```
-
-Start the local Worker:
-
-```bash
 npm run dev
-```
-
-The local Worker normally runs at:
-
-```
-http://localhost:8787
-```
-
-Run tests:
-
-```bash
 npm test
-```
-
-Run TypeScript checks:
-
-```bash
 npm run typecheck
 ```
 
-Deploy the Worker:
+Local secrets belong in `backend/.dev.vars`, which must remain outside source control.
 
-```cd backend
+Deploy the Worker only after the normal review/approval process:
+
+```bash
+cd backend
 npm run deploy
 ```
 
-Wrangler configuration lives in:
-
-```text
-backend/wrangler.jsonc
-```
-
----
-
 ## Testing philosophy
 
-Tests are designed so the automated suite does not make real OpenAI requests.
+Automated tests should not make real OpenAI requests. Dependency-injected fetch implementations are used to test upstream behaviour deterministically.
 
-The provider supports dependency-injected `fetch` implementations, allowing upstream behaviour to be tested deterministically.
+The test suite covers request validation, provider behaviour, output length, attribution, link rules, upstream failures, timeout handling, CORS, license routes, web-token validation, web owner entitlement, burst limits and fail-closed configuration.
 
-The test suite covers areas including:
-
-- request validation;
-- malformed JSON;
-- method handling;
-- generation provider behaviour;
-- output length handling;
-- link rules;
-- upstream failures;
-- timeout handling;
-- malformed provider responses;
-- CORS;
-- placeholder generation;
-- configuration behaviour.
-
-The production OpenAI path is validated separately through controlled real requests.
-
----
-
-## CORS
-
-The API uses an explicit origin allow-list.
-
-The current production web client origin is:
-
-```text
-https://vtrrk.in
-```
-
-The implementation deliberately avoids wildcard CORS and does not enable credentials.
-
-Chrome extension origins are supported once the production extension ID is known.
-
-CORS is a browser access-control mechanism, not authentication. Vichar's web client uses a short-lived server-issued session token and is intentionally unlimited in V1. The Chrome extension uses Durable Object-backed per-installation usage protection.
-
----
-
-## Cost-conscious design
-
-Vichar is intentionally designed to keep AI costs low.
-
-Current principles:
-
-- one generation call per normal request;
-- compact prompts;
-- optional single corrective retry only when required;
-- bounded input fields;
-- bounded output tokens;
-- no web search;
-- no embeddings;
-- no conventional database; usage counters are stored in a small SQLite-backed Durable Object;
-- no unnecessary background processing;
-- automated tests never call the real OpenAI API.
-
-The initial deployment uses the existing production OpenAI API setup. Provider and model choices remain configurable so they can be changed later without redesigning the application.
-
----
+The production web flow was smoke-tested after deployment: website generation succeeded without a license-key prompt.
 
 ## Roadmap
 
-### M0 — Product definition
-
-**Complete**
-
-- product direction;
-- human-controlled publishing model;
-- topic model;
-- personalization requirements;
-- API contract;
-- cost constraints.
-
-### M2 — Backend and AI generation
-
-**Complete**
-
-- Cloudflare Worker;
-- generation abstraction;
-- OpenAI provider;
-- prompt/personalization logic;
-- validation;
-- length enforcement;
-- link handling;
-- CORS;
-- automated tests;
-- production deployment.
-
-### Web Vichar
-
-**Complete**
-
-- vtrrk.in integration;
-- topic selector;
-- optional location;
-- generated tweet editor;
-- character counter;
-- Create Another;
-- Tweet this action, opening X's composer with the edited text pre-filled;
-- custom topic input;
-- randomised writing style per generation;
-- Vichar Chrome extension teaser;
-- Privacy Policy link;
-- live production validation.
-
-### M1 — Chrome extension
-
-**Submitted — pending Chrome Web Store review**
-
-The extension brings Vichar directly into the X composer and is now submitted for Chrome Web Store review.
-
-Planned capabilities include:
-
-- Chrome MV3 extension foundation;
-- X composer detection;
-- non-blocking in-page Vichar UI;
-- Surprise me as the default topic;
-- optional topic selection and location context;
-- generation through the production backend;
-- editable suggestion;
-- explicit Use this / Another / Dismiss workflow;
-- user-controlled insertion into the composer;
-- native X Post remains the final action;
-- automated extension tests and CI verification;
-- production package with manifest.json at ZIP root;
-- Chrome Web Store listing, privacy declarations, test instructions and privacy policy.
-
-The extension will **not** automatically click X's native Post button. The user explicitly chooses **Use this** before content is inserted.
-
-### M3 — Hardening and product completion
-
-Core backend hardening is complete. Remaining M3 work is product refinement and broader extension/web experience validation.
-
-Planned areas include:
-
-- draft/history support;
-- better duplicate avoidance across requests;
-- copy fallbacks;
-- integration hardening;
-- extension UX refinement;
-- production abuse/rate limiting for the public web client if usage becomes excessive;
-- broader end-to-end validation.
-
----
+- **M0 — Product definition:** complete.
+- **M2 — Backend and AI generation:** complete.
+- **Web Vichar:** live; web sessions use owner entitlement.
+- **M1 — Chrome extension:** submitted to Chrome Web Store; pending review.
+- **M3 — Hardening/product refinement:** continue end-to-end validation, monitoring and abuse-control review if public usage grows.
 
 ## Repository structure
 
 ```text
-vichar/
+tweetpilot/
 ├── backend/
-│   ├── src/
-│   │   ├── generation/
-│   │   ├── http/
-│   │   ├── routes/
-│   │   ├── usage/
-│   │   ├── validation/
-│   │   ├── env.ts
-│   │   ├── router.ts
-│   │   └── index.ts
-│   ├── test/
-│   ├── package.json
-│   └── wrangler.jsonc
-└── README.md
+│   ├── src/generation/
+│   ├── src/http/
+│   ├── src/routes/
+│   ├── src/usage/
+│   ├── src/validation/
+│   ├── src/webAuth.ts
+│   ├── src/router.ts
+│   └── src/index.ts
+├── backend/test/
+├── extension/
+└── docs/
 ```
-
-The repository now includes the Chrome extension under `extension/`.
-
----
 
 ## Related
 
 - **Live Vichar:** https://vtrrk.in/vichar/
 - **Personal website:** https://vtrrk.in/
 - **Vichar API:** https://api.vtrrk.in/vichar/
-- **VTRRK GitHub:** https://github.com/vtrravikumar
-- **Vichar project page:** https://vtrrk.in/vichar/
-
----
+- **Website implementation:** https://github.com/vtrravikumar/vtrrk.in/blob/main/src/pages/vichar.astro
+- **Website integration notes:** https://github.com/vtrravikumar/vtrrk.in/blob/main/docs/VICHAR.md
 
 ## Design principles
 
-Vichar follows a few simple principles:
-
 1. **AI assists; the human decides.**
-2. **The generated text should sound personal, not generic.**
-3. **Keep the architecture small until scale requires more.**
-4. **Keep AI costs predictable.**
-5. **Never expose provider credentials to the browser.**
-6. **Prefer deterministic application logic where the model does not need to make the decision.**
-7. **Build the backend independently before coupling it tightly to the X UI.**
-
----
+2. **Keep the architecture small until scale requires more.**
+3. **Keep AI costs predictable.**
+4. **Never expose provider credentials or owner secrets to the browser.**
+5. **Use server-side entitlement as the source of truth.**
+6. **Keep website owner access distinct from extension free/paid credit balances.**
 
 ## Disclaimer
 
-Vichar is an independent personal project and is not affiliated with or endorsed by X Corp.
-
-The Chrome extension is intended as an assistant for composing posts. Platform rules and policies may apply to browser extensions and automation on X; the project does not claim platform approval.
+Vichar is an independent personal project and is not affiliated with or endorsed by X Corp. Vichar generates drafts; the user remains responsible for reviewing and manually publishing posts.
 
 ---
 
