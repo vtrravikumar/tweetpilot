@@ -34,7 +34,7 @@ export interface GenerateResponse {
 
 export type BackgroundMessage =
   | { type: "generate"; request: GenerateRequest }
-  | { type: "health" };
+  | { type: "health" }\n  | { type: "free-trial" }\n  | { type: "activate-license"; licenseKey: string }\n  | { type: "license-status" };
 
 export type BackgroundResponse =
   | { ok: true; tweet: string; mode?: GenerateResponse["mode"]; fallbackReason?: GenerateResponse["fallbackReason"]; sources?: NewsSource[] }
