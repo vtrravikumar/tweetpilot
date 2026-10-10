@@ -4,7 +4,7 @@ Updated: 2026-10-10
 
 ## Status
 
-The following is the agreed provisional product direction for launch planning. It is not yet implemented and the prices must not be treated as a final public commitment until cost and payment economics are validated.
+The following is the agreed implementation direction for launch planning. Runtime behaviour is not yet implemented. Pack prices remain the launch proposal and should be reviewed before public checkout is enabled.
 
 ## Proposed prepaid packs
 
@@ -16,13 +16,12 @@ The following is the agreed provisional product direction for launch planning. I
 
 The working assumption is one credit per successful generation. Validate actual model usage (including retries), payment-provider fees, applicable taxes, refunds and operational overhead before publishing prices.
 
-## One-time free trial
+## One-time free allowance
 
-- Duration: 14 days.
-- Allowance: up to 20 successful generations.
-- Trial is one-time per eligible user/account, subject to the identity and anti-abuse approach still to be selected.
-- When the trial expires or the allowance is exhausted, generation stops until credits are purchased.
-- Trial eligibility and allowance must be enforced server-side; client storage must not be authoritative.
+- Grant 50 free generations once to a new eligible user/license identity; no recurring daily quota and no time-based expiry in the initial plan.
+- After the free allowance is exhausted, generation stops until the user purchases credits.
+- Keep the free allowance configurable server-side so it can later be raised to 100 without requiring an extension update.
+- Enforce the one-time grant and balance server-side. Client storage must not be authoritative; define reasonable anti-abuse controls without adding device-counting restrictions.
 
 ## Credit and generation rules
 
@@ -37,8 +36,7 @@ The working assumption is one credit per successful generation. Validate actual 
 
 ## Decisions still open
 
-- **Identity and trial abuse:** decide between account-based identity and a lower-friction installation identity, considering recovery, cross-device balances, privacy and abuse.
-- **Payment provider:** not selected. Razorpay can be evaluated but is not approved by this document.
+- **License model:** use one reusable random license key per customer. The server stores a hash of the key and owns the balance; do not encode the balance in the key. The same key may be used on multiple devices without a device limit. A payment/recovery contact flow remains to be specified.
 - **Expiry/refunds:** decide credit expiry, refund eligibility, failed-payment handling and service-shutdown policy before accepting payment.
 - **Legal/tax:** review applicable consumer, tax, privacy and payment obligations before launch.
 - **Economics:** confirm official current model pricing and collect enough telemetry to measure completed-generation cost, including retries. Current telemetry records token usage per OpenAI response but does not yet correlate every response/retry to one completed generation.
@@ -47,9 +45,13 @@ The working assumption is one credit per successful generation. Validate actual 
 ## Launch gates
 
 - [ ] Server-side balance/ledger and transaction consistency designed.
+- [ ] Razorpay checkout and verified webhook fulfilment implemented in sandbox.
+- [ ] License-key creation, activation, recovery and revocation flow defined and tested.
+- [ ] Permanent server-controlled owner entitlement implemented; it bypasses credit counting but not infrastructure safeguards.
+- [ ] Paid license and owner outputs omit `Vichar by @vtrrk`; free outputs retain it.
 - [ ] Server-verified, idempotent payment fulfilment implemented and tested.
 - [ ] Failed-generation and retry accounting verified.
-- [ ] Trial identity and anti-abuse policy decided.
+- [ ] Define one-time free-credit grant and proportionate anti-abuse policy.
 - [ ] Pricing validated against model costs, retries, payment fees, taxes and operating costs.
 - [ ] Expiry/refund/shutdown terms reviewed and published.
 - [ ] Website and extension UX tested against authoritative backend entitlements.
