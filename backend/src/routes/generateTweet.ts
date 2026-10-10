@@ -63,7 +63,8 @@ export function createGenerateTweetRoute(
       const authorization = request.headers.get("authorization")?.trim() ?? "";
       const licenseMatch = !webAccess ? /^Bearer\s+(vichar_[A-Za-z0-9_-]{43})$/.exec(authorization) : null;
       if (licenseMatch) {
-        const keyHash = await hashLicenseKey(licenseMatch[1]);
+        const licenseKey = licenseMatch[1];
+        const keyHash = await hashLicenseKey(licenseKey);
         const namespace = (env as unknown as { VICHAR_USAGE?: DurableObjectNamespace<VicharUsage> }).VICHAR_USAGE;
         if (!keyHash) return errorResponse(401, "invalid_license_key", "This Vichar license key is invalid.");
         if (!namespace) return errorResponse(503, "license_service_unavailable", "License service is temporarily unavailable.");
