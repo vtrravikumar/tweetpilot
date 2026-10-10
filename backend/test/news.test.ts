@@ -78,7 +78,7 @@ describe("news context", () => {
   });
 
   it("parses titles, dates and sources while decoding RSS entities", () => {
-    const items = parseNewsItems(RSS);
+    const items = parseNewsItems(RSS, Date.parse("2026-10-09T12:00:00.000Z"));
     expect(items).toHaveLength(2);
     expect(items[1]?.title).toBe("Second headline & another detail");
     expect(items[0]?.publisher).toBe("Example News");
