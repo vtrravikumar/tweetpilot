@@ -67,6 +67,16 @@ The Chrome extension is implemented, packaged with the correct ZIP structure, CI
 - [x] Privacy Policy published
 - [x] Store submission
 
+
+
+## VICHAR-EXT-001 — Show extension version in the embedded X composer UI
+- Priority: P2
+- Status: Planned
+- Area: Chrome extension / UX / Diagnostics
+- Consumers: Chrome extension
+
+Display the installed Vichar extension version directly in the embedded Vichar panel on X, near the Vichar brand header, so the active version can be identified without opening Chrome's extension manager. Use the version from the extension's single source of truth (the manifest/build metadata); do not hard-code a second version string in the UI. Keep the label subtle but readable and ensure it works in both light and dark X themes and at narrow widths. Confirm the displayed value matches the packaged extension version in the release artifact. This is a diagnostic UX improvement and must not change generation, posting, privacy or usage-limit behaviour.
+
 ## Immediate next steps
 
 ### Chrome Web Store
