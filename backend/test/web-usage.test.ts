@@ -1,15 +1,12 @@
 import { env } from "cloudflare:workers";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { createGenerateTweetRoute } from "../src/routes/generateTweet";
 import { issueVicharWebToken } from "../src/webAuth";
 
 const WEB_SECRET = "test-web-secret";
+const OWNER_KEY = "vichar_" + "A".repeat(43);
 const URL_ = "https://tweetpilot-api.vtrravikumar.workers.dev/v1/tweet/generate";
 const ctx = {} as ExecutionContext;
-
-const generator = {
-  generate: async () => ({ tweet: "web test tweet" }),
-};
 
 async function webRequest(ip: string, token: string): Promise<Request> {
   return new Request(URL_, {
@@ -24,40 +21,65 @@ async function webRequest(ip: string, token: string): Promise<Request> {
   });
 }
 
-describe("Vichar web usage policy", () => {
-  it("allows repeated web generations without the extension quota", async () => {
-    const route = createGenerateTweetRoute(generator);
-    const routeEnv = {
-      ...env,
-      VICHAR_WEB_SECRET: WEB_SECRET,
-      VICHAR_DAILY_LIMIT: "10",
-      VICHAR_BURST_PER_MINUTE: "3",
-    } as unknown as Env;
+function routeEnv(values: Record<string, string> = {}): Env {
+  return {
+    ...env,
+    VICHAR_WEB_SECRET: WEB_SECRET,
+    VICHAR_OWNER_LICENSE_KEY: OWNER_KEY,
+    VICHAR_BURST_PER_MINUTE: "3",
+    ...values,
+  } as unknown as Env;
+}
+
+describe("Vichar website owner entitlement", () => {
+  it("uses owner access for website sessions and suppresses attribution", async () => {
+    const generate = vi.fn(async (input: { includeAttribution?: boolean }) => ({
+      tweet: input.includeAttribution === false ? "owner tweet" : "owner tweet\\nVichar by vtrrk",
+    }));
+    const route = createGenerateTweetRoute({ generate });
     const token = await issueVicharWebToken(WEB_SECRET);
 
-    for (let index = 0; index < 12; index += 1) {
-      const response = await route.handler(
-        await webRequest("203.0.113.10", token),
-        routeEnv,
-        ctx,
-      );
-      expect(response.status).toBe(200);
-    }
+    const response = await route.handler(
+      await webRequest("203.0.113.10", token),
+      routeEnv(),
+      ctx,
+    );
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("x-vichar-access")).toBe("owner");
+    expect(response.headers.get("x-vichar-remaining")).toBe("unlimited");
+    expect(await response.json()).toEqual({ tweet: "owner tweet" });
+    expect(generate).toHaveBeenCalledWith(expect.objectContaining({
+      topic: "Photography",
+      includeAttribution: false,
+    }));
   });
 
-  it("does not couple web usage to client IP", async () => {
-    const route = createGenerateTweetRoute(generator);
-    const routeEnv = {
-      ...env,
-      VICHAR_WEB_SECRET: WEB_SECRET,
-      VICHAR_DAILY_LIMIT: "1",
-      VICHAR_BURST_PER_MINUTE: "1",
-    } as unknown as Env;
+  it("uses the shared owner burst guard across website requests", async () => {
+    const route = createGenerateTweetRoute({ generate: async () => ({ tweet: "owner tweet" }) });
+    const token = await issueVicharWebToken(WEB_SECRET);
+    const settings = routeEnv({ VICHAR_BURST_PER_MINUTE: "1" });
+
+    const first = await route.handler(await webRequest("203.0.113.20", token), settings, ctx);
+    const second = await route.handler(await webRequest("203.0.113.21", token), settings, ctx);
+
+    expect(first.status).toBe(200);
+    expect(second.status).toBe(429);
+  });
+
+  it("fails closed when owner entitlement is not configured", async () => {
+    const route = createGenerateTweetRoute({ generate: async () => ({ tweet: "should not run" }) });
     const token = await issueVicharWebToken(WEB_SECRET);
 
-    expect((await route.handler(await webRequest("203.0.113.20", token), routeEnv, ctx)).status).toBe(200);
-    expect((await route.handler(await webRequest("203.0.113.21", token), routeEnv, ctx)).status).toBe(200);
+    const response = await route.handler(
+      await webRequest("203.0.113.30", token),
+      routeEnv({ VICHAR_OWNER_LICENSE_KEY: "" }),
+      ctx,
+    );
+
+    expect(response.status).toBe(503);
+    expect(await response.json()).toMatchObject({
+      error: { code: "owner_entitlement_unavailable" },
+    });
   });
-
-
 });
