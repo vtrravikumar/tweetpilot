@@ -15,7 +15,7 @@
  *   TWEETPILOT_GENERATOR      optional. "placeholder" selects the offline stub
  *                             (used by the test suite); anything else = OpenAI.
  *   VICHAR_DAILY_LIMIT        optional positive integer; default 10.
- *   VICHAR_BURST_PER_MINUTE   optional positive integer; default 3.
+ *   VICHAR_BURST_PER_MINUTE   optional positive integer; default 3.\n *   VICHAR_OWNER_LICENSE_KEY  secret; permanent owner entitlement key, never commit it.
  *
  * VICHAR_WEB_SECRET is a secret used by the web-session token and the
  * anonymous web usage guard; it is intentionally not part of TweetPilotConfig.
