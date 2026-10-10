@@ -30,12 +30,25 @@ export interface GenerateResponse {
   mode?: "news" | "normal_fallback";
   fallbackReason?: "no_recent_news" | "news_unavailable";
   sources?: NewsSource[];
+  remaining?: number | null;
+  owner?: boolean;
+  unlimited?: boolean;
 }
 
 export type BackgroundMessage =
   | { type: "generate"; request: GenerateRequest }
-  | { type: "health" }\n  | { type: "free-trial" }\n  | { type: "activate-license"; licenseKey: string }\n  | { type: "license-status" };
+  | { type: "health" }
+  | { type: "free-trial" }
+  | { type: "activate-license"; licenseKey: string }
+  | { type: "license-status" };
+
+export interface LicenseStatus {
+  active: boolean;
+  owner: boolean;
+  unlimited: boolean;
+  balance: number | null;
+}
 
 export type BackgroundResponse =
-  | { ok: true; tweet: string; mode?: GenerateResponse["mode"]; fallbackReason?: GenerateResponse["fallbackReason"]; sources?: NewsSource[] }
+  | { ok: true; tweet?: string; mode?: GenerateResponse["mode"]; fallbackReason?: GenerateResponse["fallbackReason"]; sources?: NewsSource[]; remaining?: number | null; owner?: boolean; unlimited?: boolean; licenseKey?: string; freeCredits?: number }
   | { ok: false; error: string };
