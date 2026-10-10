@@ -215,8 +215,54 @@ export class OpenAIProvider implements TweetGenerator {
     } catch {
       throw new GenerationError("invalid_output", "OpenAI response was not JSON.");
     }
+    // Capture provider-reported usage for cost analysis. Never log prompts,
+    // generated text, user fields, API keys, or provider error bodies.
+    logResponseUsage(json, this.model);
     return extractText(json);
   }
+}
+
+/**
+ * Emits only numeric token counters and the model identifier. This is
+ * deliberately per API response (not per completed generation), so retries
+ * and responses that later fail validation remain visible in cost analysis.
+ */
+function logResponseUsage(json: unknown, configuredModel: string): void {
+  if (typeof json !== "object" || json === null) return;
+  const payload = json as {
+    model?: unknown;
+    usage?: unknown;
+  };
+  if (typeof payload.usage !== "object" || payload.usage === null) return;
+
+  const usage = payload.usage as {
+    input_tokens?: unknown;
+    output_tokens?: unknown;
+    total_tokens?: unknown;
+    input_tokens_details?: unknown;
+    output_tokens_details?: unknown;
+  };
+  const count = (value: unknown): number | undefined =>
+    typeof value === "number" && Number.isSafeInteger(value) && value >= 0
+      ? value
+      : undefined;
+  const inputDetails =
+    typeof usage.input_tokens_details === "object" && usage.input_tokens_details !== null
+      ? usage.input_tokens_details as { cached_tokens?: unknown }
+      : {};
+  const outputDetails =
+    typeof usage.output_tokens_details === "object" && usage.output_tokens_details !== null
+      ? usage.output_tokens_details as { reasoning_tokens?: unknown }
+      : {};
+
+  console.log("openai_usage", {
+    model: typeof payload.model === "string" ? payload.model : configuredModel,
+    inputTokens: count(usage.input_tokens) ?? null,
+    outputTokens: count(usage.output_tokens) ?? null,
+    totalTokens: count(usage.total_tokens) ?? null,
+    cachedInputTokens: count(inputDetails.cached_tokens) ?? null,
+    reasoningTokens: count(outputDetails.reasoning_tokens) ?? null,
+  });
 }
 
 /**

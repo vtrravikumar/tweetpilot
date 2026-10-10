@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { GenerationError } from "../src/generation/errors";
 import {
   DEFAULT_OPENAI_MODEL,
@@ -181,6 +181,54 @@ describe("OpenAIProvider - prompt", () => {
     expect(input).not.toContain("t".repeat(201));
     expect(input).not.toContain("l".repeat(201));
     expect(input).not.toContain("s".repeat(201));
+  });
+});
+
+describe("OpenAIProvider - usage telemetry", () => {
+  it("logs provider token counts without logging prompts or generated text", async () => {
+    const log = vi.spyOn(console, "log").mockImplementation(() => {});
+    const fetchMock = queueFetch(
+      openaiJson({
+        id: "resp_usage_test",
+        model: "configured-model",
+        status: "completed",
+        usage: {
+          input_tokens: 123,
+          output_tokens: 45,
+          total_tokens: 168,
+          input_tokens_details: { cached_tokens: 20 },
+          output_tokens_details: { reasoning_tokens: 7 },
+        },
+        output: [{
+          type: "message",
+          content: [{ type: "output_text", text: "private generated draft" }],
+        }],
+      }),
+    );
+
+    await provider(fetchMock, { model: "configured-model" }).generate({
+      topic: "private user topic",
+    });
+
+    expect(log).toHaveBeenCalledWith("openai_usage", {
+      model: "configured-model",
+      inputTokens: 123,
+      outputTokens: 45,
+      totalTokens: 168,
+      cachedInputTokens: 20,
+      reasoningTokens: 7,
+    });
+    expect(JSON.stringify(log.mock.calls)).not.toContain("private user topic");
+    expect(JSON.stringify(log.mock.calls)).not.toContain("private generated draft");
+    log.mockRestore();
+  });
+
+  it("does not log usage when the provider response omits usage metadata", async () => {
+    const log = vi.spyOn(console, "log").mockImplementation(() => {});
+    const fetchMock = queueFetch(openaiOk("private generated draft"));
+    await provider(fetchMock).generate({ topic: "private user topic" });
+    expect(log).not.toHaveBeenCalled();
+    log.mockRestore();
   });
 });
 
