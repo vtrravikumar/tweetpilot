@@ -17,6 +17,8 @@ export interface GenerateTweetInput {
   useNews?: boolean;
   /** Optional maximum tweet length; a positive integer when present. */
   maxLength?: number;
+  /** Set by the server after license verification; never accepted from request JSON. */
+  includeAttribution?: boolean;
 }
 
 export interface NewsSource {
