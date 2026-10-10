@@ -12,7 +12,7 @@ export async function generateTweet(
     message
   )) as BackgroundResponse;
 
-  if (!response?.ok) {
+  if (!response?.ok || typeof response.tweet !== "string") {
     throw new Error(response?.error || "Tweet generation failed.");
   }
 
@@ -20,6 +20,6 @@ export async function generateTweet(
     tweet: response.tweet,
     ...(response.mode ? { mode: response.mode } : {}),
     ...(response.fallbackReason ? { fallbackReason: response.fallbackReason } : {}),
-    ...(response.sources ? { sources: response.sources } : {})
+    ...(response.sources ? { sources: response.sources } : {}),\n    ...(response.remaining !== undefined ? { remaining: response.remaining } : {}),\n    ...(response.owner !== undefined ? { owner: response.owner } : {}),\n    ...(response.unlimited !== undefined ? { unlimited: response.unlimited } : {})
   };
 }
