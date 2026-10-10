@@ -55,7 +55,7 @@ describe("VicharUsage Durable Object", () => {
     const stub = env.VICHAR_USAGE.getByName("license-create-once");
     expect(await stub.createLicense(50, 1_000)).toEqual({ created: true, balance: 50 });
     expect(await stub.createLicense(50, 2_000)).toEqual({ created: false, balance: 50 });
-    expect(await stub.getLicense()).toEqual({ balance: 50, createdAt: 1_000, updatedAt: 1_000 });
+    expect(await stub.getLicense()).toEqual({ balance: 50, createdAt: 1_000, updatedAt: 1_000, attributionRequired: false });
   });
 
   it("adds purchased credits and consumes them atomically without going negative", async () => {
