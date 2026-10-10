@@ -55,6 +55,13 @@ export class VicharUsage extends DurableObject {
           updated_at INTEGER NOT NULL
         )
       `);
+      this.ctx.storage.sql.exec(`
+        CREATE TABLE IF NOT EXISTS trial_claims (
+          id INTEGER PRIMARY KEY CHECK (id = 1),
+          day TEXT NOT NULL,
+          claim_count INTEGER NOT NULL CHECK (claim_count >= 0)
+        )
+      `);
     });
   }
 
@@ -126,6 +133,20 @@ export class VicharUsage extends DurableObject {
       remaining: Math.max(0, dailyLimit - dayCount),
       dailyLimit,
     };
+  }
+
+  /** One free-trial issuance per hashed client-IP identity per UTC day. */
+  async claimFreeTrial(day: string): Promise<boolean> {
+    const row = this.ctx.storage.sql.exec<{ day: string; claim_count: number }>(
+      "SELECT day, claim_count FROM trial_claims WHERE id = 1",
+    ).toArray()[0];
+    if (row?.day === day && row.claim_count >= 1) return false;
+    const count = row?.day === day ? row.claim_count + 1 : 1;
+    this.ctx.storage.sql.exec(
+      "INSERT INTO trial_claims (id, day, claim_count) VALUES (1, ?, ?) ON CONFLICT(id) DO UPDATE SET day = excluded.day, claim_count = excluded.claim_count",
+      day, count,
+    );
+    return true;
   }
 
   /** Create a license once. Repeated calls never reset an existing balance. */
