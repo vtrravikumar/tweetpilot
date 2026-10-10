@@ -66,7 +66,28 @@ export function createGenerateTweetRoute(
         const licenseKey = licenseMatch[1];
         if (!licenseKey) return errorResponse(401, "invalid_license_key", "This Vichar license key is invalid.");
         const keyHash = await hashLicenseKey(licenseKey);
+        const ownerKey = typeof bag.VICHAR_OWNER_LICENSE_KEY === "string" ? bag.VICHAR_OWNER_LICENSE_KEY.trim() : "";
+        const ownerHash = ownerKey ? await hashLicenseKey(ownerKey) : null;
         const namespace = (env as unknown as { VICHAR_USAGE?: DurableObjectNamespace<VicharUsage> }).VICHAR_USAGE;
+        if (ownerHash && keyHash === ownerHash) {
+          if (!namespace) return errorResponse(503, "license_service_unavailable", "License service is temporarily unavailable.");
+          const burstRaw = Number.parseInt(String(bag.VICHAR_BURST_PER_MINUTE ?? "3"), 10);
+          const burstLimit = Number.isSafeInteger(burstRaw) && burstRaw > 0 ? burstRaw : 3;
+          const burstStub = namespace.get(namespace.idFromName("owner-burst:" + ownerHash));
+          const burst = await burstStub.checkBurst(Date.now(), burstLimit);
+          if (!burst.allowed) return errorResponse(429, "rate_limited", "Too many Vichar generation requests. Please try again shortly.", { "retry-after": String(burst.retryAfterSeconds ?? 60) });
+          try {
+            const generator = typeof source === "function" ? source(env) : source;
+            const result = await generator.generate({ ...validation.value, includeAttribution: false });
+            const headers = { "x-vichar-access": "owner", "x-vichar-remaining": "unlimited" };
+            const newsMetadata = validation.value.useNews ? { mode: result.mode ?? "normal_fallback", ...(result.mode === "normal_fallback" ? { fallbackReason: result.fallbackReason ?? "news_unavailable" } : {}), ...(result.mode === "news" && result.sources ? { sources: result.sources } : {}) } : {};
+            const payload = options.includeStyle ? { tweet: result.tweet, style: validation.value.style ?? null, ...newsMetadata } : { tweet: result.tweet, ...newsMetadata };
+            return jsonResponse(payload, 200, headers);
+          } catch (err) {
+            if (err instanceof GenerationError) return generationErrorResponse(err);
+            throw err;
+          }
+        }
         if (!keyHash) return errorResponse(401, "invalid_license_key", "This Vichar license key is invalid.");
         if (!namespace) return errorResponse(503, "license_service_unavailable", "License service is temporarily unavailable.");
         const licenseStub = namespace.get(namespace.idFromName("license:" + keyHash));

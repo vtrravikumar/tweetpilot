@@ -24,7 +24,7 @@ describe("Vichar license issuance and activation", () => {
       body: JSON.stringify({ licenseKey: data.licenseKey }),
     }), env, ctx);
     expect(activated.status).toBe(200);
-    expect(await activated.json()).toEqual({ active: true, balance: 50 });
+    expect(await activated.json()).toEqual({ active: true, owner: false, unlimited: false, balance: 50 });
   });
 
   it("rejects a second free trial claim for the same network on the same day", async () => {
@@ -36,6 +36,17 @@ describe("Vichar license issuance and activation", () => {
     const second = await freeLicenseRoute.handler(await makeRequest(), env, ctx);
     expect(second.status).toBe(429);
     expect((await second.json() as { error: { code: string } }).error.code).toBe("free_trial_already_claimed");
+  });
+
+  it("activates the configured owner key as unlimited without a credit ledger", async () => {
+    const ownerKey = "vichar_" + "A".repeat(43);
+    const response = await activateLicenseRoute.handler(new Request("https://api.example/v1/license/activate", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ licenseKey: ownerKey }),
+    }), { ...env, VICHAR_OWNER_LICENSE_KEY: ownerKey } as Env, ctx);
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ active: true, owner: true, unlimited: true, balance: null });
   });
 
   it("rejects malformed and unknown license keys", async () => {
