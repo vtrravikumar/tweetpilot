@@ -30,7 +30,7 @@ export const freeLicenseRoute: Route = {
     const keyHash = await hashLicenseKey(key);
     if (!keyHash) return errorResponse(500, "license_creation_failed", "Unable to create a license right now.");
     const licenseStub = namespace.get(namespace.idFromName("license:" + keyHash));
-    const created = await licenseStub.createLicense(FREE_CREDITS);
+    const created = await licenseStub.createLicense(FREE_CREDITS, Date.now(), true);
     if (!created.created) return errorResponse(500, "license_creation_failed", "Unable to create a license right now.");
 
     return jsonResponse({ licenseKey: key, balance: created.balance, freeCredits: FREE_CREDITS }, 201);

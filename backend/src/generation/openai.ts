@@ -118,7 +118,7 @@ export class OpenAIProvider implements TweetGenerator {
         throw new GenerationError("invalid_output", "Model returned empty text.");
       }
 
-      const tweet = withVicharAttribution(normalized, maxLength);
+      const tweet = input.includeAttribution === false ? normalized : withVicharAttribution(normalized, maxLength);
 
       if (tweet === undefined) {
         const length = Array.from(normalized).length;
@@ -300,7 +300,7 @@ function buildPrompt({ input, maxLength, link, feedback, newsContext }: PromptPa
   lines.push(
     `Limit: at most ${maxLength} characters in total${link ? ", including the link" : ""}.`,
   );
-  lines.push(`End with the exact final line: ${VICHAR_ATTRIBUTION}. It is mandatory and counts toward the character limit.`);
+  if (input.includeAttribution !== false) lines.push(`End with the exact final line: ${VICHAR_ATTRIBUTION}. It is mandatory and counts toward the character limit.`);
   lines.push(
     link
       ? `Link: ${link}\nInclude the link exactly as written only if it fits naturally. Never add any other link.`

@@ -18,6 +18,7 @@ export interface LicenseBalance {
   balance: number;
   createdAt: number;
   updatedAt: number;
+  attributionRequired: boolean;
 }
 
 export interface LicenseCreation {
@@ -55,6 +56,7 @@ export class VicharUsage extends DurableObject {
           updated_at INTEGER NOT NULL
         )
       `);
+      try { this.ctx.storage.sql.exec("ALTER TABLE licenses ADD COLUMN attribution_required INTEGER NOT NULL DEFAULT 0"); } catch { /* Column already exists. */ }
       this.ctx.storage.sql.exec(`
         CREATE TABLE IF NOT EXISTS trial_claims (
           id INTEGER PRIMARY KEY CHECK (id = 1),
@@ -149,19 +151,36 @@ export class VicharUsage extends DurableObject {
     return true;
   }
 
+  /** Burst-only limiter for license-backed generation; no daily quota. */
+  async checkBurst(nowMs: number, burstLimit: number): Promise<{ allowed: boolean; retryAfterSeconds?: number }> {
+    const minute = Math.floor(nowMs / 60_000);
+    const row = this.ctx.storage.sql.exec<{ day: string; day_count: number; minute: number; minute_count: number }>(
+      "SELECT day, day_count, minute, minute_count FROM usage WHERE id = 1",
+    ).toArray()[0];
+    const count = !row || row.minute !== minute ? 0 : row.minute_count;
+    if (count >= burstLimit) return { allowed: false, retryAfterSeconds: secondsUntilNextMinute(nowMs) };
+    const day = new Date(nowMs).toISOString().slice(0, 10);
+    const dayCount = !row || row.day !== day ? 0 : row.day_count;
+    this.ctx.storage.sql.exec(
+      "INSERT INTO usage (id, day, day_count, minute, minute_count) VALUES (1, ?, ?, ?, ?) ON CONFLICT(id) DO UPDATE SET day = excluded.day, day_count = excluded.day_count, minute = excluded.minute, minute_count = excluded.minute_count",
+      day, dayCount, minute, count + 1,
+    );
+    return { allowed: true };
+  }
   /** Create a license once. Repeated calls never reset an existing balance. */
-  async createLicense(initialCredits: number, nowMs = Date.now()): Promise<LicenseCreation> {
+  async createLicense(initialCredits: number, nowMs = Date.now(), attributionRequired = false): Promise<LicenseCreation> {
     if (!Number.isSafeInteger(initialCredits) || initialCredits < 0) {
       throw new Error("initialCredits must be a non-negative safe integer.");
     }
 
     this.ctx.storage.sql.exec(
-      `INSERT INTO licenses (id, balance, created_at, updated_at)
-       VALUES (1, ?, ?, ?)
+      `INSERT INTO licenses (id, balance, created_at, updated_at, attribution_required)
+       VALUES (1, ?, ?, ?, ?)
        ON CONFLICT(id) DO NOTHING`,
       initialCredits,
       nowMs,
       nowMs,
+      attributionRequired ? 1 : 0,
     );
 
     const changes = this.ctx.storage.sql
@@ -174,13 +193,13 @@ export class VicharUsage extends DurableObject {
 
   getLicense(): LicenseBalance | null {
     const row = this.ctx.storage.sql
-      .exec<{ balance: number; created_at: number; updated_at: number }>(
-        "SELECT balance, created_at, updated_at FROM licenses WHERE id = 1",
+      .exec<{ balance: number; created_at: number; updated_at: number; attribution_required: number }>(
+        "SELECT balance, created_at, updated_at, attribution_required FROM licenses WHERE id = 1",
       )
       .toArray()[0];
 
     if (!row) return null;
-    return { balance: row.balance, createdAt: row.created_at, updatedAt: row.updated_at };
+    return { balance: row.balance, createdAt: row.created_at, updatedAt: row.updated_at, attributionRequired: row.attribution_required === 1 };
   }
 
   /** Atomically add purchased credits after verified, idempotent fulfilment. */
