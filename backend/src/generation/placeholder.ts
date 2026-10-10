@@ -28,7 +28,9 @@ export class PlaceholderTweetGenerator implements TweetGenerator {
     if (input.style) parts.push(`Style: ${input.style}.`);
 
     return {
-      tweet: truncateWithAttribution(parts.join(" "), input.maxLength ?? DEFAULT_MAX_LENGTH),
+      tweet: input.includeAttribution === false
+        ? truncate(parts.join(" "), input.maxLength ?? DEFAULT_MAX_LENGTH)
+        : truncateWithAttribution(parts.join(" "), input.maxLength ?? DEFAULT_MAX_LENGTH),
     };
   }
 }
