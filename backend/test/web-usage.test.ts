@@ -58,7 +58,10 @@ describe("Vichar website owner entitlement", () => {
   it("uses the shared owner burst guard across website requests", async () => {
     const route = createGenerateTweetRoute({ generate: async () => ({ tweet: "owner tweet" }) });
     const token = await issueVicharWebToken(WEB_SECRET);
-    const settings = routeEnv({ VICHAR_BURST_PER_MINUTE: "1" });
+    const settings = routeEnv({
+      VICHAR_OWNER_LICENSE_KEY: "vichar_" + "B".repeat(43),
+      VICHAR_BURST_PER_MINUTE: "1",
+    });
 
     const first = await route.handler(await webRequest("203.0.113.20", token), settings, ctx);
     const second = await route.handler(await webRequest("203.0.113.21", token), settings, ctx);
