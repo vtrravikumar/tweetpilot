@@ -5,6 +5,8 @@ import { createUsageGuard } from "./usage/guard";
 import { createGenerateTweetRoute } from "./routes/generateTweet";
 import { healthRoute } from "./routes/health";
 import { webSessionRoute } from "./routes/webSession";
+import { freeLicenseRoute } from "./routes/freeLicense";
+import { activateLicenseRoute } from "./routes/activateLicense";
 
 export type Handler = (
   request: Request,
@@ -21,6 +23,8 @@ export interface Route {
 export const routes: readonly Route[] = [
   healthRoute,
   webSessionRoute,
+  freeLicenseRoute,
+  activateLicenseRoute,
   createGenerateTweetRoute((env) => createTweetGenerator(env), {
     usageGuard: createUsageGuard(),
   }),
