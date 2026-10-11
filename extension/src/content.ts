@@ -50,6 +50,9 @@ const panel = createPanel({
       }
       if (response.paid && typeof response.remaining === "number") {
         panel.setLicense(response.remaining, false, "Payment verified · Credits added to your existing license.");
+      } else if (response.pending === false && typeof response.remaining === "number") {
+        panel.setLicense(response.remaining, response.owner === true,
+          `Balance refreshed · ${response.remaining.toLocaleString()} generations remaining.`);
       } else {
         panel.setLicenseNotice("Payment is not marked paid yet. Finish checkout or try checking again in a moment.");
       }
