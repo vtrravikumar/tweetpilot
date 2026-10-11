@@ -353,7 +353,9 @@ export function createPanel(callbacks: PanelCallbacks): TweetPanel {
       const active = owner || typeof remaining === "number";
       licenseActions.style.display = active ? "none" : "";
       licenseActivate.style.display = active ? "none" : "";
-      purchases.hidden = !active || owner;
+      // Keep the composer uncluttered while the license has a healthy balance.
+      // The low-balance threshold is 10 generations; owner access never needs top-ups.
+      purchases.hidden = !active || owner || (typeof remaining === "number" && remaining > 10);
       if (owner) {
         licenseStatus.textContent = message || "Owner access · Unlimited generations";
       } else if (typeof remaining === "number" && remaining === 0) {
