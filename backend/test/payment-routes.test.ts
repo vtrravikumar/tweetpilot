@@ -1,7 +1,7 @@
 import { env } from "cloudflare:workers";
 import { describe, expect, it } from "vitest";
 import { createPaymentLinkRoute, razorpayWebhookRoute } from "../src/routes/payment";
-import { hashLicenseKey } from "../src/usage/licenseKeys";
+import { generateLicenseKey, hashLicenseKey } from "../src/usage/licenseKeys";
 import { VicharUsage } from "../src/usage/durableObject";
 
 const ctx = {} as ExecutionContext;
@@ -28,7 +28,7 @@ describe("Vichar Razorpay credit purchases", () => {
   });
 
   it("credits a registered payment once, even when verification and webhook race or retry", async () => {
-    const key = "vichar_" + btoa(String.fromCharCode(...crypto.getRandomValues(new Uint8Array(32)))).replace(/\\+/g, "-").replace(/\\//g, "_").replace(/=+$/g, "");
+    const key = generateLicenseKey();
     const hash = await hashLicenseKey(key);
     if (!hash) throw new Error("Failed to create test license hash.");
     const namespace = (env as unknown as { VICHAR_USAGE: DurableObjectNamespace<VicharUsage> }).VICHAR_USAGE;
