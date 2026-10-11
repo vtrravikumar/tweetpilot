@@ -11,7 +11,7 @@ export async function getApiKey(): Promise<string> {
   const result = (await chrome.storage.local.get(STORAGE_KEYS.licenseKey)) as Record<string, unknown>;
   const key = result[STORAGE_KEYS.licenseKey];
   if (typeof key === "string" && /^vichar_[A-Za-z0-9_-]{43}$/.test(key)) return key;
-  throw new Error("Start with 50 free generations or activate your Vichar license below.");
+  throw new Error("Start with 5 free generations or activate your Vichar license below.");
 }
 
 export async function saveLicense(licenseKey: string, status: LicenseStatus): Promise<void> {

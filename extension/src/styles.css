@@ -229,3 +229,13 @@
 #vichar-root .vc-license-activate input { min-width: 0; font-size: 11px; }
 #vichar-root .vc-license button { min-height: 30px; padding: 0 10px; }
 #vichar-root .vc-free-trial { color: var(--vc-focus); }
+
+
+#vichar-root .vc-purchases { margin-top: 7px; }
+#vichar-root .vc-purchase-title { color: var(--vc-muted); font-size: 11px; margin-bottom: 5px; }
+#vichar-root .vc-purchase-options { display: flex; flex-wrap: wrap; gap: 5px; }
+#vichar-root .vc-purchase-options button,
+#vichar-root .vc-check-payment { min-height: 28px; font-size: 11px; }
+#vichar-root .vc-check-payment { margin-top: 6px; color: var(--vc-focus); }
+#vichar-root .vc-purchases[hidden],
+#vichar-root .vc-check-payment[hidden] { display: none; }
