@@ -24,7 +24,7 @@ export const freeLicenseRoute: Route = {
     const claimStub = namespace.get(namespace.idFromName("trial:" + ipHash));
     const now = new Date();
     const allowed = await claimStub.claimFreeTrial(now.toISOString().slice(0, 10));
-    if (!allowed) return errorResponse(429, "free_trial_already_claimed", "A free Vichar trial has already been issued for this network today. Please try again tomorrow.");
+    if (!allowed) return errorResponse(429, "free_trial_already_claimed", "A free Vichar trial has already been issued for this network. Only one free trial is available per network.");
 
     const key = generateLicenseKey();
     const keyHash = await hashLicenseKey(key);
