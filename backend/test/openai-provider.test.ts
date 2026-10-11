@@ -338,7 +338,7 @@ describe("OpenAIProvider - VTRRK links", () => {
 });
 
 describe("OpenAIProvider - explicit news mode and fallback", () => {
-  const rss = '<rss><channel><item><title>Global technology development</title><link>https://news.google.com/rss/articles/example</link><pubDate>Fri, 09 Oct 2026 07:00:00 GMT</pubDate><source>World News</source></item></channel></rss>';
+  const rss = `<rss><channel><item><title>Global technology development</title><link>https://news.google.com/rss/articles/example</link><pubDate>${new Date(Date.now() - 60 * 60 * 1000).toUTCString()}</pubDate><source>World News</source></item></channel></rss>`;
 
   it("passes fresh news into OpenAI and returns source metadata", async () => {
     const fetchMock = queueFetch(new Response(rss, { status: 200 }), openaiOk("A current thought."));
