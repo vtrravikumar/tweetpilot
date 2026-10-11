@@ -9,7 +9,7 @@
   "vars": {
     "CORS_ALLOWED_ORIGINS": "https://vtrrk.in",
     "VICHAR_DAILY_LIMIT": "10",
-    "VICHAR_BURST_PER_MINUTE": "3"
+    "VICHAR_BURST_PER_MINUTE": "30"
   },
   "durable_objects": {
     "bindings": [

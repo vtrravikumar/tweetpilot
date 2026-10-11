@@ -4,9 +4,9 @@ Vichar is a personal AI-assisted writing companion for X (formerly Twitter).
 
 It is designed to help turn an idea into a concise, personal post while keeping the important parts human-controlled: **review, editing and the final decision to publish**.
 
-The production web client is live at [vtrrk.in/vichar/](https://vtrrk.in/vichar/). The Chrome extension is packaged, CI-verified, submitted to the Chrome Web Store, and currently pending review.
+The production web client is live at [vtrrk.in/vichar/](https://vtrrk.in/vichar/). The Chrome extension v1.1.0 is packaged, CI-verified, submitted to the Chrome Web Store, and currently pending review.
 
-> **Status: V1 web experience live; Chrome extension submitted to the Chrome Web Store and pending review**
+> **Status: V1 web experience live; Chrome extension v1.1.0 submitted to the Chrome Web Store and pending review**
 >
 > The backend is production deployed and hardened, the web client is live, and the Chrome extension has passed packaging CI and been submitted for Chrome Web Store review. Website generation uses a short-lived first-party web session mapped server-side to owner entitlement. A production smoke test confirmed generation works without a website license-key prompt.
 
@@ -228,7 +228,7 @@ Production values are configured through Cloudflare Worker secrets/variables, no
 | `OPENAI_REASONING_EFFORT` | No | Override reasoning effort |
 | `VTRRK_LINKS` | No | JSON configuration of topic-specific VTRRK links |
 | `VICHAR_DAILY_LIMIT` | No | Extension per-installation daily limit |
-| `VICHAR_BURST_PER_MINUTE` | No | Per-minute burst protection setting |
+| `VICHAR_BURST_PER_MINUTE` | No | Per-minute burst protection setting (production currently 30; free trial allowance remains 10 total generations) |
 | `TWEETPILOT_GENERATOR` | No | Set to `placeholder` only for offline/test generation |
 
 Do not commit secrets, API keys, or `backend/.dev.vars`. Never add `VICHAR_OWNER_LICENSE_KEY` or `VICHAR_WEB_SECRET` to Astro frontend environment variables or client-side bundles.

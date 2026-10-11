@@ -1,12 +1,12 @@
 # Vichar — Backlog
 
-Updated: 2026-10-10
+Updated: 2026-10-11
 
 ## Current status
 
 Vichar V1 web experience is live at https://vtrrk.in/vichar/.
 
-The Chrome extension is implemented, packaged with the correct ZIP structure, CI-verified, and submitted to the Chrome Web Store. The current store submission is **pending review** with automatic publishing enabled after approval.
+The Chrome extension v1.1.0 is implemented, packaged with the correct ZIP structure, CI-verified, and submitted to the Chrome Web Store. The current store submission is **pending review** with automatic publishing enabled after approval.
 
 ## Completed
 
@@ -32,6 +32,9 @@ The Chrome extension is implemented, packaged with the correct ZIP structure, CI
 - [x] `store: false` for OpenAI requests
 - [x] Automated tests and type checking
 - [x] Production generation validation
+- [x] Razorpay payment-link creation, payment verification and idempotent credit fulfilment
+- [x] Production payment configuration and live-checkout smoke test (checkout opened; no payment submitted)
+- [x] Remove temporary test-license endpoint from production code and deployment
 
 ### Web
 - [x] VTRRK-style Vichar UI
@@ -66,6 +69,8 @@ The Chrome extension is implemented, packaged with the correct ZIP structure, CI
 - [x] Privacy/data-use declarations
 - [x] Privacy Policy published
 - [x] Store submission
+- [x] v1.1.0 release version set in manifest/package metadata
+- [x] 10-generation free trial and prepaid credit-pack UI (₹19 / 1,000; ₹49 / 5,000; ₹99 / 15,000)
 
 
 
@@ -114,6 +119,7 @@ When a user hits the current generation rate limit (for example, three requests 
 
 ### Usage and operations
 - [ ] Monitor backend usage and OpenAI cost
+- [ ] Implement license-aware rate limiting: preserve sensible free-tier abuse protection while allowing paid and owner licenses to consume available credits at a higher pace; retain emergency infrastructure/abuse safeguards. Consumers: Chrome extension.
 - [ ] Review extension daily/burst limits after real usage
 - [ ] Add stronger public-web abuse protection if necessary
 - [ ] Monitor Worker errors and generation failures
@@ -241,7 +247,7 @@ The 48-hour threshold is the initial product default, subject to review after re
 ## VICHAR-PAY-001 — Extension licensing, free trial and prepaid credits
 
 - Priority: P1 (extension monetisation)
-- Status: Product direction agreed; implementation planned
+- Status: Implemented and live; Chrome extension v1.1.0 submitted for review
 - Area: Backend/API, Chrome extension, Razorpay payments
 - Consumers: Chrome extension. The website is a separate, free product surface.
 
@@ -249,10 +255,10 @@ The 48-hour threshold is the initial product default, subject to review after re
 
 - **Vichar website (vtrrk.in/vichar): remains free.** Website generations must not consume extension trial or purchased credits. Keep website access/session handling separate from extension entitlement checks.
 - **Vichar Chrome extension: monetised through a one-time free trial and prepaid credit packs.**
-- The extension offers **Get 50 free generations** and **Activate with an existing key**. Free users receive a license automatically from the backend; no payment gateway or manual key entry is required for the free trial.
-- The free allowance is granted once per eligible identity, has no time-based expiry or recurring daily quota in the initial plan, and is enforced server-side.
-- After the 50 free generations are exhausted, extension generation stops until the user purchases credits.
-- Paid credit packs are provisional: ₹19 for 1,000 generations, ₹49 for 5,000, and ₹99 for 15,000. Razorpay is the selected payment provider; use sandbox first and do not enable live purchases before end-to-end checks.
+- The extension offers **Get 10 free generations** and **Activate with an existing key**. Free users receive a license automatically from the backend; no payment gateway or manual key entry is required for the free trial.
+- The free allowance is 10 generations, enforced server-side. The separate daily/burst usage guard is not the same as the total license credit balance.
+- After the 10 free generations are exhausted, extension generation stops until the user purchases credits.
+- Live prepaid credit packs are ₹19 for 1,000 generations, ₹49 for 5,000, and ₹99 for 15,000. Razorpay hosted Payment Links are used; server-side verification and the `payment_link.paid` webhook provide idempotent credit fulfilment.
 - A reusable random license key is shared across devices without device-count restrictions. Store only a key hash server-side; the backend owns the balance. Subsequent purchases add credits to the same license.
 - Ravi has a permanent server-controlled owner entitlement for the extension: no credit counter or payment, while retaining basic infrastructure safeguards.
 - Keep `Vichar by @vtrrk` attribution for free extension generations; omit it for valid paid-license and owner generations. The free website retains its existing website behaviour and must not inherit extension credit rules.
@@ -261,17 +267,28 @@ The 48-hour threshold is the initial product default, subject to review after re
 
 ### Implementation sequence
 
-- [ ] **PAY-001A — Backend license and credit ledger:** introduce hashed license credentials, one-time free-grant eligibility, authoritative balances, owner entitlement, and atomic credit deductions. Preserve free website access and existing web-session flow. Add focused tests for grants, activation, balance, failed generation and concurrency.
-- [ ] **PAY-001B — Extension activation and balance UX:** add Get 50 free generations and Activate with an existing key; persist the returned key in extension storage; show authoritative remaining credits and useful exhausted-balance messaging.
-- [ ] **PAY-001C — Razorpay sandbox fulfilment:** create server-priced orders, verify payment server-side, grant credits idempotently, and add purchased credits to the same license.
-- [ ] **PAY-001D — Website integration for purchases only:** keep website generation free; add a purchase/activation route only where needed to let users buy extension credits and receive their extension key. Website generations must not debit extension credits.
-- [ ] **PAY-001E — Release checks:** test free website generation, extension trial, key reuse across devices, paid top-ups, owner access, attribution rules, payment duplicates/failures, and store packaging. Submit the updated extension for Chrome Web Store review; do not disrupt the current pending submission.
+- [x] **PAY-001A — Backend license and credit ledger:** hashed license credentials, authoritative balances, owner entitlement, atomic credit deductions and server-side checks.
+- [x] **PAY-001B — Extension activation and balance UX:** free trial claim, activation with an existing key, balance display and exhausted-balance messaging.
+- [x] **PAY-001C — Razorpay live payment fulfilment:** server-priced hosted Payment Links, server-side verification, signed webhook validation and idempotent credit fulfilment.
+- [x] **PAY-001D — Product boundary:** website generation remains free and separate from extension credit accounting; no website changes are part of this release.
+- [x] **PAY-001E — Release checks:** owner entitlement, temporary test-route removal, extension tests/typecheck/build, ZIP validation and Chrome Web Store submission.
+
+### Release 1.1.0 — 2026-10-11
+
+- Version: `1.1.0` in extension manifest, package metadata and lockfile.
+- Chrome Web Store package `vichar-1.1.0.zip` uploaded for review; status pending at time of this update.
+- Free trial: 10 generations.
+- Packs: ₹19 / 1,000, ₹49 / 5,000, ₹99 / 15,000 generations.
+- Payment handling: Razorpay hosted Payment Links, payment status verification, signed `payment_link.paid` webhook and idempotent fulfilment.
+- Production temporary test-license endpoint removed; its `VICHAR_TEST_LICENSE_SECRET` secret was deleted.
+- Owner license reactivated in the extension and displays unlimited owner access.
+- Production burst setting was increased from 3 to 30 requests/minute through Cloudflare dashboard and smoke-tested successfully. `backend/wrangler.jsonc` is updated in this documentation change to match the deployed setting. Future changes should use license-aware rate limiting rather than assume one burst policy suits all entitlements.
 
 ### Guardrails
 
 - Razorpay is selected; live purchases remain disabled until sandbox and launch checks pass.
 - Do not accept client-supplied prices, credit amounts, payment status, balance, trial status or owner status as authoritative.
 - Do not put balance data inside or derive it from the license key. A key is a random revocable credential, not an encoded entitlement.
-- Keep extension rate/burst limits independent of credits; paid credits do not promise unlimited request speed.
+- Keep extension rate/burst limits independent of credits. Current production burst setting is 30 requests/minute; the free credit allowance remains 10 total generations. Rate-limit policy is shared/configured separately today, not yet license-aware. Paid credits do not imply unlimited request speed.
 - Credit expiry/refund/service-shutdown policies still need to be decided before live sales.
 - Keep generation telemetry privacy-preserving; do not log prompts, locations or generated posts as part of the financial ledger.
