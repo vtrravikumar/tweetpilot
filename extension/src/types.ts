@@ -30,5 +30,5 @@ export type BackgroundMessage =
 
 export interface LicenseStatus { active: boolean; owner: boolean; unlimited: boolean; balance: number | null }
 export type BackgroundResponse =
-  | { ok: true; tweet?: string; mode?: GenerateResponse["mode"]; fallbackReason?: GenerateResponse["fallbackReason"]; sources?: NewsSource[]; remaining?: number | null; owner?: boolean; unlimited?: boolean; licenseKey?: string; freeCredits?: number; checkoutUrl?: string; paid?: boolean; credited?: boolean }
+  | { ok: true; tweet?: string; mode?: GenerateResponse["mode"]; fallbackReason?: GenerateResponse["fallbackReason"]; sources?: NewsSource[]; remaining?: number | null; owner?: boolean; unlimited?: boolean; licenseKey?: string; freeCredits?: number; checkoutUrl?: string; paid?: boolean; credited?: boolean; pending?: boolean }
   | { ok: false; error: string };
