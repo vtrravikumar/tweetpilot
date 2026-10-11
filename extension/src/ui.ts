@@ -71,7 +71,7 @@ export function createPanel(callbacks: PanelCallbacks): TweetPanel {
             <button type="button" class="vc-secondary" data-pack="plus">₹49 · 5,000</button>
             <button type="button" class="vc-secondary" data-pack="pro">₹99 · 15,000</button>
           </div>
-          <button type="button" class="vc-secondary vc-check-payment" hidden>I've paid · Check balance</button>
+          <button type="button" class="vc-secondary vc-check-payment">I've paid · Check balance</button>
         </div>
       </div>
 
@@ -368,6 +368,8 @@ export function createPanel(callbacks: PanelCallbacks): TweetPanel {
     },
     setLicenseNotice(message) {
       licenseStatus.textContent = message;
+      purchaseButtons.forEach((item) => { item.disabled = false; });
+      checkPaymentButton.disabled = false;
     },
     setTweet(result, resolvedTopic, remaining, owner) {
       hasTweet = true;
