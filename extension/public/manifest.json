@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "Vichar \u2014 By VTRRK",
+  "name": "Vichar — By VTRRK",
   "short_name": "Vichar",
-  "version": "1.0.2",
+  "version": "1.1.0",
   "description": "A thoughtful AI writing companion for the X composer.",
   "homepage_url": "https://vtrrk.in/vichar/",
   "minimum_chrome_version": "120",
@@ -17,7 +17,7 @@
     "type": "module"
   },
   "action": {
-    "default_title": "Vichar \u2014 By VTRRK",
+    "default_title": "Vichar — By VTRRK",
     "default_icon": {
       "16": "icon16.png",
       "48": "icon48.png",
