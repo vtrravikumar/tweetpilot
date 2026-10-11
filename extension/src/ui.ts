@@ -357,7 +357,7 @@ export function createPanel(callbacks: PanelCallbacks): TweetPanel {
       if (owner) {
         licenseStatus.textContent = message || "Owner access · Unlimited generations";
       } else if (typeof remaining === "number" && remaining === 0) {
-        licenseStatus.textContent = "No generations remaining · Credit top-ups are not available yet.";
+        licenseStatus.textContent = "No generations remaining · Choose a credit pack below.";
       } else if (typeof remaining === "number" && remaining <= 10) {
         licenseStatus.textContent = `Low balance · ${remaining.toLocaleString()} generations remaining`;
       } else if (typeof remaining === "number") {
