@@ -7,6 +7,7 @@ import { healthRoute } from "./routes/health";
 import { webSessionRoute } from "./routes/webSession";
 import { freeLicenseRoute } from "./routes/freeLicense";
 import { activateLicenseRoute } from "./routes/activateLicense";
+import { temporaryTestLicenseRoute } from "./routes/temporaryTestLicense";
 import { createPaymentLinkRoute, razorpayWebhookRoute, verifyPaymentRoute } from "./routes/payment";
 
 export type Handler = (request: Request, env: Env, ctx: ExecutionContext) => Response | Promise<Response>;
@@ -17,6 +18,7 @@ export const routes: readonly Route[] = [
   webSessionRoute,
   freeLicenseRoute,
   activateLicenseRoute,
+  temporaryTestLicenseRoute,
   createPaymentLinkRoute,
   verifyPaymentRoute,
   razorpayWebhookRoute,

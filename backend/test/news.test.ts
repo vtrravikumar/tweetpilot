@@ -30,6 +30,7 @@ describe("news context", () => {
     const result = await fetchNewsContext(
       { topic: "Nana Patekar", useNews: true },
       fetchMock,
+      Date.parse("2026-10-09T12:00:00.000Z"),
     );
 
     expect(result.status).toBe("found");
@@ -44,6 +45,7 @@ describe("news context", () => {
     const result = await fetchNewsContext(
       { topic: "traffic", location: "Chennai", style: "observational", useNews: true },
       fetchMock,
+      Date.parse("2026-10-09T12:00:00.000Z"),
     );
 
     expect(result.status).toBe("found");
