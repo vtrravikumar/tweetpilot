@@ -58,11 +58,11 @@ export class VicharUsage extends DurableObject {
     return { allowed: true, remaining: Math.max(0, dailyLimit - dayCount), dailyLimit };
   }
 
-  async claimFreeTrial(day: string): Promise<boolean> {
+  async claimFreeTrial(_day: string): Promise<boolean> {
     const row = this.ctx.storage.sql.exec<{ day: string; claim_count: number }>("SELECT day, claim_count FROM trial_claims WHERE id = 1").toArray()[0];
-    if (row?.day === day && row.claim_count >= 1) return false;
-    const count = row?.day === day ? row.claim_count + 1 : 1;
-    this.ctx.storage.sql.exec("INSERT INTO trial_claims (id, day, claim_count) VALUES (1, ?, ?) ON CONFLICT(id) DO UPDATE SET day=excluded.day, claim_count=excluded.claim_count", day, count);
+    // A claim is permanent for this network. Existing daily claims remain claims after this migration.
+    if (row && row.claim_count >= 1) return false;
+    this.ctx.storage.sql.exec("INSERT INTO trial_claims (id, day, claim_count) VALUES (1, ?, 1) ON CONFLICT(id) DO UPDATE SET day=excluded.day, claim_count=1", "permanent");
     return true;
   }
 
