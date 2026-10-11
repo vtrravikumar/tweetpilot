@@ -58,7 +58,7 @@ export function createPanel(callbacks: PanelCallbacks): TweetPanel {
       <div class="vc-license">
         <div class="vc-license-status" aria-live="polite">Extension access: activate a license or claim your free trial.</div>
         <div class="vc-license-actions">
-          <button type="button" class="vc-secondary vc-free-trial">Get 50 free generations</button>
+          <button type="button" class="vc-secondary vc-free-trial">Get 5 free generations</button>
         </div>
         <div class="vc-license-activate">
           <input class="vc-license-key" type="password" autocomplete="off" spellcheck="false" aria-label="Vichar license key" placeholder="Paste license key" />
