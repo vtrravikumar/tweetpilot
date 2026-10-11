@@ -44,21 +44,25 @@ async function readBody(request: Request): Promise<Record<string, unknown> | nul
   } catch { return null; }
 }
 
-async function getLicense(request: Request, env: Env) {
+type LicenseResult =
+  | { ok: false; response: Response }
+  | { ok: true; hash: string; stub: DurableObjectStub<VicharUsage>; body: Record<string, unknown> };
+
+async function getLicense(request: Request, env: Env): Promise<LicenseResult> {
   const body = await readBody(request);
-  if (!body) return { response: errorResponse(400, "invalid_json", "Request body must be valid JSON.") } as const;
-  if (typeof body.licenseKey !== "string") return { response: errorResponse(400, "invalid_request", "A licenseKey is required.") } as const;
+  if (!body) return { ok: false, response: errorResponse(400, "invalid_json", "Request body must be valid JSON.") };
+  if (typeof body.licenseKey !== "string") return { ok: false, response: errorResponse(400, "invalid_request", "A licenseKey is required.") };
   const hash = await hashLicenseKey(body.licenseKey);
-  if (!hash) return { response: errorResponse(401, "invalid_license_key", "This Vichar license key is invalid.") } as const;
+  if (!hash) return { ok: false, response: errorResponse(401, "invalid_license_key", "This Vichar license key is invalid.") };
   const bag = env as unknown as EnvBag;
   const ownerKey = typeof bag.VICHAR_OWNER_LICENSE_KEY === "string" ? bag.VICHAR_OWNER_LICENSE_KEY.trim() : "";
   const ownerHash = ownerKey ? await hashLicenseKey(ownerKey) : null;
-  if (ownerHash && hash === ownerHash) return { response: errorResponse(403, "owner_not_eligible", "Owner access is unlimited and does not need credit purchases.") } as const;
+  if (ownerHash && hash === ownerHash) return { ok: false, response: errorResponse(403, "owner_not_eligible", "Owner access is unlimited and does not need credit purchases.") };
   const namespace = namespaceFor(env);
-  if (!namespace) return { response: errorResponse(503, "license_service_unavailable", "License service is temporarily unavailable.") } as const;
+  if (!namespace) return { ok: false, response: errorResponse(503, "license_service_unavailable", "License service is temporarily unavailable.") };
   const stub = namespace.get(namespace.idFromName("license:" + hash));
-  if (!await stub.getLicense()) return { response: errorResponse(401, "invalid_license_key", "This Vichar license key is invalid.") } as const;
-  return { hash, stub, body } as const;
+  if (!await stub.getLicense()) return { ok: false, response: errorResponse(401, "invalid_license_key", "This Vichar license key is invalid.") };
+  return { ok: true, hash, stub, body };
 }
 
 export const createPaymentLinkRoute: Route = {
@@ -68,7 +72,7 @@ export const createPaymentLinkRoute: Route = {
     const cfg = config(env);
     if (!cfg) return errorResponse(503, "payments_not_configured", "Payments are not configured yet.");
     const license = await getLicense(request, env);
-    if ("response" in license) return license.response;
+    if (!license.ok) return license.response;
     const packId = license.body.packId;
     if (typeof packId !== "string" || !(packId in PACKS)) return errorResponse(400, "invalid_pack", "Choose a valid Vichar credit pack.");
     const pack = PACKS[packId as PackId];
