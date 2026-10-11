@@ -13,6 +13,8 @@ export interface PanelCallbacks {
   onGenerate: (topic: TopicSelection, location: string, useNews: boolean) => void;
   onFreeTrial: () => void;
   onActivate: (licenseKey: string) => void;
+  onPurchase: (packId: "starter" | "plus" | "pro") => void;
+  onCheckPayment: () => void;
   onDismiss: () => void;
   onReopen: () => void;
 }
@@ -22,6 +24,7 @@ export interface TweetPanel {
   setLoading: (loading: boolean) => void;
   setTweet: (result: GenerateResponse, resolvedTopic: string, remaining?: number | null, owner?: boolean) => void;
   setLicense: (remaining: number | null, owner: boolean, message?: string) => void;
+  setLicenseNotice: (message: string) => void;
   setError: (message: string) => void;
   setVisible: (visible: boolean) => void;
   getTopic: () => TopicSelection;
@@ -60,6 +63,15 @@ export function createPanel(callbacks: PanelCallbacks): TweetPanel {
         <div class="vc-license-activate">
           <input class="vc-license-key" type="password" autocomplete="off" spellcheck="false" aria-label="Vichar license key" placeholder="Paste license key" />
           <button type="button" class="vc-secondary vc-activate">Activate</button>
+        </div>
+        <div class="vc-purchases" hidden>
+          <div class="vc-purchase-title">Top up generations</div>
+          <div class="vc-purchase-options">
+            <button type="button" class="vc-secondary" data-pack="starter">₹19 · 1,000</button>
+            <button type="button" class="vc-secondary" data-pack="plus">₹49 · 5,000</button>
+            <button type="button" class="vc-secondary" data-pack="pro">₹99 · 15,000</button>
+          </div>
+          <button type="button" class="vc-secondary vc-check-payment" hidden>I've paid · Check balance</button>
         </div>
       </div>
 
@@ -109,6 +121,9 @@ export function createPanel(callbacks: PanelCallbacks): TweetPanel {
   const freeTrial = root.querySelector<HTMLButtonElement>(".vc-free-trial")!;
   const licenseKeyInput = root.querySelector<HTMLInputElement>(".vc-license-key")!;
   const activateButton = root.querySelector<HTMLButtonElement>(".vc-activate")!;
+  const purchases = root.querySelector<HTMLDivElement>(".vc-purchases")!;
+  const purchaseButtons = Array.from(root.querySelectorAll<HTMLButtonElement>("[data-pack]"));
+  const checkPaymentButton = root.querySelector<HTMLButtonElement>(".vc-check-payment")!;
   const topicInput = root.querySelector<HTMLSelectElement>(".vc-topic")!;
   topicInput.value = "Surprise me";
 
@@ -187,6 +202,21 @@ export function createPanel(callbacks: PanelCallbacks): TweetPanel {
 
   licenseKeyInput.addEventListener("keydown", (event) => {
     if (event.key === "Enter") activateButton.click();
+  });
+
+  for (const button of purchaseButtons) {
+    button.addEventListener("click", () => {
+      const packId = button.dataset.pack;
+      if (packId !== "starter" && packId !== "plus" && packId !== "pro") return;
+      purchaseButtons.forEach((item) => { item.disabled = true; });
+      licenseStatus.textContent = "Preparing secure Razorpay checkout…";
+      callbacks.onPurchase(packId);
+    });
+  }
+  checkPaymentButton.addEventListener("click", () => {
+    checkPaymentButton.disabled = true;
+    licenseStatus.textContent = "Checking payment status with Razorpay…";
+    callbacks.onCheckPayment();
   });
 
   suggestion.addEventListener("input", updateCount);
@@ -318,9 +348,12 @@ export function createPanel(callbacks: PanelCallbacks): TweetPanel {
     setLicense(remaining, owner, message) {
       freeTrial.disabled = false;
       activateButton.disabled = false;
+      purchaseButtons.forEach((item) => { item.disabled = false; });
+      checkPaymentButton.disabled = false;
       const active = owner || typeof remaining === "number";
       licenseActions.style.display = active ? "none" : "";
       licenseActivate.style.display = active ? "none" : "";
+      purchases.hidden = !active || owner;
       if (owner) {
         licenseStatus.textContent = message || "Owner access · Unlimited generations";
       } else if (typeof remaining === "number" && remaining === 0) {
@@ -332,6 +365,9 @@ export function createPanel(callbacks: PanelCallbacks): TweetPanel {
       } else {
         licenseStatus.textContent = message || "Extension access: activate a license or claim your free trial.";
       }
+    },
+    setLicenseNotice(message) {
+      licenseStatus.textContent = message;
     },
     setTweet(result, resolvedTopic, remaining, owner) {
       hasTweet = true;
