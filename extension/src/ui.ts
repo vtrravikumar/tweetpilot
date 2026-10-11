@@ -58,19 +58,36 @@ export function createPanel(callbacks: PanelCallbacks): TweetPanel {
       <div class="vc-license">
         <div class="vc-license-status" aria-live="polite">Extension access: activate a license or claim your free trial.</div>
         <div class="vc-license-actions">
-          <button type="button" class="vc-secondary vc-free-trial">Get 5 free generations</button>
+          <button type="button" class="vc-secondary vc-free-trial">Get 10 free generations</button>
         </div>
         <div class="vc-license-activate">
           <input class="vc-license-key" type="password" autocomplete="off" spellcheck="false" aria-label="Vichar license key" placeholder="Paste license key" />
           <button type="button" class="vc-secondary vc-activate">Activate</button>
         </div>
         <div class="vc-purchases" hidden>
-          <div class="vc-purchase-title">Top up generations</div>
+          <div class="vc-purchase-title">Keep your thoughts flowing</div>
+          <div class="vc-purchase-description">Choose a one-time top-up when you need more generations. No subscription.</div>
           <div class="vc-purchase-options">
-            <button type="button" class="vc-secondary" data-pack="starter">₹19 · 1,000</button>
-            <button type="button" class="vc-secondary" data-pack="plus">₹49 · 5,000</button>
-            <button type="button" class="vc-secondary" data-pack="pro">₹99 · 15,000</button>
+            <button type="button" class="vc-pack vc-pack-starter" data-pack="starter" aria-label="Starter, ₹19 one-time, 1,000 generations">
+              <span class="vc-pack-name">Starter</span>
+              <span class="vc-pack-price">₹19</span>
+              <span class="vc-pack-detail">1,000 generations</span>
+              <span class="vc-pack-note">One-time purchase</span>
+            </button>
+            <button type="button" class="vc-pack" data-pack="plus" aria-label="Plus, ₹49 one-time, 5,000 generations">
+              <span class="vc-pack-name">Plus</span>
+              <span class="vc-pack-price">₹49</span>
+              <span class="vc-pack-detail">5,000 generations</span>
+              <span class="vc-pack-note">One-time purchase</span>
+            </button>
+            <button type="button" class="vc-pack" data-pack="pro" aria-label="Pro, ₹99 one-time, 15,000 generations">
+              <span class="vc-pack-name">Pro</span>
+              <span class="vc-pack-price">₹99</span>
+              <span class="vc-pack-detail">15,000 generations</span>
+              <span class="vc-pack-note">One-time purchase</span>
+            </button>
           </div>
+          <div class="vc-purchase-trust">Secure checkout via Razorpay · You decide what gets posted</div>
           <button type="button" class="vc-secondary vc-check-payment">I've paid · Check balance</button>
         </div>
       </div>
