@@ -40,11 +40,29 @@ async function buyCredits(packId: "starter" | "plus" | "pro"): Promise<{ checkou
   return { checkoutUrl: result.checkoutUrl };
 }
 
-async function checkPayment(): Promise<{ paid: boolean; credited: boolean; balance: number | null }> {
+async function checkPayment(): Promise<{ paid: boolean; credited: boolean; pending: boolean; balance: number | null; owner: boolean }> {
   const values = await chrome.storage.local.get([STORAGE_KEYS.licenseKey, STORAGE_KEYS.pendingPaymentLinkId]);
   const licenseKey = values[STORAGE_KEYS.licenseKey];
   const paymentLinkId = values[STORAGE_KEYS.pendingPaymentLinkId];
-  if (typeof licenseKey !== "string" || typeof paymentLinkId !== "string") throw new Error("No pending payment was found for this license.");
+  if (typeof licenseKey !== "string" || !/^vichar_[A-Za-z0-9_-]{43}$/.test(licenseKey)) {
+    throw new Error("Activate a Vichar license before checking your balance.");
+  }
+
+  // Once a successful payment is verified, its pending ID is deliberately removed.
+  // A subsequent click should refresh the authoritative license balance, not report
+  // that no pending payment exists and never attempt to credit the same payment again.
+  if (typeof paymentLinkId !== "string") {
+    const response = await fetch(API_ACTIVATE_LICENSE_URL, {
+      method: "POST", headers: { "content-type": "application/json" },
+      body: JSON.stringify({ licenseKey })
+    });
+    if (!response.ok) throw new Error(await parseError(response));
+    const status = await response.json() as LicenseStatus;
+    if (status.active !== true) throw new Error("This Vichar license could not be refreshed.");
+    await saveLicense(licenseKey, status);
+    return { paid: false, credited: false, pending: false, balance: status.balance, owner: status.owner };
+  }
+
   const response = await fetch(API_PAYMENT_VERIFY_URL, {
     method: "POST", headers: { "content-type": "application/json" },
     body: JSON.stringify({ licenseKey, paymentLinkId })
@@ -55,7 +73,13 @@ async function checkPayment(): Promise<{ paid: boolean; credited: boolean; balan
     await chrome.storage.local.set({ [STORAGE_KEYS.licenseBalance]: result.balance });
     await chrome.storage.local.remove(STORAGE_KEYS.pendingPaymentLinkId);
   }
-  return { paid: result.paid === true, credited: result.credited === true, balance: typeof result.balance === "number" ? result.balance : null };
+  return {
+    paid: result.paid === true,
+    credited: result.credited === true,
+    pending: result.paid !== true,
+    balance: typeof result.balance === "number" ? result.balance : null,
+    owner: false
+  };
 }
 
 chrome.runtime.onMessage.addListener((message: BackgroundMessage, _sender, sendResponse: (response: BackgroundResponse) => void) => {
