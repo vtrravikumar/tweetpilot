@@ -20,7 +20,7 @@ const panel = createPanel({
         panel.setLicense(null, false, response?.error || "Unable to start the free trial.");
         return;
       }
-      panel.setLicense(response.remaining ?? null, false, "Free trial activated · 50 generations available.");
+      panel.setLicense(response.remaining ?? null, false, "Free trial activated · 5 generations available.");
     }).catch(() => panel.setLicense(null, false, "Unable to reach the Vichar licensing service."));
   },
   onActivate: (licenseKey) => {
@@ -32,6 +32,28 @@ const panel = createPanel({
       panel.setLicense(response.remaining ?? null, response.owner === true,
         response.owner ? "Owner access · Unlimited generations" : undefined);
     }).catch(() => panel.setLicense(null, false, "Unable to reach the Vichar licensing service."));
+  },
+  onPurchase: (packId) => {
+    void chrome.runtime.sendMessage({ type: "buy-credits", packId }).then((response) => {
+      if (!response?.ok) {
+        panel.setLicenseNotice(response?.error || "Unable to start Razorpay checkout.");
+        return;
+      }
+      panel.setLicenseNotice("Razorpay checkout opened in a new tab. Complete payment, then check your balance here.");
+    }).catch(() => panel.setLicenseNotice("Unable to reach the Vichar payment service."));
+  },
+  onCheckPayment: () => {
+    void chrome.runtime.sendMessage({ type: "check-payment" }).then((response) => {
+      if (!response?.ok) {
+        panel.setLicenseNotice(response?.error || "Unable to verify payment.");
+        return;
+      }
+      if (response.paid && typeof response.remaining === "number") {
+        panel.setLicense(response.remaining, false, "Payment verified · Credits added to your existing license.");
+      } else {
+        panel.setLicenseNotice("Payment is not marked paid yet. Finish checkout or try checking again in a moment.");
+      }
+    }).catch(() => panel.setLicenseNotice("Unable to reach the Vichar payment service."));
   },
   onDismiss: () => {
     dismissedForComposer = activeComposer;
