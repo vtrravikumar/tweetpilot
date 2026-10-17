@@ -107,6 +107,35 @@ When a user hits the current generation rate limit (for example, three requests 
 - [ ] Once the extension is approved, announce the Chrome extension separately
 - [ ] Gather real-world feedback before adding more features
 
+## VICHAR-SEC-001 — Chrome extension security and Enhanced Safe Browsing trust
+
+- Priority: P1 (trust, security and launch readiness)
+- Status: Planned
+- Area: Chrome extension security, Chrome Web Store compliance, privacy
+- Consumers: Chrome extension
+
+### Goal
+
+Investigate and address the Chrome Enhanced Safe Browsing message shown for Vichar — By VTRRK 1.1.0: “This extension is not trusted by Enhanced Safe Browsing.” The message does not by itself establish that the extension is malicious; determine whether it reflects limited publisher/extension reputation, a store/review state, a policy issue, or a concrete security concern. Do not promise that code changes alone will remove the warning; Chrome controls reputation and trust decisions.
+
+### Scope and acceptance criteria
+
+- [ ] Audit `extension/manifest.json` and request only the narrowest permissions and host access required for the documented X-only workflow.
+- [ ] Review all bundled extension code and build output for remote executable code, unsafe dynamic execution, suspicious behaviour, unnecessary dependencies, and unexpected network destinations. API calls to the Vichar backend are allowed; do not download and execute JavaScript remotely.
+- [ ] Review message passing, DOM interaction with X, storage, authentication/license handling, and API request/response validation for avoidable security risks.
+- [ ] Verify that secrets and privileged credentials are not embedded in the extension package; treat all client-side values as public and enforce entitlements server-side.
+- [ ] Verify HTTPS transport, data minimisation, and consistency between actual data flows, the privacy policy, and Chrome Web Store privacy/data-use disclosures.
+- [ ] Check Chrome Web Store review/listing status and developer-policy notices; address any specific reviewer feedback or policy violations rather than guessing at the cause of the warning.
+- [ ] Run extension tests, typecheck, production build, package inspection, and the available security/policy checks. Record findings and remediation in the PR.
+- [ ] Keep the current 1.1.0 release artifact unchanged during the audit. Implement any required fixes on a focused branch, review them, and submit a new version only if justified by findings.
+- [ ] After compliant publication, retest installation through the public Chrome Web Store and monitor whether the warning persists. Do not claim that the warning is resolved unless verified in Chrome; allow for reputation systems to take time.
+
+### Guardrails
+
+- Do not attempt to hide, suppress, or work around Chrome's warning, and do not instruct users to disable Safe Browsing.
+- Do not claim that Vichar is “trusted by Chrome” or “safe” solely because automated tests pass or a code audit finds no issue.
+- Distinguish concrete security/policy defects from reputation-related warnings; document uncertainty when Chrome does not expose a specific cause.
+
 ## Post-launch improvements
 
 ### UX
