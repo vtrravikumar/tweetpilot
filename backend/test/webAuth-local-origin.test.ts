@@ -23,16 +23,16 @@ describe("Vichar web origin policy", () => {
     expect(isVicharWebOrigin(request(LOCAL_ORIGIN))).toBe(false);
     expect(isVicharWebOrigin(request(LOCAL_ORIGIN, undefined), {
       VICHAR_ALLOW_LOCAL_WEB_ORIGIN: "false",
-    } as Env)).toBe(false);
+    } as Pick<Env, "VICHAR_ALLOW_LOCAL_WEB_ORIGIN">)).toBe(false);
     expect(isVicharWebOrigin(request(LOCAL_ORIGIN), {
       VICHAR_ALLOW_LOCAL_WEB_ORIGIN: "true",
-    } as Env)).toBe(true);
+    } as Pick<Env, "VICHAR_ALLOW_LOCAL_WEB_ORIGIN">)).toBe(true);
   });
 
   it("does not allow arbitrary origins even when local testing is enabled", () => {
     expect(isVicharWebOrigin(request("https://evil.example"), {
       VICHAR_ALLOW_LOCAL_WEB_ORIGIN: "true",
-    } as Env)).toBe(false);
+    } as Pick<Env, "VICHAR_ALLOW_LOCAL_WEB_ORIGIN">)).toBe(false);
   });
 
   it("validates local web tokens only when local testing is explicitly enabled", async () => {
@@ -42,9 +42,9 @@ describe("Vichar web origin policy", () => {
     expect(await isValidVicharWebToken(localRequest, SECRET)).toBe(false);
     expect(await isValidVicharWebToken(localRequest, SECRET, Date.now(), {
       VICHAR_ALLOW_LOCAL_WEB_ORIGIN: "true",
-    } as Env)).toBe(true);
+    } as Pick<Env, "VICHAR_ALLOW_LOCAL_WEB_ORIGIN">)).toBe(true);
     expect(await isValidVicharWebToken(request("https://evil.example", token), SECRET, Date.now(), {
       VICHAR_ALLOW_LOCAL_WEB_ORIGIN: "true",
-    } as Env)).toBe(false);
+    } as Pick<Env, "VICHAR_ALLOW_LOCAL_WEB_ORIGIN">)).toBe(false);
   });
 });
