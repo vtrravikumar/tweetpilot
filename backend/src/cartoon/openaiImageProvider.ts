@@ -60,14 +60,48 @@ export class OpenAIImageProvider implements CartoonImageProvider {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), this.timeoutMs);
     const startedAt = Date.now();
-    let response: Response;
     try {
-      response = await this.fetchImpl(OPENAI_IMAGE_EDITS_URL, {
+      const response = await this.fetchImpl(OPENAI_IMAGE_EDITS_URL, {
         method: "POST",
         headers: { Authorization: `Bearer ${this.apiKey}` },
         body: form,
         signal: controller.signal,
       });
+
+      if (!response.ok) {
+        // Do not expose provider payloads or credentials in errors.
+        throw new CartoonImageError("upstream_error", "Image provider returned an error.", response.status);
+      }
+
+      let payload: unknown;
+      try {
+        payload = await response.json();
+      } catch {
+        throw new CartoonImageError("invalid_response", "Image provider returned invalid JSON.");
+      }
+
+      const encoded = firstImageBase64(payload);
+      if (!encoded) {
+        throw new CartoonImageError("invalid_response", "Image provider response contained no image.");
+      }
+
+      let bytes: Uint8Array;
+      try {
+        bytes = decodeBase64(encoded);
+      } catch {
+        throw new CartoonImageError("invalid_response", "Image provider returned invalid image data.");
+      }
+      if (bytes.byteLength === 0) {
+        throw new CartoonImageError("invalid_response", "Image provider returned an empty image.");
+      }
+
+      return {
+        bytes,
+        mimeType: "image/png",
+        model: this.model,
+        characterReferenceVersion: input.characterReference.version,
+        durationMs: Math.max(0, Date.now() - startedAt),
+      };
     } catch (error) {
       if (controller.signal.aborted || (error instanceof Error && error.name === "AbortError")) {
         throw new CartoonImageError(
@@ -75,6 +109,7 @@ export class OpenAIImageProvider implements CartoonImageProvider {
           "Image generation timed out; its provider outcome may be unknown.",
         );
       }
+      if (error instanceof CartoonImageError) throw error;
       throw new CartoonImageError(
         "upstream_error",
         "Image provider request failed; its provider outcome may be unknown.",
@@ -82,41 +117,6 @@ export class OpenAIImageProvider implements CartoonImageProvider {
     } finally {
       clearTimeout(timeout);
     }
-
-    if (!response.ok) {
-      // Do not expose provider payloads or credentials in errors.
-      throw new CartoonImageError("upstream_error", "Image provider returned an error.", response.status);
-    }
-
-    let payload: unknown;
-    try {
-      payload = await response.json();
-    } catch {
-      throw new CartoonImageError("invalid_response", "Image provider returned invalid JSON.");
-    }
-
-    const encoded = firstImageBase64(payload);
-    if (!encoded) {
-      throw new CartoonImageError("invalid_response", "Image provider response contained no image.");
-    }
-
-    let bytes: Uint8Array;
-    try {
-      bytes = decodeBase64(encoded);
-    } catch {
-      throw new CartoonImageError("invalid_response", "Image provider returned invalid image data.");
-    }
-    if (bytes.byteLength === 0) {
-      throw new CartoonImageError("invalid_response", "Image provider returned an empty image.");
-    }
-
-    return {
-      bytes,
-      mimeType: "image/png",
-      model: this.model,
-      characterReferenceVersion: input.characterReference.version,
-      durationMs: Math.max(0, Date.now() - startedAt),
-    };
   }
 }
 
