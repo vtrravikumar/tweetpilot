@@ -6,6 +6,8 @@ import { OpenAIImageProvider } from "../cartoon/openaiImageProvider";
 import { readConfig } from "../env";
 import { hashLicenseKey } from "../usage/licenseKeys";
 import { VicharUsage } from "../usage/durableObject";
+import { isValidVicharWebToken } from "../webAuth";
+import { CartoonImageError } from "../cartoon/errors";
 
 const MAX_BODY_BYTES = 8 * 1024;
 const MAX_THOUGHT_CHARS = 4_000;
@@ -21,6 +23,11 @@ export const cartoonGenerateRoute: Route = {
     if (bag.VICHAR_CARTOON_ENABLED !== "true") {
       return errorResponse(404, "not_found", "Route not found.");
     }
+
+    // First-party website path: owner session, separate daily test allowance, no shared credit-ledger dependency.
+    const webSecret = typeof bag.VICHAR_WEB_SECRET === "string" ? bag.VICHAR_WEB_SECRET.trim() : "";
+    const webAccess = await isValidVicharWebToken(request, webSecret);
+    if (webAccess) return handleOwnerCartoon(request, env, bag);
 
     const configuredCost = Number(bag.VICHAR_CARTOON_CREDIT_COST);
     if (!Number.isSafeInteger(configuredCost) || configuredCost <= 0) {
@@ -144,3 +151,100 @@ export const cartoonGenerateRoute: Route = {
     }
   },
 };
+
+
+async function handleOwnerCartoon(
+  request: Request,
+  env: Env,
+  bag: Record<string, unknown>,
+): Promise<Response> {
+  const ownerKey = typeof bag.VICHAR_OWNER_LICENSE_KEY === "string" ? bag.VICHAR_OWNER_LICENSE_KEY.trim() : "";
+  const dailyLimit = Number(bag.VICHAR_CARTOON_OWNER_DAILY_LIMIT);
+  if (!ownerKey || !Number.isSafeInteger(dailyLimit) || dailyLimit <= 0) {
+    return errorResponse(503, "cartoon_unavailable", "Owner cartoon testing is not configured.");
+  }
+
+  const operationId = request.headers.get("idempotency-key")?.trim() ?? "";
+  if (!operationId || operationId.length > MAX_IDEMPOTENCY_KEY_CHARS || !/^[A-Za-z0-9._:-]+$/.test(operationId)) {
+    return errorResponse(400, "invalid_idempotency_key", "A valid Idempotency-Key header (max 128 characters) is required.");
+  }
+
+  const contentLength = request.headers.get("content-length");
+  if (contentLength !== null) {
+    const declaredLength = Number.parseInt(contentLength, 10);
+    if (Number.isSafeInteger(declaredLength) && declaredLength > MAX_BODY_BYTES) {
+      return errorResponse(413, "request_too_large", "Request body is too large.");
+    }
+  }
+
+  let body: unknown;
+  try {
+    const raw = await request.text();
+    if (new TextEncoder().encode(raw).byteLength > MAX_BODY_BYTES) {
+      return errorResponse(413, "request_too_large", "Request body is too large.");
+    }
+    body = JSON.parse(raw);
+  } catch {
+    return errorResponse(400, "invalid_json", "Request body must be valid JSON.");
+  }
+  if (!body || typeof body !== "object" || Array.isArray(body)) {
+    return errorResponse(400, "invalid_request", "A JSON object is required.");
+  }
+  const thoughtText = (body as { thoughtText?: unknown }).thoughtText;
+  if (typeof thoughtText !== "string" || thoughtText.trim().length === 0 || thoughtText.length > MAX_THOUGHT_CHARS) {
+    return errorResponse(400, "invalid_request", "thoughtText must contain 1–4000 characters.");
+  }
+
+  const namespace = (env as unknown as { VICHAR_USAGE?: DurableObjectNamespace<VicharUsage> }).VICHAR_USAGE;
+  if (!namespace) return errorResponse(503, "license_service_unavailable", "License service is temporarily unavailable.");
+  const ownerHash = await hashLicenseKey(ownerKey);
+  if (!ownerHash) return errorResponse(503, "cartoon_unavailable", "Owner cartoon testing is not configured.");
+  const burstRaw = Number.parseInt(String(bag.VICHAR_CARTOON_BURST_PER_MINUTE ?? "2"), 10);
+  const burstLimit = Number.isSafeInteger(burstRaw) && burstRaw > 0 ? burstRaw : 2;
+  const allowance = await namespace.get(namespace.idFromName("owner-cartoon:" + ownerHash)).check(Date.now(), dailyLimit, burstLimit);
+  if (!allowance.allowed) {
+    return errorResponse(429, "cartoon_test_limit_reached", allowance.reason === "daily"
+      ? "Today's owner cartoon testing allowance has been used."
+      : "Too many cartoon requests. Please try again shortly.", {
+      "retry-after": String(allowance.retryAfterSeconds ?? 60),
+      "x-vichar-cartoon-remaining": String(allowance.remaining),
+    });
+  }
+
+  let reference;
+  try {
+    reference = await getCharacterReference();
+  } catch {
+    return errorResponse(503, "cartoon_unavailable", "The approved character reference is unavailable.");
+  }
+
+  const config = readConfig(env);
+  const provider = new OpenAIImageProvider({ apiKey: config.openaiImageApiKey });
+  try {
+    const image = await provider.generate({
+      operationId,
+      thought: thoughtText.trim(),
+      safetyIdentifier: "sha256:" + ownerHash,
+      characterReference: reference,
+    });
+    return new Response(image.bytes, {
+      status: 200,
+      headers: {
+        "content-type": "image/png",
+        "cache-control": "no-store",
+        "x-vichar-character-version": image.characterReferenceVersion,
+        "x-vichar-image-model": image.model,
+        "x-vichar-image-duration-ms": String(image.durationMs),
+        "x-vichar-cartoon-remaining": String(allowance.remaining),
+      },
+    });
+  } catch (error) {
+    if (error instanceof CartoonImageError) {
+      if (error.outcome === "definitive_failure") {
+        return errorResponse(502, "cartoon_generation_failed", "Cartoon generation failed. Please review your thought and try again.");
+      }
+      return errorResponse(503, "cartoon_outcome_unknown", "The image outcome is uncertain. Please wait before trying again.");
+    }
+    return errorResponse(502, "cartoon_generation_failed", "Cartoon generation failed. Please try again later.");
+  }
+}
