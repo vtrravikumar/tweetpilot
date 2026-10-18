@@ -11,8 +11,8 @@
 - Start with OpenAI's image-generation API, then measure actual cost, latency, failure rate and character consistency.
 - Keep the image provider behind a server-side interface so the provider can be changed without redesigning routes or credit policy.
 - Owner text access remains unlimited under the existing owner entitlement. It does not grant unlimited image generation.
-- During development/staging, owner cartoon tests use a separate, configurable allowance and explicit usage tracking.
-- Paid-user image pricing and credit amounts are not set until real usage is measured.
+- During development/staging, owner cartoon tests use a separate, configurable allowance and explicit usage tracking, while charges use the same wallet balance semantics.
+- Image generation uses the existing single credit balance. The image cost is configurable in the same credit units as text; use 15 credits per image only as an initial example until real usage is measured.
 - No deployment, production secret/variable update, database migration or client change is part of this planning milestone.
 
 ## 2. Provider integration approach
@@ -135,7 +135,7 @@ Requirements:
 3. Concurrent requests cannot reserve more than the available image balance.
 4. A retry with the same idempotency key cannot reserve or invoke the provider twice; a mismatched amount returns an explicit conflict result.
 5. A timeout with unknown upstream outcome is not immediately treated as a guaranteed free failure. Reconcile outcome where possible; otherwise apply a documented conservative policy.
-6. Text credits and image credits remain separate. The Durable Object now has an independent `image_balance`; legacy text balances and payment fulfilment are unchanged. A combined workflow preflights all required eligibility and credit conditions before the first billable provider call.
+6. Text and image generation share one credit balance. An image request reserves its configured image cost (for example, 15 text-credit units); a combined text-plus-image request must reserve 1 + image cost before the first billable provider call. Existing payment fulfilment continues to credit the same balance.
 7. The owner test allowance is a separate namespace/ledger and cannot accidentally consume customer credits.
 8. Every adjustment is auditable, and the balance cannot become negative.
 9. Payment fulfilment remains unchanged and exactly-once.
@@ -191,9 +191,9 @@ Avoid a broad migration to an entirely new billing subsystem. Add the smallest s
 - [ ] Confirm the generated Worker bundle includes the approved PNG and rerun the Wrangler dry run after local tests.
 - [ ] OpenAI model/API path is verified against current official documentation.
 - [ ] Cost measurement includes prompt and reference-image input plus generated image output.
-- [ ] Owner test allowance is separate from text and customer credit balances.
+- [ ] Owner test allowance is separate from customer credit balances.
 - [ ] Staging-only feature gate and kill switch are tested.
-- [ ] Durable Object reservation/commit/release operations are atomic and idempotent, including the new independent image balance (run the full local suite before marking complete).
+- [ ] Durable Object reservation/commit/release operations are atomic and idempotent, including the shared text/image credit balance (run the full local suite before marking complete).
 - [ ] Concurrent requests cannot overspend balances or allowances.
 - [ ] Ambiguous provider timeouts have a documented reconciliation policy.
 - [ ] CI tests use fakes and make no real provider calls.
