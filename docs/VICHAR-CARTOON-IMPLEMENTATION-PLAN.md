@@ -107,7 +107,7 @@ Design and test an explicit reservation lifecycle:
 - `processing`: a single caller has atomically claimed the right to invoke the provider. A duplicate request must not invoke it again.
 - `unknown`: the provider outcome is ambiguous (for example, a timeout after sending the request). Keep credits held; do not retry the provider or automatically refund.
 - `committed`: provider success is confirmed and the held credits remain charged. Reconciliation may commit an `unknown` operation if success is later confirmed.
-- `released`: failure is confirmed and the held credits are returned. Never release an `unknown` operation without reconciliation establishing that no chargeable generation occurred.
+- `released`: failure is confirmed and the held credits are returned. Generic release is limited to work still in `reserved`; a definitive provider failure after starting uses an explicit failure-settlement operation. Never release an `unknown` operation without reconciliation establishing that no chargeable generation occurred.
 
 Requirements:
 
