@@ -70,7 +70,26 @@ describe("CORS", () => {
     expect(response.status).toBe(204);
     expect(response.headers.get("access-control-allow-origin")).toBe(EXTENSION_ORIGIN);
     expect(response.headers.get("access-control-allow-methods")).toBe("POST, OPTIONS");
-    expect(response.headers.get("access-control-allow-headers")).toBe("content-type, authorization");
+    expect(response.headers.get("access-control-allow-headers")).toBe("content-type, authorization, idempotency-key");
+  });
+
+  it("allows cartoon preflight requests with an idempotency key", async () => {
+    const response = await handleRequest(
+      request("/v1/cartoon/generate", {
+        method: "OPTIONS",
+        headers: {
+          origin: "http://localhost:4321",
+          "access-control-request-method": "POST",
+          "access-control-request-headers": "content-type, authorization, idempotency-key",
+        },
+      }),
+      env({ CORS_ALLOWED_ORIGINS: "http://localhost:4321" }),
+      ctx,
+    );
+
+    expect(response.status).toBe(204);
+    expect(response.headers.get("access-control-allow-origin")).toBe("http://localhost:4321");
+    expect(response.headers.get("access-control-allow-headers")).toBe("content-type, authorization, idempotency-key");
   });
 
   it("rejects preflight requests from unconfigured origins", async () => {
