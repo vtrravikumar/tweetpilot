@@ -14,7 +14,7 @@ const input: GenerateCartoonInput = {
   safetyIdentifier: "sha256:opaque-test-id",
 };
 
-const pngBase64 = "iVBORw=="; // decoded test bytes: 0x89 0x50 0x8f
+const pngBase64 = "iVBORw=="; // minimal deterministic four-byte payload
 
 describe("OpenAIImageProvider", () => {
   it("posts one image edit with server-provided reference and returns decoded image bytes", async () => {
@@ -45,7 +45,7 @@ describe("OpenAIImageProvider", () => {
     expect(body.get("prompt")).toContain(input.thought);
     expect(body.get("prompt")).toContain("no fade at the sides");
     expect(body.get("image")).toBeInstanceOf(Blob);
-    expect(result.bytes).toEqual(new Uint8Array([137, 80, 143]));
+    expect(result.bytes).toEqual(new Uint8Array([137, 80, 78, 71]));
     expect(result.mimeType).toBe("image/png");
     expect(result.model).toBe("gpt-image-2");
     expect(result.characterReferenceVersion).toBe("ravi-editorial-v1");
