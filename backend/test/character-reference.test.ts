@@ -1,4 +1,3 @@
-import { createHash } from "node:crypto";
 import { describe, expect, it, vi } from "vitest";
 import {
   CHARACTER_REFERENCE_SHA256,
@@ -8,6 +7,11 @@ import {
 } from "../src/cartoon/characterReference";
 
 const approvedBytes = new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10, 1, 2, 3]);
+
+function hashBytes(hex: string): ArrayBuffer {
+  const bytes = new Uint8Array(hex.match(/.{2}/g)!.map((part) => Number.parseInt(part, 16)));
+  return bytes.buffer;
+}
 
 describe("loadCharacterReference", () => {
   it("fails closed when the server-side asset is absent", async () => {
@@ -28,22 +32,18 @@ describe("loadCharacterReference", () => {
     });
   });
 
-  it("returns the immutable canonical version and a defensive byte copy", async () => {
-    const bytes = new Uint8Array(approvedBytes);
-    const digest = createHash("sha256").update(bytes).digest("hex");
-    expect(digest).not.toBe(CHARACTER_REFERENCE_SHA256);
-
-    const digestSpy = vi.spyOn(crypto.subtle, "digest").mockImplementation(async () => {
-      // Keep this test focused on the loader contract; production still verifies SHA-256.
-      return new Uint8Array(32).buffer;
-    });
+  it("returns the canonical version and a defensive copy for the approved checksum", async () => {
+    const digestSpy = vi.spyOn(crypto.subtle, "digest").mockResolvedValue(hashBytes(CHARACTER_REFERENCE_SHA256));
     try {
-      await expect(loadCharacterReference(bytes)).rejects.toMatchObject({
-        code: "checksum_mismatch",
-      });
+      const source = new Uint8Array(approvedBytes);
+      const result = await loadCharacterReference(source);
+      source[8] = 99;
+      expect(result.version).toBe(CHARACTER_REFERENCE_VERSION);
+      expect(result.mimeType).toBe("image/png");
+      expect(result.bytes[8]).toBe(1);
+      expect(result.bytes).not.toBe(source);
     } finally {
       digestSpy.mockRestore();
     }
-    expect(CHARACTER_REFERENCE_VERSION).toBe("ravi-editorial-v1");
   });
 });
