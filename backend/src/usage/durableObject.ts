@@ -124,6 +124,81 @@ export class VicharUsage extends DurableObject {
     return result;
   }
 
+  /**
+   * Atomically reserve image credits before calling a billable provider.
+   * Repeating the same operation ID is idempotent; reusing it with a
+   * different credit amount is rejected.
+   */
+  async reserveImageCredits(operationId: string, credits: number, nowMs = Date.now()): Promise<{
+    reserved: boolean; status: "reserved" | "committed" | "released" | "insufficient" | "missing_license";
+    balance: number | null;
+  }> {
+    if (!operationId.trim() || operationId.length > 200) throw new Error("operationId must be 1–200 characters.");
+    if (!Number.isSafeInteger(credits) || credits <= 0) throw new Error("credits must be a positive safe integer.");
+    return this.ctx.storage.transactionSync(() => {
+      const existing = this.ctx.storage.sql.exec<{ credits: number; status: string }>(
+        "SELECT credits, status FROM image_credit_reservations WHERE operation_id = ?", operationId,
+      ).toArray()[0];
+      if (existing) {
+        if (existing.credits !== credits) throw new Error("operationId was already used with a different credit amount.");
+        const status = existing.status as "reserved" | "committed" | "released";
+        return { reserved: status === "reserved", status, balance: this.getLicense()?.balance ?? null };
+      }
+      const updated = this.ctx.storage.sql.exec<{ balance: number }>(
+        "UPDATE licenses SET balance = balance - ?, updated_at = ? WHERE id = 1 AND balance >= ? RETURNING balance",
+        credits, nowMs, credits,
+      ).toArray()[0];
+      if (!updated) {
+        const license = this.getLicense();
+        return { reserved: false, status: license ? "insufficient" : "missing_license", balance: license?.balance ?? null };
+      }
+      this.ctx.storage.sql.exec(
+        "INSERT INTO image_credit_reservations (operation_id, credits, status, created_at, updated_at) VALUES (?, ?, 'reserved', ?, ?)",
+        operationId, credits, nowMs, nowMs,
+      );
+      return { reserved: true, status: "reserved", balance: updated.balance };
+    });
+  }
+
+  /** Commit a successful billable image operation. Safe to repeat. */
+  async commitImageCredits(operationId: string, nowMs = Date.now()): Promise<boolean> {
+    return this.ctx.storage.transactionSync(() => {
+      const row = this.ctx.storage.sql.exec<{ status: string }>(
+        "SELECT status FROM image_credit_reservations WHERE operation_id = ?", operationId,
+      ).toArray()[0];
+      if (!row) return false;
+      if (row.status === "committed") return true;
+      if (row.status !== "reserved") return false;
+      this.ctx.storage.sql.exec(
+        "UPDATE image_credit_reservations SET status = 'committed', updated_at = ? WHERE operation_id = ? AND status = 'reserved'",
+        nowMs, operationId,
+      );
+      return true;
+    });
+  }
+
+  /** Release a reservation after a confirmed pre-generation failure. Safe to repeat. */
+  async releaseImageCredits(operationId: string, nowMs = Date.now()): Promise<{ released: boolean; balance: number | null }> {
+    return this.ctx.storage.transactionSync(() => {
+      const row = this.ctx.storage.sql.exec<{ credits: number; status: string }>(
+        "SELECT credits, status FROM image_credit_reservations WHERE operation_id = ?", operationId,
+      ).toArray()[0];
+      if (!row) return { released: false, balance: this.getLicense()?.balance ?? null };
+      if (row.status === "released") return { released: true, balance: this.getLicense()?.balance ?? null };
+      if (row.status !== "reserved") return { released: false, balance: this.getLicense()?.balance ?? null };
+      const updated = this.ctx.storage.sql.exec<{ balance: number }>(
+        "UPDATE licenses SET balance = balance + ?, updated_at = ? WHERE id = 1 RETURNING balance",
+        row.credits, nowMs,
+      ).toArray()[0];
+      if (!updated) return { released: false, balance: null };
+      this.ctx.storage.sql.exec(
+        "UPDATE image_credit_reservations SET status = 'released', updated_at = ? WHERE operation_id = ? AND status = 'reserved'",
+        nowMs, operationId,
+      );
+      return { released: true, balance: updated.balance };
+    });
+  }
+
   async consumeCredit(nowMs = Date.now()): Promise<{ consumed: boolean; balance: number | null }> {
     const updated = this.ctx.storage.sql.exec<{ balance: number }>("UPDATE licenses SET balance = balance - 1, updated_at = ? WHERE id = 1 AND balance > 0 RETURNING balance", nowMs).toArray()[0];
     return updated ? { consumed: true, balance: updated.balance } : { consumed: false, balance: this.getLicense()?.balance ?? null };
