@@ -26,7 +26,7 @@ export const cartoonGenerateRoute: Route = {
 
     // First-party website path: owner session, separate daily test allowance, no shared credit-ledger dependency.
     const webSecret = typeof bag.VICHAR_WEB_SECRET === "string" ? bag.VICHAR_WEB_SECRET.trim() : "";
-    const webAccess = await isValidVicharWebToken(request, webSecret);
+    const webAccess = await isValidVicharWebToken(request, webSecret, Date.now(), env);
     if (webAccess) return handleOwnerCartoon(request, env, bag);
 
     const configuredCost = Number(bag.VICHAR_CARTOON_CREDIT_COST);
