@@ -35,6 +35,7 @@ describe("cartoon generation route", () => {
       ...env,
       VICHAR_CARTOON_ENABLED: "true",
       VICHAR_CARTOON_CREDIT_COST: "1",
+      OPENAI_IMAGE_API_KEY: "",
       // Intentionally omit OPENAI_IMAGE_API_KEY: this test must never call the provider.
     } as Env;
 
