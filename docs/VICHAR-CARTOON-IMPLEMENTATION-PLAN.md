@@ -26,10 +26,10 @@ The first provider-adapter slice now exists on the draft implementation branch:
 - `backend/src/cartoon/errors.ts` normalizes failures without exposing upstream response bodies or secrets and labels whether the provider outcome is definitive or unknown.
 - `backend/test/cartoon-image-provider.test.ts` covers request construction, missing credentials, provider errors, timeout classification, malformed image responses, PNG-header validation, and input validation.
 - `backend/src/cartoon/generateCartoon.ts` implements a route-independent workflow for credit reservation, one-time provider claim, commit, definitive-failure settlement, and unknown outcomes.
-- `backend/src/routes/generateCartoon.ts` registers `POST /v1/cartoon/generate` behind `VICHAR_CARTOON_ENABLED=true` and a positive `VICHAR_CARTOON_CREDIT_COST`; both are absent by default. It requires a valid license key and a separate image-credit balance, an idempotency key, and returns PNG bytes directly. Owner allowance and generated-image persistence/URL delivery are not implemented yet.
+- `backend/src/routes/generateCartoon.ts` registers `POST /v1/cartoon/generate` behind `VICHAR_CARTOON_ENABLED=true` and a positive `VICHAR_CARTOON_CREDIT_COST`; both are absent by default. It requires a valid license key, reserves image cost from the shared license balance, validates an idempotency key (max 128 characters), and returns PNG bytes directly. Owner allowance and generated-image persistence/URL delivery are not implemented yet.
 - `backend/test/cartoon-workflow.test.ts` tests that workflow with fake provider/ledger dependencies.
 - `backend/src/cartoon/assets/ravi-editorial-v1.png` contains the approved 1536 × 1024 reference board; its SHA-256 is recorded in `docs/character-references/README.md`.
-- `backend/wrangler.jsonc` marks PNG files under the cartoon asset directory as binary `Data` modules, and `backend/src/cartoon/characterReferenceAsset.ts` defines the canonical asset loader. The loader verifies the approved checksum and returns a defensive copy. **Packaging caveat:** the loader is not yet imported by the Worker route/entry point, so tree-shaking omits it from the current dry-run bundle. The current dry run therefore does not yet prove runtime asset availability; verify again when the cartoon route imports this loader.
+- `backend/wrangler.jsonc` marks PNG files as binary `Data` modules, and `backend/src/cartoon/characterReferenceAsset.ts` defines the canonical asset loader. The registered route imports this loader; it verifies the approved checksum and returns a defensive copy. The local Wrangler dry run successfully included `cartoon/assets/ravi-editorial-v1.png` as a 2,834.08 KiB buffer module. Rerun the dry run after the latest configuration correction and local regression tests.
 - `backend/test/character-reference.test.ts` covers missing, invalid and mismatched assets; `backend/test/cartoon-reference-asset.test.ts` verifies the actual bundled file and checksum.
 - The route is registered in the router but remains unavailable unless explicitly enabled with staging-only variables. No real provider request has been made.
 
@@ -170,7 +170,7 @@ Avoid a broad migration to an entirely new billing subsystem. Add the smallest s
 
 ### Phase D — API and client integration
 
-- Choose the public endpoint version after reviewing the existing route contracts. Additive, backward-compatible capabilities may remain under `/v1/`; breaking request/response, auth, entitlement or error-contract changes require a new versioned route (for example `/v2/`). Document the decision before implementing the route.
+- Confirm and document the public endpoint version decision before rollout. Additive, backward-compatible capabilities may remain under `/v1/`; breaking request/response, auth, entitlement or error-contract changes require a new versioned route (for example `/v2/`). The current route remains gated off by default pending that review.
 - Add the dedicated cartoon route and opt-in combined flow only after provider and credit lifecycle tests pass.
 - Preserve the existing text-only response contract.
 - Enforce owner test allowance separately from paid entitlement.
