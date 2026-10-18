@@ -184,7 +184,7 @@ describe("VicharUsage Durable Object", () => {
     expect(await stub.getImageCreditBalance()).toBe(4);
   });
 
-  it("does not overspend when image reservations race, async () => {
+  it("does not overspend when image reservations race", async () => {
     const stub = env.VICHAR_USAGE.getByName("image-reserve-race");
     await stub.createLicense(5, 1_000);
     await stub.addImageCredits(5, 1_500);
