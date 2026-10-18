@@ -80,6 +80,17 @@ describe("VicharUsage Durable Object", () => {
     expect(await stub.getLicense()).toBeNull();
   });
 
+  it("does not treat text credits as image credits", async () => {
+    const stub = env.VICHAR_USAGE.getByName("image-balance-isolated");
+    await stub.createLicense(20, 1_000);
+    expect((await stub.getLicense())?.balance).toBe(20);
+    expect(await stub.getImageCreditBalance()).toBe(0);
+    expect(await stub.reserveImageCredits("op-without-image-credit", 1, 2_000)).toEqual({
+      reserved: false, status: "insufficient", balance: 0, created: false,
+    });
+    expect((await stub.getLicense())?.balance).toBe(20);
+  });
+
   it("reserves image credits once for an idempotent operation ID", async () => {
     const stub = env.VICHAR_USAGE.getByName("image-reserve-idempotent");
     await stub.createLicense(10, 1_000);
