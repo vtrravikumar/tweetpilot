@@ -56,7 +56,7 @@ export function createGenerateTweetRoute(
 
       const bag = env as unknown as Record<string, unknown>;
       const webSecret = typeof bag.VICHAR_WEB_SECRET === "string" ? bag.VICHAR_WEB_SECRET.trim() : "";
-      const webAccess = await isValidVicharWebToken(request, webSecret);
+      const webAccess = await isValidVicharWebToken(request, webSecret, Date.now(), env);
 
       // A license key is distinct from the legacy per-installation usage identifier.
       const authorization = request.headers.get("authorization")?.trim() ?? "";
