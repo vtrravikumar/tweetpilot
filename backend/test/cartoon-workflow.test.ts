@@ -61,6 +61,17 @@ describe("generateCartoonWithCredits", () => {
     expect(ledger.startImageGeneration).not.toHaveBeenCalled();
   });
 
+  it("does not retry a reservation already marked processing", async () => {
+    const { ledger, providerGenerate, run } = setup({
+      reserveImageCredits: vi.fn(async () => ({
+        reserved: false, status: "processing", balance: 3, created: false,
+      })),
+    });
+    expect(await run()).toEqual({ status: "already_in_progress", reason: "processing" });
+    expect(providerGenerate).not.toHaveBeenCalled();
+    expect(ledger.startImageGeneration).not.toHaveBeenCalled();
+  });
+
   it("does not call provider when the operation was already claimed", async () => {
     const { ledger, providerGenerate, run } = setup({
       startImageGeneration: vi.fn(async () => ({ started: false, status: "processing" })),
