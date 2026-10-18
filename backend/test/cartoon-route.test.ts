@@ -59,7 +59,7 @@ describe("cartoon generation route", () => {
     expect(await response.json()).toMatchObject({
       error: { code: "cartoon_generation_failed" },
     });
-    expect((await licenseStub.getLicense())?.balance).toBe(3);
+    // A definitive provider failure refunds the reservation to the shared wallet.
     expect((await licenseStub.getLicense())?.balance).toBe(17);
   });
 });
