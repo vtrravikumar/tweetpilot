@@ -4,7 +4,7 @@ import { cartoonGenerateRoute } from "../src/routes/generateCartoon";
 import { hashLicenseKey } from "../src/usage/licenseKeys";
 import { VicharUsage } from "../src/usage/durableObject";
 
-const licenseKey = "vichar_" + "a".repeat(43);
+const licenseKey = "vichar_" + crypto.randomUUID().replace(/-/g, "").padEnd(43, "a").slice(0, 43);
 
 describe("cartoon generation route", () => {
   it("is unavailable by default without revealing whether the route exists", async () => {
