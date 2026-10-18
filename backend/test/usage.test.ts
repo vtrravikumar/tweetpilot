@@ -90,7 +90,9 @@ describe("VicharUsage Durable Object", () => {
     expect(await stub.reserveImageCredits("op-1", 4, 3_000)).toEqual({
       reserved: true, status: "reserved", balance: 6,
     });
-    await expect(stub.reserveImageCredits("op-1", 5, 4_000)).rejects.toThrow(/different credit amount/);
+    expect(await stub.reserveImageCredits("op-1", 5, 4_000)).toEqual({
+      reserved: false, status: "operation_conflict", balance: 6,
+    });
     expect((await stub.getLicense())?.balance).toBe(6);
   });
 
