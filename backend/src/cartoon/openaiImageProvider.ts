@@ -91,8 +91,10 @@ export class OpenAIImageProvider implements CartoonImageProvider {
       } catch {
         throw new CartoonImageError("invalid_response", "Image provider returned invalid image data.");
       }
-      if (bytes.byteLength === 0) {
-        throw new CartoonImageError("invalid_response", "Image provider returned an empty image.");
+      if (!isPng(bytes)) {
+        // The provider may have completed a billable generation even if its
+        // returned payload is unusable, so the outcome remains unknown.
+        throw new CartoonImageError("invalid_response", "Image provider returned invalid PNG data.");
       }
 
       return {
@@ -178,6 +180,16 @@ function firstImageBase64(payload: unknown): string | undefined {
   if (!Array.isArray(data) || !data[0] || typeof data[0] !== "object") return undefined;
   const encoded = (data[0] as { b64_json?: unknown }).b64_json;
   return typeof encoded === "string" && encoded.length > 0 ? encoded : undefined;
+}
+
+function isPng(bytes: Uint8Array): boolean {
+  const signature = [137, 80, 78, 71, 13, 10, 26, 10];
+  if (bytes.byteLength < 33 || !signature.every((byte, index) => bytes[index] === byte)) return false;
+  if (String.fromCharCode(...bytes.slice(12, 16)) !== "IHDR") return false;
+
+  const width = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength).getUint32(16);
+  const height = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength).getUint32(20);
+  return width > 0 && height > 0;
 }
 
 function decodeBase64(value: string): Uint8Array {
