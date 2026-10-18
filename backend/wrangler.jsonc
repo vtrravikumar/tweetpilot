@@ -31,7 +31,7 @@
     {
       "type": "Data",
       "globs": [
-        "src/cartoon/assets/*.png"
+        "src/cartoon/assets/ravi-editorial-v1.png"
       ],
       "fallthrough": true
     }
