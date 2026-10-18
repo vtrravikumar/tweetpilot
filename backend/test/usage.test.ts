@@ -84,14 +84,14 @@ describe("VicharUsage Durable Object", () => {
     const stub = env.VICHAR_USAGE.getByName("image-reserve-idempotent");
     await stub.createLicense(10, 1_000);
     expect(await stub.reserveImageCredits("op-1", 4, 2_000)).toEqual({
-      reserved: true, status: "reserved", balance: 6,
+      reserved: true, status: "reserved", balance: 6, created: false, created: true,
     });
     // A retry must not deduct the same reservation twice.
     expect(await stub.reserveImageCredits("op-1", 4, 3_000)).toEqual({
       reserved: true, status: "reserved", balance: 6,
     });
     expect(await stub.reserveImageCredits("op-1", 5, 4_000)).toEqual({
-      reserved: false, status: "operation_conflict", balance: 6,
+      reserved: false, status: "operation_conflict", balance: 6, created: false,
     });
     expect((await stub.getLicense())?.balance).toBe(6);
   });
@@ -100,11 +100,11 @@ describe("VicharUsage Durable Object", () => {
     const empty = env.VICHAR_USAGE.getByName("image-reserve-insufficient");
     await empty.createLicense(3, 1_000);
     expect(await empty.reserveImageCredits("op-too-large", 4, 2_000)).toEqual({
-      reserved: false, status: "insufficient", balance: 3,
+      reserved: false, status: "insufficient", balance: 3, created: false,
     });
     const missing = env.VICHAR_USAGE.getByName("image-reserve-missing-license");
     expect(await missing.reserveImageCredits("op-no-license", 1, 2_000)).toEqual({
-      reserved: false, status: "missing_license", balance: null,
+      reserved: false, status: "missing_license", balance: null, created: false,
     });
   });
 
@@ -124,10 +124,30 @@ describe("VicharUsage Durable Object", () => {
     const stub = env.VICHAR_USAGE.getByName("image-reserve-commit");
     await stub.createLicense(8, 1_000);
     await stub.reserveImageCredits("op-commit", 5, 2_000);
+    expect(await stub.startImageGeneration("op-commit", 2_500)).toEqual({ started: true, status: "processing" });
     expect(await stub.commitImageCredits("op-commit", 3_000)).toBe(true);
     expect(await stub.commitImageCredits("op-commit", 4_000)).toBe(true);
     expect(await stub.releaseImageCredits("op-commit", 5_000)).toEqual({ released: false, balance: 3 });
     expect((await stub.getLicense())?.balance).toBe(3);
+  });
+
+  it("claims provider execution once and never automatically refunds an unknown outcome", async () => {
+    const stub = env.VICHAR_USAGE.getByName("image-reserve-unknown");
+    await stub.createLicense(9, 1_000);
+    expect(await stub.reserveImageCredits("op-unknown", 5, 2_000)).toMatchObject({
+      reserved: true, status: "reserved", balance: 4, created: true,
+    });
+    expect(await stub.startImageGeneration("op-unknown", 2_100)).toEqual({ started: true, status: "processing" });
+    // A duplicate request cannot claim the same provider operation again.
+    expect(await stub.startImageGeneration("op-unknown", 2_200)).toEqual({ started: false, status: "processing" });
+    expect(await stub.markImageGenerationUnknown("op-unknown", 3_000)).toBe(true);
+    expect(await stub.startImageGeneration("op-unknown", 4_000)).toEqual({ started: false, status: "unknown" });
+    // An ambiguous timeout is not proof of failure, so no automatic refund.
+    expect(await stub.releaseImageCredits("op-unknown", 5_000)).toEqual({ released: false, balance: 4 });
+    // Reconciliation can confirm success and commit the held credits.
+    expect(await stub.commitImageCredits("op-unknown", 6_000)).toBe(true);
+    expect(await stub.commitImageCredits("op-unknown", 7_000)).toBe(true);
+    expect((await stub.getLicense())?.balance).toBe(4);
   });
 
   it("does not overspend when image reservations race", async () => {
