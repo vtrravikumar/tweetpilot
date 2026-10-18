@@ -43,6 +43,9 @@ export async function generateCartoonWithCredits(options: {
   const { operationId, credits, thought, safetyIdentifier, characterReference, provider, ledger } = options;
   const reservation = await ledger.reserveImageCredits(operationId, credits);
   if (!reservation.reserved) {
+    if (reservation.status === "processing" || reservation.status === "unknown" || reservation.status === "committed") {
+      return { status: "already_in_progress", reason: reservation.status };
+    }
     return {
       status: "credits_unavailable",
       reason: reservation.status,
