@@ -51,7 +51,9 @@ async function verify(value: string, signature: string, secret: string): Promise
   return crypto.subtle.verify("HMAC", key, expected, new TextEncoder().encode(value));
 }
 
-type WebOriginEnv = Pick<Env, "VICHAR_ALLOW_LOCAL_WEB_ORIGIN">;
+interface WebOriginEnv {
+  VICHAR_ALLOW_LOCAL_WEB_ORIGIN?: string;
+}
 
 export function isVicharWebOrigin(request: Request, env?: WebOriginEnv): boolean {
   const origin = request.headers.get("origin");
