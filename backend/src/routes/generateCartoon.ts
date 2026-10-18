@@ -1,4 +1,4 @@
-import { errorResponse, jsonResponse } from "../http/json";
+import { errorResponse } from "../http/json";
 import type { Route } from "../router";
 import { generateCartoonWithCredits } from "../cartoon/generateCartoon";
 import { getCharacterReference } from "../cartoon/characterReferenceAsset";
@@ -9,6 +9,7 @@ import { VicharUsage } from "../usage/durableObject";
 
 const MAX_BODY_BYTES = 8 * 1024;
 const MAX_THOUGHT_CHARS = 4_000;
+const MAX_IDEMPOTENCY_KEY_CHARS = 128;
 const LICENSE_PATTERN = /^Bearer\s+(vichar_[A-Za-z0-9_-]{43})$/;
 
 export const cartoonGenerateRoute: Route = {
@@ -33,8 +34,14 @@ export const cartoonGenerateRoute: Route = {
     if (!keyHash) return errorResponse(401, "invalid_license_key", "A valid Vichar license key is required.");
 
     const operationId = request.headers.get("idempotency-key")?.trim() ?? "";
-    if (!operationId || operationId.length > 200 || !/^[A-Za-z0-9._:-]+$/.test(operationId)) {
-      return errorResponse(400, "invalid_idempotency_key", "A valid Idempotency-Key header is required.");
+    // The license hash (64 hex chars) plus separator and client key must fit
+    // the Durable Object's 200-character operation ID limit.
+    if (
+      !operationId ||
+      operationId.length > MAX_IDEMPOTENCY_KEY_CHARS ||
+      !/^[A-Za-z0-9._:-]+$/.test(operationId)
+    ) {
+      return errorResponse(400, "invalid_idempotency_key", "A valid Idempotency-Key header (max 128 characters) is required.");
     }
 
     const contentLength = request.headers.get("content-length");
@@ -117,7 +124,7 @@ export const cartoonGenerateRoute: Route = {
             "x-vichar-character-version": result.image.characterReferenceVersion,
             "x-vichar-image-model": result.image.model,
             "x-vichar-image-duration-ms": String(result.image.durationMs),
-            "x-vichar-image-remaining": String(remainingImageCredits ?? 0),
+            "x-vichar-image-remaining": String(remainingImageCredits),
           },
         });
       }
