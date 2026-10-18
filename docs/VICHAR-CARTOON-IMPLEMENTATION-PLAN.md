@@ -101,25 +101,26 @@ The initial daily and total cap values are intentionally **TBD**. Choose conserv
 
 The current Durable Object stores a license balance and exposes single-credit consumption/refund operations for text generation. That is not sufficient for image reservations, variable image costs or safe request replay.
 
-Design and test an explicit reservation lifecycle, for example:
+Design and test an explicit reservation lifecycle:
 
-- `reserved`: expected image credits are atomically held before the billable image call;
-- `committed`: generation completed and the final charge is recorded;
-- `released`: provider failed before a charge is due, or policy approved a refund;
-- `reconciled`: actual cost/charge differs from the reservation and the ledger records the adjustment.
+- `reserved`: expected image credits are held atomically; the provider has not yet been claimed for this operation.
+- `processing`: a single caller has atomically claimed the right to invoke the provider. A duplicate request must not invoke it again.
+- `unknown`: the provider outcome is ambiguous (for example, a timeout after sending the request). Keep credits held; do not retry the provider or automatically refund.
+- `committed`: provider success is confirmed and the held credits remain charged. Reconciliation may commit an `unknown` operation if success is later confirmed.
+- `released`: failure is confirmed and the held credits are returned. Never release an `unknown` operation without reconciliation establishing that no chargeable generation occurred.
 
 Requirements:
 
 1. Each reservation has a unique operation/request ID and is idempotent.
 2. Balance checks and reservation updates occur atomically inside the relevant Durable Object.
 3. Concurrent requests cannot reserve more than the available image balance.
-4. A retry with the same idempotency key cannot reserve or charge twice.
+4. A retry with the same idempotency key cannot reserve or invoke the provider twice; a mismatched amount returns an explicit conflict result.
 5. A timeout with unknown upstream outcome is not immediately treated as a guaranteed free failure. Reconcile outcome where possible; otherwise apply a documented conservative policy.
 6. Text credits and image credits remain separate. A combined workflow preflights all required eligibility and credit conditions before the first billable provider call.
 7. The owner test allowance is a separate namespace/ledger and cannot accidentally consume customer credits.
 8. Every adjustment is auditable, and the balance cannot become negative.
 9. Payment fulfilment remains unchanged and exactly-once.
-10. Tests cover concurrent reservations, duplicate keys, release, commit, unknown outcomes, and DO storage errors.
+10. Tests cover concurrent reservations, duplicate keys, one-time provider claims, release, commit, ambiguous outcomes, and DO storage errors.
 
 Avoid a broad migration to an entirely new billing subsystem. Add the smallest schema/API extension that meets these invariants and remains compatible with existing licenses and payment records.
 
