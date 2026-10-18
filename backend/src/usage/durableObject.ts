@@ -228,8 +228,8 @@ export class VicharUsage extends DurableObject {
         "SELECT credits, status FROM image_credit_reservations WHERE operation_id = ?", operationId,
       ).toArray()[0];
       if (!row) return { released: false, balance: this.getLicense()?.balance ?? null };
-      if (row.status === "released") return { released: true, balance: this.getImageCreditBalance() };
-      if (row.status !== "reserved") return { released: false, balance: this.getImageCreditBalance() };
+      if (row.status === "released") return { released: true, balance: (this.getLicense()?.balance ?? null) };
+      if (row.status !== "reserved") return { released: false, balance: (this.getLicense()?.balance ?? null) };
       const updated = this.ctx.storage.sql.exec<{ balance: number }>(
         "UPDATE licenses SET balance = balance + ?, updated_at = ? WHERE id = 1 RETURNING balance",
         row.credits, nowMs,
@@ -249,11 +249,11 @@ export class VicharUsage extends DurableObject {
       const row = this.ctx.storage.sql.exec<{ credits: number; status: string }>(
         "SELECT credits, status FROM image_credit_reservations WHERE operation_id = ?", operationId,
       ).toArray()[0];
-      if (!row) return { released: false, balance: this.getImageCreditBalance() };
-      if (row.status === "released") return { released: true, balance: this.getImageCreditBalance() };
-      if (row.status !== "processing") return { released: false, balance: this.getImageCreditBalance() };
-      const updated = this.ctx.storage.sql.exec<{ image_balance: number }>(
-        "UPDATE licenses SET image_balance = image_balance + ?, updated_at = ? WHERE id = 1 RETURNING image_balance",
+      if (!row) return { released: false, balance: (this.getLicense()?.balance ?? null) };
+      if (row.status === "released") return { released: true, balance: (this.getLicense()?.balance ?? null) };
+      if (row.status !== "processing") return { released: false, balance: (this.getLicense()?.balance ?? null) };
+      const updated = this.ctx.storage.sql.exec<{ balance: number }>(
+        "UPDATE licenses SET balance = balance + ?, updated_at = ? WHERE id = 1 RETURNING balance",
         row.credits, nowMs,
       ).toArray()[0];
       if (!updated) return { released: false, balance: null };
@@ -261,7 +261,7 @@ export class VicharUsage extends DurableObject {
         "UPDATE image_credit_reservations SET status = 'released', updated_at = ? WHERE operation_id = ? AND status = 'processing'",
         nowMs, operationId,
       );
-      return { released: true, balance: updated.image_balance };
+      return { released: true, balance: updated.balance };
     });
   }
 
