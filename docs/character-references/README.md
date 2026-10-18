@@ -14,6 +14,6 @@ The reference sheet includes front, three-quarter and profile views, expression 
 
 ## Asset handling
 
-The approved image is stored locally at the path above. The SHA-256 is recorded to detect accidental or silent changes. Keep the source in the backend bundle, never in the browser extension, and do not accept a client-provided image URL or version.
+The approved image is committed at the path above. The SHA-256 is recorded to detect accidental or silent changes. Keep the source in the backend bundle, never in the browser extension, and do not accept a client-provided image URL or version.
 
 When the reference is materially revised, add a new version rather than silently replacing this approved asset. This manifest records the intended asset identity; it does not claim the binary is already committed to the remote branch.
