@@ -17,6 +17,19 @@
 
 ## 2. Provider integration approach
 
+### Current implementation checkpoint
+
+The first provider-adapter slice now exists on the draft implementation branch:
+
+- `backend/src/cartoon/types.ts` defines a provider-neutral input/output contract.
+- `backend/src/cartoon/openaiImageProvider.ts` uses the OpenAI Images API edit endpoint with a server-supplied reference image, one output, configurable size/quality, and a separate image API key.
+- `backend/src/cartoon/errors.ts` normalizes failures without exposing upstream response bodies or secrets.
+- `backend/test/cartoon-image-provider.test.ts` covers request construction, missing credentials, provider errors, timeout classification, malformed image responses, and input validation.
+- The adapter is not registered in the router and cannot be invoked by a public API route. No real provider request has been made as part of implementation.
+
+This is code on the draft branch only. Local test/typecheck validation is still required before treating the slice as verified.
+
+
 Use the OpenAI Images API for the first experiment, with reference-image editing/conditioning as supported by the selected model and endpoint. Confirm the current API contract and model support during implementation rather than hard-coding an unverified model or assuming reference-image fidelity.
 
 Suggested interface boundary:
