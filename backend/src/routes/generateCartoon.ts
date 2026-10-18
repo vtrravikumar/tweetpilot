@@ -79,7 +79,7 @@ export const cartoonGenerateRoute: Route = {
       });
     }
 
-    const imageBalance = await licenseStub.getImageCreditBalance();
+    const imageBalance = (await licenseStub.getLicense())?.balance ?? null;
     if (imageBalance === null) return errorResponse(401, "invalid_license_key", "This Vichar license key is invalid.");
     if (imageBalance < configuredCost) {
       return errorResponse(402, "image_credits_exhausted", "Your image-credit balance is insufficient.", {
@@ -108,7 +108,7 @@ export const cartoonGenerateRoute: Route = {
 
     switch (result.status) {
       case "generated": {
-        const remainingImageCredits = await licenseStub.getImageCreditBalance();
+        const remainingImageCredits = (await licenseStub.getLicense())?.balance ?? 0;
         return new Response(result.image.bytes, {
           status: 200,
           headers: {
