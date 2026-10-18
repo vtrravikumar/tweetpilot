@@ -41,6 +41,14 @@ export class VicharUsage extends DurableObject {
           amount INTEGER NOT NULL CHECK (amount > 0), status TEXT NOT NULL DEFAULT 'created',
           created_at INTEGER NOT NULL, paid_at INTEGER
         )`);
+      this.ctx.storage.sql.exec(`
+        CREATE TABLE IF NOT EXISTS image_credit_reservations (
+          operation_id TEXT PRIMARY KEY,
+          credits INTEGER NOT NULL CHECK (credits > 0),
+          status TEXT NOT NULL CHECK (status IN ('reserved', 'committed', 'released')),
+          created_at INTEGER NOT NULL,
+          updated_at INTEGER NOT NULL
+        )`);
     });
   }
 
