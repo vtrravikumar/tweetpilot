@@ -28,7 +28,7 @@ The first provider-adapter slice now exists on the draft implementation branch:
 - `backend/src/cartoon/generateCartoon.ts` implements a route-independent workflow for credit reservation, one-time provider claim, commit, definitive-failure settlement, and unknown outcomes.
 - `backend/test/cartoon-workflow.test.ts` tests that workflow with fake provider/ledger dependencies.
 - `backend/src/cartoon/assets/ravi-editorial-v1.png` contains the approved 1536 × 1024 reference board; its SHA-256 is recorded in `docs/character-references/README.md`.
-- `backend/wrangler.jsonc` marks PNG files under the cartoon asset directory as binary `Data` modules, and `backend/src/cartoon/characterReferenceAsset.ts` loads the statically bundled asset. The loader verifies the approved checksum and returns a defensive copy.
+- `backend/wrangler.jsonc` marks PNG files under the cartoon asset directory as binary `Data` modules, and `backend/src/cartoon/characterReferenceAsset.ts` defines the canonical asset loader. The loader verifies the approved checksum and returns a defensive copy. **Packaging caveat:** the loader is not yet imported by the Worker route/entry point, so tree-shaking omits it from the current dry-run bundle. The current dry run therefore does not yet prove runtime asset availability; verify again when the cartoon route imports this loader.
 - `backend/test/character-reference.test.ts` covers missing, invalid and mismatched assets; `backend/test/cartoon-reference-asset.test.ts` verifies the actual bundled file and checksum.
 - The adapter and workflow are not registered in the router. No real provider request has been made.
 
@@ -186,7 +186,7 @@ Avoid a broad migration to an entirely new billing subsystem. Add the smallest s
 ## 8. Release gates
 
 - [x] Canonical reference pack is approved and versioned; binary is committed on the draft branch and checksum is documented.
-- [ ] Bundled asset import passes local tests and Wrangler dry-run.
+- [ ] Once the cartoon route imports the canonical loader, verify the PNG is present in the effective Worker bundle and the loader works in a Worker-runtime test; a dry run that tree-shakes the unused loader does not satisfy this gate.
 - [ ] OpenAI model/API path is verified against current official documentation.
 - [ ] Cost measurement includes prompt and reference-image input plus generated image output.
 - [ ] Owner test allowance is separate from text and customer credit balances.
