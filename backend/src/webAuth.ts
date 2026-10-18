@@ -51,8 +51,15 @@ async function verify(value: string, signature: string, secret: string): Promise
   return crypto.subtle.verify("HMAC", key, expected, new TextEncoder().encode(value));
 }
 
-export function isVicharWebOrigin(request: Request): boolean {
-  return request.headers.get("origin") === WEB_ORIGIN;
+export function isVicharWebOrigin(request: Request, env?: Env): boolean {
+  const origin = request.headers.get("origin");
+  if (origin === WEB_ORIGIN) return true;
+
+  // Local browser testing is opt-in and limited to Astro's standard dev port.
+  // Never enable this flag in production Worker configuration.
+  const bag = env as unknown as Record<string, unknown> | undefined;
+  return bag?.VICHAR_ALLOW_LOCAL_WEB_ORIGIN === "true" &&
+    (origin === "http://localhost:4321" || origin === "http://127.0.0.1:4321");
 }
 
 export async function issueVicharWebToken(secret: string, nowMs = Date.now()): Promise<string> {
@@ -70,8 +77,9 @@ export async function isValidVicharWebToken(
   request: Request,
   secret: string,
   nowMs = Date.now(),
+  env?: Env,
 ): Promise<boolean> {
-  if (!secret || !isVicharWebOrigin(request)) return false;
+  if (!secret || !isVicharWebOrigin(request, env)) return false;
 
   const authorization = request.headers.get("authorization")?.trim() ?? "";
   const match = /^Bearer\s+([A-Za-z0-9_-]+\.[A-Za-z0-9_-]+)$/.exec(authorization);
