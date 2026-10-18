@@ -1,6 +1,6 @@
 # Vichar Cartoon — Implementation Plan
 
-**Status:** Planning only; no code or production configuration changed  
+**Status:** Draft implementation in progress; not routed or deployed  
 **Parent design:** [Vichar Cartoon API Design](./VICHAR-CARTOON-API-DESIGN.md)  
 **Initial provider:** OpenAI image generation  
 **Owner testing policy:** Unlimited text remains separate; cartoon generation is subject to a controlled owner-only testing allowance  
@@ -23,11 +23,14 @@ The first provider-adapter slice now exists on the draft implementation branch:
 
 - `backend/src/cartoon/types.ts` defines a provider-neutral input/output contract.
 - `backend/src/cartoon/openaiImageProvider.ts` uses the OpenAI Images API edit endpoint with a server-supplied reference image, one output, configurable size/quality, and a separate image API key.
-- `backend/src/cartoon/errors.ts` normalizes failures without exposing upstream response bodies or secrets.
-- `backend/test/cartoon-image-provider.test.ts` covers request construction, missing credentials, provider errors, timeout classification, malformed image responses, and input validation.
-- The adapter is not registered in the router and cannot be invoked by a public API route. No real provider request has been made as part of implementation.
+- `backend/src/cartoon/errors.ts` normalizes failures without exposing upstream response bodies or secrets and labels whether the provider outcome is definitive or unknown.
+- `backend/test/cartoon-image-provider.test.ts` covers request construction, missing credentials, provider errors, timeout classification, malformed image responses, PNG-header validation, and input validation.
+- `backend/src/cartoon/generateCartoon.ts` implements a route-independent workflow for credit reservation, one-time provider claim, commit, definitive-failure settlement, and unknown outcomes.
+- `backend/test/cartoon-workflow.test.ts` tests that workflow with fake provider/ledger dependencies.
+- `docs/character-references/README.md` records the approved working reference version `ravi-editorial-v1`. The actual binary image has not yet been committed.
+- The adapter and workflow are not registered in the router. No real provider request has been made.
 
-This is code on the draft branch only. Local test/typecheck validation is still required before treating the slice as verified.
+These changes are on the draft branch only. Local test/typecheck validation is required before treating this checkpoint as verified.
 
 
 Use the OpenAI Images API for the first experiment, with reference-image editing/conditioning as supported by the selected model and endpoint. Confirm the current API contract and model support during implementation rather than hard-coding an unverified model or assuming reference-image fidelity.
