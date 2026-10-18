@@ -84,11 +84,11 @@ describe("VicharUsage Durable Object", () => {
     const stub = env.VICHAR_USAGE.getByName("image-reserve-idempotent");
     await stub.createLicense(10, 1_000);
     expect(await stub.reserveImageCredits("op-1", 4, 2_000)).toEqual({
-      reserved: true, status: "reserved", balance: 6, created: false, created: true,
+      reserved: true, status: "reserved", balance: 6, created: true,
     });
     // A retry must not deduct the same reservation twice.
     expect(await stub.reserveImageCredits("op-1", 4, 3_000)).toEqual({
-      reserved: true, status: "reserved", balance: 6,
+      reserved: true, status: "reserved", balance: 6, created: false,
     });
     expect(await stub.reserveImageCredits("op-1", 5, 4_000)).toEqual({
       reserved: false, status: "operation_conflict", balance: 6, created: false,
