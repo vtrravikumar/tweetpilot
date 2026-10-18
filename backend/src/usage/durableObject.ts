@@ -138,7 +138,7 @@ export class VicharUsage extends DurableObject {
    * different credit amount is rejected.
    */
   async reserveImageCredits(operationId: string, credits: number, nowMs = Date.now()): Promise<{
-    reserved: boolean; status: "reserved" | "committed" | "released" | "insufficient" | "missing_license";
+    reserved: boolean; status: "reserved" | "committed" | "released" | "insufficient" | "missing_license" | "operation_conflict";
     balance: number | null;
   }> {
     if (!operationId.trim() || operationId.length > 200) throw new Error("operationId must be 1–200 characters.");
@@ -148,7 +148,7 @@ export class VicharUsage extends DurableObject {
         "SELECT credits, status FROM image_credit_reservations WHERE operation_id = ?", operationId,
       ).toArray()[0];
       if (existing) {
-        if (existing.credits !== credits) throw new Error("operationId was already used with a different credit amount.");
+        if (existing.credits !== credits) return { reserved: false, status: "operation_conflict" as const, balance: this.getLicense()?.balance ?? null };
         const status = existing.status as "reserved" | "committed" | "released";
         return { reserved: status === "reserved", status, balance: this.getLicense()?.balance ?? null };
       }
