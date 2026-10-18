@@ -3,6 +3,7 @@ import { createTweetGenerator } from "./generation/factory";
 import { corsPreflightResponse, withCors } from "./http/cors";
 import { createUsageGuard } from "./usage/guard";
 import { createGenerateTweetRoute } from "./routes/generateTweet";
+import { cartoonGenerateRoute } from "./routes/generateCartoon";
 import { healthRoute } from "./routes/health";
 import { webSessionRoute } from "./routes/webSession";
 import { freeLicenseRoute } from "./routes/freeLicense";
@@ -20,6 +21,7 @@ export const routes: readonly Route[] = [
   createPaymentLinkRoute,
   verifyPaymentRoute,
   razorpayWebhookRoute,
+  cartoonGenerateRoute,
   createGenerateTweetRoute((env) => createTweetGenerator(env), { usageGuard: createUsageGuard() }),
   createGenerateTweetRoute((env) => createTweetGenerator(env), { usageGuard: createUsageGuard(), path: "/v2/tweet/generate", includeStyle: true }),
 ];
