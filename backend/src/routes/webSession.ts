@@ -6,7 +6,7 @@ export const webSessionRoute: Route = {
   method: "POST",
   path: "/v1/web/session",
   handler: async (request, env) => {
-    if (!isVicharWebOrigin(request)) {
+    if (!isVicharWebOrigin(request, env)) {
       return errorResponse(403, "forbidden_origin", "Vichar web access is restricted to vtrrk.in.");
     }
 
