@@ -51,17 +51,15 @@ async function verify(value: string, signature: string, secret: string): Promise
   return crypto.subtle.verify("HMAC", key, expected, new TextEncoder().encode(value));
 }
 
-interface WebOriginEnv {
-  VICHAR_ALLOW_LOCAL_WEB_ORIGIN?: string;
-}
-
-export function isVicharWebOrigin(request: Request, env?: WebOriginEnv): boolean {
+export function isVicharWebOrigin(request: Request, env?: unknown): boolean {
   const origin = request.headers.get("origin");
   if (origin === WEB_ORIGIN) return true;
 
   // Local browser testing is opt-in and limited to Astro's standard dev port.
   // Never enable this flag in production Worker configuration.
-  return env?.VICHAR_ALLOW_LOCAL_WEB_ORIGIN === "true" &&
+  const allowLocal = (env as { VICHAR_ALLOW_LOCAL_WEB_ORIGIN?: unknown } | undefined)
+    ?.VICHAR_ALLOW_LOCAL_WEB_ORIGIN === "true";
+  return allowLocal &&
     (origin === "http://localhost:4321" || origin === "http://127.0.0.1:4321");
 }
 
@@ -80,7 +78,7 @@ export async function isValidVicharWebToken(
   request: Request,
   secret: string,
   nowMs = Date.now(),
-  env?: WebOriginEnv,
+  env?: unknown,
 ): Promise<boolean> {
   if (!secret || !isVicharWebOrigin(request, env)) return false;
 
