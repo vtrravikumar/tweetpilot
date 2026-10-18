@@ -1,6 +1,5 @@
 import { errorResponse, jsonResponse } from "../http/json";
 import type { Route } from "../router";
-import { CartoonImageError } from "../cartoon/errors";
 import { generateCartoonWithCredits } from "../cartoon/generateCartoon";
 import { getCharacterReference } from "../cartoon/characterReferenceAsset";
 import { OpenAIImageProvider } from "../cartoon/openaiImageProvider";
@@ -108,7 +107,8 @@ export const cartoonGenerateRoute: Route = {
     });
 
     switch (result.status) {
-      case "generated":
+      case "generated": {
+        const remainingImageCredits = await licenseStub.getImageCreditBalance();
         return new Response(result.image.bytes, {
           status: 200,
           headers: {
@@ -117,9 +117,10 @@ export const cartoonGenerateRoute: Route = {
             "x-vichar-character-version": result.image.characterReferenceVersion,
             "x-vichar-image-model": result.image.model,
             "x-vichar-image-duration-ms": String(result.image.durationMs),
-            "x-vichar-image-remaining": String(result.status === "generated" ? Math.max(0, imageBalance - configuredCost) : imageBalance),
+            "x-vichar-image-remaining": String(remainingImageCredits ?? 0),
           },
         });
+      }
       case "credits_unavailable":
         return errorResponse(402, "image_credits_unavailable", "Image credits could not be reserved.", {
           "x-vichar-image-remaining": String(result.balance ?? 0),
