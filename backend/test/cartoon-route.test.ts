@@ -36,7 +36,7 @@ describe("cartoon generation route", () => {
       VICHAR_CARTOON_ENABLED: "true",
       VICHAR_CARTOON_CREDIT_COST: "1",
       OPENAI_IMAGE_API_KEY: "",
-      // Intentionally omit OPENAI_IMAGE_API_KEY: this test must never call the provider.
+      // Blank the image key so this test cannot make a provider request.
     } as Env;
 
     const response = await cartoonGenerateRoute.handler(
