@@ -29,7 +29,6 @@ describe("cartoon generation route", () => {
     const namespace = (env as unknown as { VICHAR_USAGE: DurableObjectNamespace<VicharUsage> }).VICHAR_USAGE;
     const licenseStub = namespace.get(namespace.idFromName("license:" + keyHash));
     await licenseStub.createLicense(17, 1_000);
-    await licenseStub.addImageCredits(3, 1_500);
 
     const testEnv = {
       ...env,
@@ -60,7 +59,7 @@ describe("cartoon generation route", () => {
     expect(await response.json()).toMatchObject({
       error: { code: "cartoon_generation_failed" },
     });
-    expect(await licenseStub.getImageCreditBalance()).toBe(3);
+    expect((await licenseStub.getLicense())?.balance).toBe(3);
     expect((await licenseStub.getLicense())?.balance).toBe(17);
   });
 });
