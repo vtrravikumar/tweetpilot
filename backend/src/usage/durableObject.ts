@@ -229,14 +229,36 @@ export class VicharUsage extends DurableObject {
       ).toArray()[0];
       if (!row) return { released: false, balance: this.getLicense()?.balance ?? null };
       if (row.status === "released") return { released: true, balance: this.getLicense()?.balance ?? null };
-      if (row.status !== "reserved" && row.status !== "processing") return { released: false, balance: this.getLicense()?.balance ?? null };
+      if (row.status !== "reserved") return { released: false, balance: this.getLicense()?.balance ?? null };
       const updated = this.ctx.storage.sql.exec<{ balance: number }>(
         "UPDATE licenses SET balance = balance + ?, updated_at = ? WHERE id = 1 RETURNING balance",
         row.credits, nowMs,
       ).toArray()[0];
       if (!updated) return { released: false, balance: null };
       this.ctx.storage.sql.exec(
-        "UPDATE image_credit_reservations SET status = 'released', updated_at = ? WHERE operation_id = ? AND status IN ('reserved', 'processing')",
+        "UPDATE image_credit_reservations SET status = 'released', updated_at = ? WHERE operation_id = ? AND status = 'reserved'",
+        nowMs, operationId,
+      );
+      return { released: true, balance: updated.balance };
+    });
+  }
+
+  /** Refund only a definitive provider failure; never use this for timeouts or unknown outcomes. */
+  async failImageGeneration(operationId: string, nowMs = Date.now()): Promise<{ released: boolean; balance: number | null }> {
+    return this.ctx.storage.transactionSync(() => {
+      const row = this.ctx.storage.sql.exec<{ credits: number; status: string }>(
+        "SELECT credits, status FROM image_credit_reservations WHERE operation_id = ?", operationId,
+      ).toArray()[0];
+      if (!row) return { released: false, balance: this.getLicense()?.balance ?? null };
+      if (row.status === "released") return { released: true, balance: this.getLicense()?.balance ?? null };
+      if (row.status !== "processing") return { released: false, balance: this.getLicense()?.balance ?? null };
+      const updated = this.ctx.storage.sql.exec<{ balance: number }>(
+        "UPDATE licenses SET balance = balance + ?, updated_at = ? WHERE id = 1 RETURNING balance",
+        row.credits, nowMs,
+      ).toArray()[0];
+      if (!updated) return { released: false, balance: null };
+      this.ctx.storage.sql.exec(
+        "UPDATE image_credit_reservations SET status = 'released', updated_at = ? WHERE operation_id = ? AND status = 'processing'",
         nowMs, operationId,
       );
       return { released: true, balance: updated.balance };
