@@ -14,7 +14,8 @@ const input: GenerateCartoonInput = {
   safetyIdentifier: "sha256:opaque-test-id",
 };
 
-const pngBase64 = "iVBORw=="; // minimal deterministic four-byte payload
+const pngBase64 = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/WioAAAAASUVORK5CYII=";
+const pngBytes = Uint8Array.from(atob(pngBase64), (character) => character.charCodeAt(0));
 
 describe("OpenAIImageProvider", () => {
   it("posts one image edit with server-provided reference and returns decoded image bytes", async () => {
@@ -45,7 +46,7 @@ describe("OpenAIImageProvider", () => {
     expect(body.get("prompt")).toContain(input.thought);
     expect(body.get("prompt")).toContain("no fade at the sides");
     expect(body.get("image")).toBeInstanceOf(Blob);
-    expect(result.bytes).toEqual(new Uint8Array([137, 80, 78, 71]));
+    expect(result.bytes).toEqual(pngBytes);
     expect(result.mimeType).toBe("image/png");
     expect(result.model).toBe("gpt-image-2");
     expect(result.characterReferenceVersion).toBe("ravi-editorial-v1");
@@ -69,7 +70,7 @@ describe("OpenAIImageProvider", () => {
       caught = error;
     }
     expect(caught).toBeInstanceOf(CartoonImageError);
-    expect(caught).toMatchObject({ kind: "upstream_error", upstreamStatus: 429 });
+    expect(caught).toMatchObject({ kind: "upstream_error", upstreamStatus: 429, outcome: "unknown" });
     expect((caught as Error).message).not.toContain("private provider detail");
     expect(fetchImpl).toHaveBeenCalledTimes(1);
   });
@@ -93,18 +94,30 @@ describe("OpenAIImageProvider", () => {
     expect(fetchImpl).toHaveBeenCalledTimes(1);
   });
 
-  it("rejects malformed or empty provider image data", async () => {
+  it("rejects malformed, empty, or non-PNG provider image data without assuming the call was free", async () => {
     const malformed = new OpenAIImageProvider({
       apiKey: "image-secret",
       fetchImpl: (async () => Response.json({ data: [{ b64_json: "not base64!" }] })) as typeof fetch,
     });
-    await expect(malformed.generate(input)).rejects.toMatchObject({ kind: "invalid_response" });
+    await expect(malformed.generate(input)).rejects.toMatchObject({ kind: "invalid_response", outcome: "unknown" });
 
     const empty = new OpenAIImageProvider({
       apiKey: "image-secret",
       fetchImpl: (async () => Response.json({ data: [] })) as typeof fetch,
     });
-    await expect(empty.generate(input)).rejects.toMatchObject({ kind: "invalid_response" });
+    await expect(empty.generate(input)).rejects.toMatchObject({ kind: "invalid_response", outcome: "unknown" });
+
+    const notPng = new OpenAIImageProvider({
+      apiKey: "image-secret",
+      fetchImpl: (async () => Response.json({ data: [{ b64_json: btoa("<html>not an image</html>") }] })) as typeof fetch,
+    });
+    await expect(notPng.generate(input)).rejects.toMatchObject({ kind: "invalid_response", outcome: "unknown" });
+
+    const shortPng = new OpenAIImageProvider({
+      apiKey: "image-secret",
+      fetchImpl: (async () => Response.json({ data: [{ b64_json: "iVBORw==" }] })) as typeof fetch,
+    });
+    await expect(shortPng.generate(input)).rejects.toMatchObject({ kind: "invalid_response", outcome: "unknown" });
   });
 
   it("validates the thought, reference, and privacy-preserving identifier before networking", async () => {
