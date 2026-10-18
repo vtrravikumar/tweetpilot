@@ -45,7 +45,7 @@ export class VicharUsage extends DurableObject {
         CREATE TABLE IF NOT EXISTS image_credit_reservations (
           operation_id TEXT PRIMARY KEY,
           credits INTEGER NOT NULL CHECK (credits > 0),
-          status TEXT NOT NULL CHECK (status IN ('reserved', 'committed', 'released')),
+          status TEXT NOT NULL CHECK (status IN ('reserved', 'processing', 'unknown', 'committed', 'released')),
           created_at INTEGER NOT NULL,
           updated_at INTEGER NOT NULL
         )`);
@@ -138,8 +138,9 @@ export class VicharUsage extends DurableObject {
    * different credit amount is rejected.
    */
   async reserveImageCredits(operationId: string, credits: number, nowMs = Date.now()): Promise<{
-    reserved: boolean; status: "reserved" | "committed" | "released" | "insufficient" | "missing_license" | "operation_conflict";
+    reserved: boolean; status: "reserved" | "processing" | "unknown" | "committed" | "released" | "insufficient" | "missing_license" | "operation_conflict";
     balance: number | null;
+    created: boolean;
   }> {
     if (!operationId.trim() || operationId.length > 200) throw new Error("operationId must be 1–200 characters.");
     if (!Number.isSafeInteger(credits) || credits <= 0) throw new Error("credits must be a positive safe integer.");
@@ -148,9 +149,9 @@ export class VicharUsage extends DurableObject {
         "SELECT credits, status FROM image_credit_reservations WHERE operation_id = ?", operationId,
       ).toArray()[0];
       if (existing) {
-        if (existing.credits !== credits) return { reserved: false, status: "operation_conflict" as const, balance: this.getLicense()?.balance ?? null };
-        const status = existing.status as "reserved" | "committed" | "released";
-        return { reserved: status === "reserved", status, balance: this.getLicense()?.balance ?? null };
+        if (existing.credits !== credits) return { reserved: false, status: "operation_conflict" as const, balance: this.getLicense()?.balance ?? null, created: false };
+        const status = existing.status as "reserved" | "processing" | "unknown" | "committed" | "released";
+        return { reserved: status === "reserved", status, balance: this.getLicense()?.balance ?? null, created: false };
       }
       const updated = this.ctx.storage.sql.exec<{ balance: number }>(
         "UPDATE licenses SET balance = balance - ?, updated_at = ? WHERE id = 1 AND balance >= ? RETURNING balance",
@@ -158,17 +159,52 @@ export class VicharUsage extends DurableObject {
       ).toArray()[0];
       if (!updated) {
         const license = this.getLicense();
-        return { reserved: false, status: license ? "insufficient" : "missing_license", balance: license?.balance ?? null };
+        return { reserved: false, status: license ? "insufficient" : "missing_license", balance: license?.balance ?? null, created: false };
       }
       this.ctx.storage.sql.exec(
         "INSERT INTO image_credit_reservations (operation_id, credits, status, created_at, updated_at) VALUES (?, ?, 'reserved', ?, ?)",
         operationId, credits, nowMs, nowMs,
       );
-      return { reserved: true, status: "reserved", balance: updated.balance };
+      return { reserved: true, status: "reserved", balance: updated.balance, created: true };
     });
   }
 
-  /** Commit a successful billable image operation. Safe to repeat. */
+  /** Claim the right to invoke the provider once. A replay must not call it again. */
+  async startImageGeneration(operationId: string, nowMs = Date.now()): Promise<{
+    started: boolean; status: "reserved" | "processing" | "unknown" | "committed" | "released" | "missing";
+  }> {
+    return this.ctx.storage.transactionSync(() => {
+      const row = this.ctx.storage.sql.exec<{ status: string }>(
+        "SELECT status FROM image_credit_reservations WHERE operation_id = ?", operationId,
+      ).toArray()[0];
+      if (!row) return { started: false, status: "missing" as const };
+      if (row.status !== "reserved") return { started: false, status: row.status as "processing" | "unknown" | "committed" | "released" };
+      this.ctx.storage.sql.exec(
+        "UPDATE image_credit_reservations SET status = 'processing', updated_at = ? WHERE operation_id = ? AND status = 'reserved'",
+        nowMs, operationId,
+      );
+      return { started: true, status: "processing" as const };
+    });
+  }
+
+  /** Mark an uncertain provider outcome. Unknown operations stay charged until reconciled. */
+  async markImageGenerationUnknown(operationId: string, nowMs = Date.now()): Promise<boolean> {
+    return this.ctx.storage.transactionSync(() => {
+      const row = this.ctx.storage.sql.exec<{ status: string }>(
+        "SELECT status FROM image_credit_reservations WHERE operation_id = ?", operationId,
+      ).toArray()[0];
+      if (!row) return false;
+      if (row.status === "unknown") return true;
+      if (row.status !== "processing") return false;
+      this.ctx.storage.sql.exec(
+        "UPDATE image_credit_reservations SET status = 'unknown', updated_at = ? WHERE operation_id = ? AND status = 'processing'",
+        nowMs, operationId,
+      );
+      return true;
+    });
+  }
+
+  /** Commit confirmed success, including a success confirmed during reconciliation. Safe to repeat. */
   async commitImageCredits(operationId: string, nowMs = Date.now()): Promise<boolean> {
     return this.ctx.storage.transactionSync(() => {
       const row = this.ctx.storage.sql.exec<{ status: string }>(
@@ -176,16 +212,16 @@ export class VicharUsage extends DurableObject {
       ).toArray()[0];
       if (!row) return false;
       if (row.status === "committed") return true;
-      if (row.status !== "reserved") return false;
+      if (row.status !== "processing" && row.status !== "unknown") return false;
       this.ctx.storage.sql.exec(
-        "UPDATE image_credit_reservations SET status = 'committed', updated_at = ? WHERE operation_id = ? AND status = 'reserved'",
+        "UPDATE image_credit_reservations SET status = 'committed', updated_at = ? WHERE operation_id = ? AND status IN ('processing', 'unknown')",
         nowMs, operationId,
       );
       return true;
     });
   }
 
-  /** Release a reservation after a confirmed pre-generation failure. Safe to repeat. */
+  /** Release only when failure is confirmed. Unknown provider outcomes must never be refunded automatically. */
   async releaseImageCredits(operationId: string, nowMs = Date.now()): Promise<{ released: boolean; balance: number | null }> {
     return this.ctx.storage.transactionSync(() => {
       const row = this.ctx.storage.sql.exec<{ credits: number; status: string }>(
@@ -193,14 +229,14 @@ export class VicharUsage extends DurableObject {
       ).toArray()[0];
       if (!row) return { released: false, balance: this.getLicense()?.balance ?? null };
       if (row.status === "released") return { released: true, balance: this.getLicense()?.balance ?? null };
-      if (row.status !== "reserved") return { released: false, balance: this.getLicense()?.balance ?? null };
+      if (row.status !== "reserved" && row.status !== "processing") return { released: false, balance: this.getLicense()?.balance ?? null };
       const updated = this.ctx.storage.sql.exec<{ balance: number }>(
         "UPDATE licenses SET balance = balance + ?, updated_at = ? WHERE id = 1 RETURNING balance",
         row.credits, nowMs,
       ).toArray()[0];
       if (!updated) return { released: false, balance: null };
       this.ctx.storage.sql.exec(
-        "UPDATE image_credit_reservations SET status = 'released', updated_at = ? WHERE operation_id = ? AND status = 'reserved'",
+        "UPDATE image_credit_reservations SET status = 'released', updated_at = ? WHERE operation_id = ? AND status IN ('reserved', 'processing')",
         nowMs, operationId,
       );
       return { released: true, balance: updated.balance };
