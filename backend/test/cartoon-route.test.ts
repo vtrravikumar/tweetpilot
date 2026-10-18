@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import { cartoonGenerateRoute } from "../src/routes/generateCartoon";
 import { hashLicenseKey } from "../src/usage/licenseKeys";
 import { VicharUsage } from "../src/usage/durableObject";
+import { issueVicharWebToken } from "../src/webAuth";
 
 const licenseKey = "vichar_" + crypto.randomUUID().replace(/-/g, "").padEnd(43, "a").slice(0, 43);
 
@@ -61,5 +62,39 @@ describe("cartoon generation route", () => {
     });
     // A definitive provider failure refunds the reservation to the shared wallet.
     expect((await licenseStub.getLicense())?.balance).toBe(17);
+  });
+
+  it("supports a first-party owner web session with a separate daily test allowance", async () => {
+    const secret = "local-test-web-secret";
+    const token = await issueVicharWebToken(secret);
+    const testEnv = {
+      ...env,
+      VICHAR_CARTOON_ENABLED: "true",
+      VICHAR_CARTOON_OWNER_DAILY_LIMIT: "2",
+      VICHAR_CARTOON_BURST_PER_MINUTE: "2",
+      VICHAR_WEB_SECRET: secret,
+      VICHAR_OWNER_LICENSE_KEY: licenseKey,
+      OPENAI_IMAGE_API_KEY: "",
+    } as Env;
+
+    const response = await cartoonGenerateRoute.handler(
+      new Request("https://api.example/v1/cartoon/generate", {
+        method: "POST",
+        headers: {
+          origin: "https://vtrrk.in",
+          authorization: "Bearer " + token,
+          "content-type": "application/json",
+          "idempotency-key": "owner-web-test-1",
+        },
+        body: JSON.stringify({ thoughtText: "A thought about bureaucracy." }),
+      }),
+      testEnv,
+      {} as ExecutionContext,
+    );
+
+    // Empty image credentials force a local, non-networking failure after auth,
+    // allowance enforcement, and canonical-reference verification.
+    expect(response.status).toBe(502);
+    expect(await response.json()).toMatchObject({ error: { code: "cartoon_generation_failed" } });
   });
 });
