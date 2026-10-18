@@ -32,7 +32,8 @@
       "type": "Data",
       "globs": [
         "src/cartoon/assets/*.png"
-      ]
+      ],
+      "fallthrough": true
     }
   ]
 }
