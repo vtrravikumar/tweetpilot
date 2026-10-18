@@ -1,6 +1,6 @@
 # Vichar Cartoon — Implementation Plan
 
-**Status:** Draft implementation in progress; not routed or deployed  
+**Status:** Draft implementation in progress; route registered but disabled by default; not deployed  
 **Parent design:** [Vichar Cartoon API Design](./VICHAR-CARTOON-API-DESIGN.md)  
 **Initial provider:** OpenAI image generation  
 **Owner testing policy:** Unlimited text remains separate; cartoon generation is subject to a controlled owner-only testing allowance  
@@ -26,11 +26,12 @@ The first provider-adapter slice now exists on the draft implementation branch:
 - `backend/src/cartoon/errors.ts` normalizes failures without exposing upstream response bodies or secrets and labels whether the provider outcome is definitive or unknown.
 - `backend/test/cartoon-image-provider.test.ts` covers request construction, missing credentials, provider errors, timeout classification, malformed image responses, PNG-header validation, and input validation.
 - `backend/src/cartoon/generateCartoon.ts` implements a route-independent workflow for credit reservation, one-time provider claim, commit, definitive-failure settlement, and unknown outcomes.
+- `backend/src/routes/generateCartoon.ts` registers `POST /v1/cartoon/generate` behind `VICHAR_CARTOON_ENABLED=true` and a positive `VICHAR_CARTOON_CREDIT_COST`; both are absent by default. It requires a valid license key and a separate image-credit balance, an idempotency key, and returns PNG bytes directly. Owner allowance and generated-image persistence/URL delivery are not implemented yet.
 - `backend/test/cartoon-workflow.test.ts` tests that workflow with fake provider/ledger dependencies.
 - `backend/src/cartoon/assets/ravi-editorial-v1.png` contains the approved 1536 × 1024 reference board; its SHA-256 is recorded in `docs/character-references/README.md`.
 - `backend/wrangler.jsonc` marks PNG files under the cartoon asset directory as binary `Data` modules, and `backend/src/cartoon/characterReferenceAsset.ts` defines the canonical asset loader. The loader verifies the approved checksum and returns a defensive copy. **Packaging caveat:** the loader is not yet imported by the Worker route/entry point, so tree-shaking omits it from the current dry-run bundle. The current dry run therefore does not yet prove runtime asset availability; verify again when the cartoon route imports this loader.
 - `backend/test/character-reference.test.ts` covers missing, invalid and mismatched assets; `backend/test/cartoon-reference-asset.test.ts` verifies the actual bundled file and checksum.
-- The adapter and workflow are not registered in the router. No real provider request has been made.
+- The route is registered in the router but remains unavailable unless explicitly enabled with staging-only variables. No real provider request has been made.
 
 These changes are on the draft branch only. Run the focused tests, full test suite, typecheck and a Wrangler dry-run locally before treating the bundle as verified. No deployment is part of this step.
 
@@ -134,7 +135,7 @@ Requirements:
 3. Concurrent requests cannot reserve more than the available image balance.
 4. A retry with the same idempotency key cannot reserve or invoke the provider twice; a mismatched amount returns an explicit conflict result.
 5. A timeout with unknown upstream outcome is not immediately treated as a guaranteed free failure. Reconcile outcome where possible; otherwise apply a documented conservative policy.
-6. Text credits and image credits remain separate. A combined workflow preflights all required eligibility and credit conditions before the first billable provider call.
+6. Text credits and image credits remain separate. The Durable Object now has an independent `image_balance`; legacy text balances and payment fulfilment are unchanged. A combined workflow preflights all required eligibility and credit conditions before the first billable provider call.
 7. The owner test allowance is a separate namespace/ledger and cannot accidentally consume customer credits.
 8. Every adjustment is auditable, and the balance cannot become negative.
 9. Payment fulfilment remains unchanged and exactly-once.
@@ -186,12 +187,13 @@ Avoid a broad migration to an entirely new billing subsystem. Add the smallest s
 ## 8. Release gates
 
 - [x] Canonical reference pack is approved and versioned; binary is committed on the draft branch and checksum is documented.
-- [ ] Once the cartoon route imports the canonical loader, verify the PNG is present in the effective Worker bundle and the loader works in a Worker-runtime test; a dry run that tree-shakes the unused loader does not satisfy this gate.
+- [x] The registered cartoon route imports the canonical loader; a Worker-runtime route test reaches the provider workflow only after the canonical PNG passes its checksum validation.
+- [ ] Confirm the generated Worker bundle includes the approved PNG and rerun the Wrangler dry run after local tests.
 - [ ] OpenAI model/API path is verified against current official documentation.
 - [ ] Cost measurement includes prompt and reference-image input plus generated image output.
 - [ ] Owner test allowance is separate from text and customer credit balances.
 - [ ] Staging-only feature gate and kill switch are tested.
-- [ ] Durable Object reservation/commit/release operations are atomic and idempotent.
+- [ ] Durable Object reservation/commit/release operations are atomic and idempotent, including the new independent image balance (run the full local suite before marking complete).
 - [ ] Concurrent requests cannot overspend balances or allowances.
 - [ ] Ambiguous provider timeouts have a documented reconciliation policy.
 - [ ] CI tests use fakes and make no real provider calls.
