@@ -15,7 +15,7 @@ describe("cartoon generation route", () => {
         headers: { authorization: "Bearer " + licenseKey, "content-type": "application/json" },
         body: JSON.stringify({ thoughtText: "A thought." }),
       }),
-      env,
+      { ...env, VICHAR_CARTOON_ENABLED: "false" } as Env,
       {} as ExecutionContext,
     );
     expect(response.status).toBe(404);
