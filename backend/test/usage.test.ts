@@ -79,4 +79,63 @@ describe("VicharUsage Durable Object", () => {
     expect(await stub.consumeCredit()).toEqual({ consumed: false, balance: null });
     expect(await stub.getLicense()).toBeNull();
   });
+
+  it("reserves image credits once for an idempotent operation ID", async () => {
+    const stub = env.VICHAR_USAGE.getByName("image-reserve-idempotent");
+    await stub.createLicense(10, 1_000);
+    expect(await stub.reserveImageCredits("op-1", 4, 2_000)).toEqual({
+      reserved: true, status: "reserved", balance: 6,
+    });
+    // A retry must not deduct the same reservation twice.
+    expect(await stub.reserveImageCredits("op-1", 4, 3_000)).toEqual({
+      reserved: true, status: "reserved", balance: 6,
+    });
+    await expect(stub.reserveImageCredits("op-1", 5, 4_000)).rejects.toThrow(/different credit amount/);
+    expect((await stub.getLicense())?.balance).toBe(6);
+  });
+
+  it("does not reserve image credits without enough balance or a license", async () => {
+    const empty = env.VICHAR_USAGE.getByName("image-reserve-insufficient");
+    await empty.createLicense(3, 1_000);
+    expect(await empty.reserveImageCredits("op-too-large", 4, 2_000)).toEqual({
+      reserved: false, status: "insufficient", balance: 3,
+    });
+    const missing = env.VICHAR_USAGE.getByName("image-reserve-missing-license");
+    expect(await missing.reserveImageCredits("op-no-license", 1, 2_000)).toEqual({
+      reserved: false, status: "missing_license", balance: null,
+    });
+  });
+
+  it("releases reserved image credits once after a confirmed failure", async () => {
+    const stub = env.VICHAR_USAGE.getByName("image-reserve-release");
+    await stub.createLicense(8, 1_000);
+    await stub.reserveImageCredits("op-release", 5, 2_000);
+    expect(await stub.releaseImageCredits("op-release", 3_000)).toEqual({ released: true, balance: 8 });
+    // Repeating release cannot refund twice.
+    expect(await stub.releaseImageCredits("op-release", 4_000)).toEqual({ released: true, balance: 8 });
+    expect(await stub.reserveImageCredits("op-release", 5, 5_000)).toEqual({
+      reserved: false, status: "released", balance: 8,
+    });
+  });
+
+  it("commits successful image credits and prevents a later release", async () => {
+    const stub = env.VICHAR_USAGE.getByName("image-reserve-commit");
+    await stub.createLicense(8, 1_000);
+    await stub.reserveImageCredits("op-commit", 5, 2_000);
+    expect(await stub.commitImageCredits("op-commit", 3_000)).toBe(true);
+    expect(await stub.commitImageCredits("op-commit", 4_000)).toBe(true);
+    expect(await stub.releaseImageCredits("op-commit", 5_000)).toEqual({ released: false, balance: 3 });
+    expect((await stub.getLicense())?.balance).toBe(3);
+  });
+
+  it("does not overspend when image reservations race", async () => {
+    const stub = env.VICHAR_USAGE.getByName("image-reserve-race");
+    await stub.createLicense(5, 1_000);
+    const results = await Promise.all([
+      stub.reserveImageCredits("race-a", 4, 2_000),
+      stub.reserveImageCredits("race-b", 4, 2_000),
+    ]);
+    expect(results.filter((result) => result.reserved)).toHaveLength(1);
+    expect((await stub.getLicense())?.balance).toBe(1);
+  });
 });
