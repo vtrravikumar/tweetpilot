@@ -27,10 +27,12 @@ The first provider-adapter slice now exists on the draft implementation branch:
 - `backend/test/cartoon-image-provider.test.ts` covers request construction, missing credentials, provider errors, timeout classification, malformed image responses, PNG-header validation, and input validation.
 - `backend/src/cartoon/generateCartoon.ts` implements a route-independent workflow for credit reservation, one-time provider claim, commit, definitive-failure settlement, and unknown outcomes.
 - `backend/test/cartoon-workflow.test.ts` tests that workflow with fake provider/ledger dependencies.
-- `docs/character-references/README.md` records the approved working reference version `ravi-editorial-v1`. The actual binary image has not yet been committed.
+- `backend/src/cartoon/assets/ravi-editorial-v1.png` contains the approved 1536 × 1024 reference board; its SHA-256 is recorded in `docs/character-references/README.md`.
+- `backend/wrangler.jsonc` marks PNG files under the cartoon asset directory as binary `Data` modules, and `backend/src/cartoon/characterReferenceAsset.ts` loads the statically bundled asset. The loader verifies the approved checksum and returns a defensive copy.
+- `backend/test/character-reference.test.ts` covers missing, invalid and mismatched assets; `backend/test/cartoon-reference-asset.test.ts` verifies the actual bundled file and checksum.
 - The adapter and workflow are not registered in the router. No real provider request has been made.
 
-These changes are on the draft branch only. Local test/typecheck validation is required before treating this checkpoint as verified.
+These changes are on the draft branch only. Run the focused tests, full test suite, typecheck and a Wrangler dry-run locally before treating the bundle as verified. No deployment is part of this step.
 
 
 Use the OpenAI Images API for the first experiment, with reference-image editing/conditioning as supported by the selected model and endpoint. Confirm the current API contract and model support during implementation rather than hard-coding an unverified model or assuming reference-image fidelity.
@@ -142,7 +144,7 @@ Avoid a broad migration to an entirely new billing subsystem. Add the smallest s
 
 ## 7. Proposed delivery phases
 
-### Phase A — Plan and fixtures (this milestone)
+### Phase A — Plan and fixtures (completed checkpoint)
 
 - Record provider choice and owner testing policy.
 - Define the image-provider interface and usage metadata needed.
@@ -157,7 +159,7 @@ Avoid a broad migration to an entirely new billing subsystem. Add the smallest s
 - Prove idempotency and concurrency behaviour with the Cloudflare Workers Vitest pool.
 - Preserve all existing credit/payment tests and behaviour.
 
-### Phase C — Provider adapter and staging experiment
+### Phase C — Provider adapter and staging experiment (adapter drafted; real experiment not approved)
 
 - Implement the OpenAI image adapter behind the interface.
 - Use only server-side credentials.
@@ -167,6 +169,7 @@ Avoid a broad migration to an entirely new billing subsystem. Add the smallest s
 
 ### Phase D — API and client integration
 
+- Choose the public endpoint version after reviewing the existing route contracts. Additive, backward-compatible capabilities may remain under `/v1/`; breaking request/response, auth, entitlement or error-contract changes require a new versioned route (for example `/v2/`). Document the decision before implementing the route.
 - Add the dedicated cartoon route and opt-in combined flow only after provider and credit lifecycle tests pass.
 - Preserve the existing text-only response contract.
 - Enforce owner test allowance separately from paid entitlement.
@@ -182,7 +185,8 @@ Avoid a broad migration to an entirely new billing subsystem. Add the smallest s
 
 ## 8. Release gates
 
-- [ ] Canonical reference pack is approved and versioned.
+- [x] Canonical reference pack is approved and versioned; binary is committed on the draft branch and checksum is documented.
+- [ ] Bundled asset import passes local tests and Wrangler dry-run.
 - [ ] OpenAI model/API path is verified against current official documentation.
 - [ ] Cost measurement includes prompt and reference-image input plus generated image output.
 - [ ] Owner test allowance is separate from text and customer credit balances.
