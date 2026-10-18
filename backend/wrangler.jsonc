@@ -22,7 +22,17 @@
   "migrations": [
     {
       "tag": "v1",
-      "new_sqlite_classes": ["VicharUsage"]
+      "new_sqlite_classes": [
+        "VicharUsage"
+      ]
+    }
+  ],
+  "rules": [
+    {
+      "type": "Data",
+      "globs": [
+        "src/cartoon/assets/*.png"
+      ]
     }
   ]
 }
