@@ -1,31 +1,30 @@
 /**
  * Server-side configuration read from the Worker environment.
  *
- * Nothing here is a Cloudflare resource binding. All values are plain
- * secrets/variables supplied outside source control:
+ * Secrets are supplied outside source control:
+ *   OPENAI_TEXT_API_KEY        preferred text-generation key; falls back to
+ *                              OPENAI_API_KEY during the migration.
+ *   OPENAI_API_KEY             legacy text-generation key (keep working until
+ *                              the secret is deliberately migrated).
+ *   OPENAI_IMAGE_API_KEY       image-generation key; no fallback to text key.
+ *   OPENAI_MODEL               optional text model override.
+ *   OPENAI_REASONING_EFFORT    optional reasoning-effort override.
+ *   VTRRK_LINKS                optional JSON link configuration.
+ *   CORS_ALLOWED_ORIGINS       optional comma-separated allowed browser origins.
+ *   TWEETPILOT_GENERATOR       optional; "placeholder" selects the offline stub.
+ *   VICHAR_DAILY_LIMIT         optional positive integer; default 10.
+ *   VICHAR_BURST_PER_MINUTE    optional positive integer; default 3.
+ *   VICHAR_OWNER_LICENSE_KEY   secret; permanent owner entitlement key.
  *
- *   OPENAI_API_KEY            secret. Local dev: backend/.dev.vars (git-ignored).
- *                             Production: configured as a Wrangler secret.
- *   OPENAI_MODEL              optional. Overrides the default model.
- *   OPENAI_REASONING_EFFORT   optional. Overrides the default ("none"); the value
- *                             "omit" drops the field for non-reasoning models.
- *   VTRRK_LINKS               optional JSON, e.g. {"photography":"https://..."}.
- *   CORS_ALLOWED_ORIGINS      optional comma-separated browser origins allowed
- *                             to call the API, e.g. chrome-extension://<id>.
- *   TWEETPILOT_GENERATOR      optional. "placeholder" selects the offline stub
- *                             (used by the test suite); anything else = OpenAI.
- *   VICHAR_DAILY_LIMIT        optional positive integer; default 10.
- *   VICHAR_BURST_PER_MINUTE   optional positive integer; default 3.\n *   VICHAR_OWNER_LICENSE_KEY  secret; permanent owner entitlement key, never commit it.
+ * VICHAR_WEB_SECRET is used by the web-session token and anonymous web usage
+ * guard; it is intentionally not part of TweetPilotConfig.
  *
- * VICHAR_WEB_SECRET is a secret used by the web-session token and the
- * anonymous web usage guard; it is intentionally not part of TweetPilotConfig.
-
- *
- * Values are read defensively (strings only) because Wrangler's generated Env
- * type only lists keys it can see, and secrets are not always visible to it.
+ * Values are read defensively because Worker secrets may not appear in the
+ * generated Env type. This module never logs or exposes secret values.
  */
 export interface TweetPilotConfig {
   openaiApiKey: string | undefined;
+  openaiImageApiKey: string | undefined;
   openaiModel: string | undefined;
   openaiReasoningEffort: string | undefined;
   vtrrkLinks: string | undefined;
@@ -47,7 +46,10 @@ export function readConfig(env: Env): TweetPilotConfig {
     return typeof value === "string" && value.trim() !== "" ? value.trim() : undefined;
   };
   return {
-    openaiApiKey: str("OPENAI_API_KEY"),
+    // New name takes precedence, while the legacy key preserves existing deployments.
+    openaiApiKey: str("OPENAI_TEXT_API_KEY") ?? str("OPENAI_API_KEY"),
+    // Deliberately no fallback to either text key.
+    openaiImageApiKey: str("OPENAI_IMAGE_API_KEY"),
     openaiModel: str("OPENAI_MODEL"),
     openaiReasoningEffort: str("OPENAI_REASONING_EFFORT"),
     vtrrkLinks: str("VTRRK_LINKS"),
