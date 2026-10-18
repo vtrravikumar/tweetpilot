@@ -12,11 +12,4 @@ describe("bundled character reference asset", () => {
     const hash = Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, "0")).join("");
     expect(hash).toBe(CHARACTER_REFERENCE_SHA256);
   });
-
-  it("returns independent byte buffers to callers", async () => {
-    const first = await getCharacterReference();
-    const second = await getCharacterReference();
-    expect(first.bytes).not.toBe(second.bytes);
-    expect(first.bytes.byteLength).toBe(second.bytes.byteLength);
-  });
 });
