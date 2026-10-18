@@ -120,6 +120,19 @@ describe("VicharUsage Durable Object", () => {
     });
   });
 
+  it("releases a processing reservation only through confirmed provider failure", async () => {
+    const stub = env.VICHAR_USAGE.getByName("image-reserve-confirmed-failure");
+    await stub.createLicense(8, 1_000);
+    await stub.reserveImageCredits("op-failed", 5, 2_000);
+    await stub.startImageGeneration("op-failed", 2_500);
+    // Generic release is only for work that never reached the provider.
+    expect(await stub.releaseImageCredits("op-failed", 3_000)).toEqual({ released: false, balance: 3 });
+    // A definitive provider failure uses its explicit settlement operation.
+    expect(await stub.failImageGeneration("op-failed", 4_000)).toEqual({ released: true, balance: 8 });
+    expect(await stub.failImageGeneration("op-failed", 5_000)).toEqual({ released: true, balance: 8 });
+    expect((await stub.getLicense())?.balance).toBe(8);
+  });
+
   it("commits successful image credits and prevents a later release", async () => {
     const stub = env.VICHAR_USAGE.getByName("image-reserve-commit");
     await stub.createLicense(8, 1_000);
