@@ -116,7 +116,7 @@ describe("VicharUsage Durable Object", () => {
     // Repeating release cannot refund twice.
     expect(await stub.releaseImageCredits("op-release", 4_000)).toEqual({ released: true, balance: 8 });
     expect(await stub.reserveImageCredits("op-release", 5, 5_000)).toEqual({
-      reserved: false, status: "released", balance: 8,
+      reserved: false, status: "released", balance: 8, created: false,
     });
   });
 
