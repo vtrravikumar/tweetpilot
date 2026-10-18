@@ -30,7 +30,6 @@ export class VicharUsage extends DurableObject {
           created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL
         )`);
       try { this.ctx.storage.sql.exec("ALTER TABLE licenses ADD COLUMN attribution_required INTEGER NOT NULL DEFAULT 0"); } catch { /* Already exists. */ }
-      try { this.ctx.storage.sql.exec("ALTER TABLE licenses ADD COLUMN image_balance INTEGER NOT NULL DEFAULT 0 CHECK (image_balance >= 0)"); } catch { /* Already exists. */ }
       this.ctx.storage.sql.exec(`
         CREATE TABLE IF NOT EXISTS trial_claims (
           id INTEGER PRIMARY KEY CHECK (id = 1), day TEXT NOT NULL,
@@ -133,27 +132,10 @@ export class VicharUsage extends DurableObject {
     return result;
   }
 
-  /** Read the independent image-credit balance. Text credits are not included. */
-  getImageCreditBalance(): number | null {
-    const row = this.ctx.storage.sql.exec<{ image_balance: number }>(
-      "SELECT image_balance FROM licenses WHERE id = 1",
-    ).toArray()[0];
-    return row?.image_balance ?? null;
-  }
-
-  /** Add image credits independently from text credits; no implicit conversion is allowed. */
-  async addImageCredits(amount: number, nowMs = Date.now()): Promise<number | null> {
-    if (!Number.isSafeInteger(amount) || amount <= 0) throw new Error("amount must be a positive safe integer.");
-    const updated = this.ctx.storage.sql.exec<{ image_balance: number }>(
-      "UPDATE licenses SET image_balance = image_balance + ?, updated_at = ? WHERE id = 1 RETURNING image_balance",
-      amount, nowMs,
-    ).toArray()[0];
-    return updated?.image_balance ?? null;
-  }
-
   /**
-   * Atomically reserve image credits from image_balance only. Text balance is
-   * never read or modified by this lifecycle.
+   * Atomically reserve credits from the single license balance. The caller
+   * supplies the configured cost (for example, 15 credits per image).
+   * Repeating the same operation ID is idempotent.
    */
   async reserveImageCredits(operationId: string, credits: number, nowMs = Date.now()): Promise<{
     reserved: boolean; status: "reserved" | "processing" | "unknown" | "committed" | "released" | "insufficient" | "missing_license" | "operation_conflict";
@@ -167,23 +149,23 @@ export class VicharUsage extends DurableObject {
         "SELECT credits, status FROM image_credit_reservations WHERE operation_id = ?", operationId,
       ).toArray()[0];
       if (existing) {
-        if (existing.credits !== credits) return { reserved: false, status: "operation_conflict" as const, balance: this.getImageCreditBalance(), created: false };
+        if (existing.credits !== credits) return { reserved: false, status: "operation_conflict" as const, balance: this.getLicense()?.balance ?? null, created: false };
         const status = existing.status as "reserved" | "processing" | "unknown" | "committed" | "released";
-        return { reserved: status === "reserved", status, balance: this.getImageCreditBalance(), created: false };
+        return { reserved: status === "reserved", status, balance: this.getLicense()?.balance ?? null, created: false };
       }
-      const updated = this.ctx.storage.sql.exec<{ image_balance: number }>(
-        "UPDATE licenses SET image_balance = image_balance - ?, updated_at = ? WHERE id = 1 AND image_balance >= ? RETURNING image_balance",
+      const updated = this.ctx.storage.sql.exec<{ balance: number }>(
+        "UPDATE licenses SET balance = balance - ?, updated_at = ? WHERE id = 1 AND balance >= ? RETURNING balance",
         credits, nowMs, credits,
       ).toArray()[0];
       if (!updated) {
-        const imageBalance = this.getImageCreditBalance();
-        return { reserved: false, status: imageBalance === null ? "missing_license" as const : "insufficient" as const, balance: imageBalance, created: false };
+        const license = this.getLicense();
+        return { reserved: false, status: license ? "insufficient" as const : "missing_license" as const, balance: license?.balance ?? null, created: false };
       }
       this.ctx.storage.sql.exec(
         "INSERT INTO image_credit_reservations (operation_id, credits, status, created_at, updated_at) VALUES (?, ?, 'reserved', ?, ?)",
         operationId, credits, nowMs, nowMs,
       );
-      return { reserved: true, status: "reserved" as const, balance: updated.image_balance, created: true };
+      return { reserved: true, status: "reserved" as const, balance: updated.balance, created: true };
     });
   }
 
@@ -245,11 +227,11 @@ export class VicharUsage extends DurableObject {
       const row = this.ctx.storage.sql.exec<{ credits: number; status: string }>(
         "SELECT credits, status FROM image_credit_reservations WHERE operation_id = ?", operationId,
       ).toArray()[0];
-      if (!row) return { released: false, balance: this.getImageCreditBalance() };
+      if (!row) return { released: false, balance: this.getLicense()?.balance ?? null };
       if (row.status === "released") return { released: true, balance: this.getImageCreditBalance() };
       if (row.status !== "reserved") return { released: false, balance: this.getImageCreditBalance() };
-      const updated = this.ctx.storage.sql.exec<{ image_balance: number }>(
-        "UPDATE licenses SET image_balance = image_balance + ?, updated_at = ? WHERE id = 1 RETURNING image_balance",
+      const updated = this.ctx.storage.sql.exec<{ balance: number }>(
+        "UPDATE licenses SET balance = balance + ?, updated_at = ? WHERE id = 1 RETURNING balance",
         row.credits, nowMs,
       ).toArray()[0];
       if (!updated) return { released: false, balance: null };
@@ -257,7 +239,7 @@ export class VicharUsage extends DurableObject {
         "UPDATE image_credit_reservations SET status = 'released', updated_at = ? WHERE operation_id = ? AND status = 'reserved'",
         nowMs, operationId,
       );
-      return { released: true, balance: updated.image_balance };
+      return { released: true, balance: updated.balance };
     });
   }
 
