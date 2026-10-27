@@ -79,6 +79,7 @@ export function createGenerateTweetRoute(
           try {
             const generator = typeof source === "function" ? source(env) : source;
             const result = await generator.generate({ ...validation.value, includeAttribution: false });
+            await recordSuccessfulGeneration(env);
             const headers = { "x-vichar-access": "owner", "x-vichar-remaining": "unlimited" };
             const newsMetadata = validation.value.useNews ? { mode: result.mode ?? "normal_fallback", ...(result.mode === "normal_fallback" ? { fallbackReason: result.fallbackReason ?? "news_unavailable" } : {}), ...(result.mode === "news" && result.sources ? { sources: result.sources } : {}) } : {};
             const payload = options.includeStyle ? { tweet: result.tweet, style: validation.value.style ?? null, ...newsMetadata } : { tweet: result.tweet, ...newsMetadata };
@@ -104,6 +105,7 @@ export function createGenerateTweetRoute(
         try {
           const generator = typeof source === "function" ? source(env) : source;
           const result = await generator.generate({ ...validation.value, includeAttribution: license.attributionRequired });
+          await recordSuccessfulGeneration(env);
           const headers = { "x-vichar-remaining": String(reservation.balance ?? 0) };
           const newsMetadata = validation.value.useNews
             ? { mode: result.mode ?? "normal_fallback", ...(result.mode === "normal_fallback" ? { fallbackReason: result.fallbackReason ?? "news_unavailable" } : {}), ...(result.mode === "news" && result.sources ? { sources: result.sources } : {}) }
@@ -136,6 +138,7 @@ export function createGenerateTweetRoute(
       try {
         const generator = typeof source === "function" ? source(env) : source;
         const result = await generator.generate(validation.value);
+        await recordSuccessfulGeneration(env);
         const headers: Record<string, string> = {};
         if (decision.remaining !== undefined) headers["x-vichar-remaining"] = String(decision.remaining);
         if (decision.dailyLimit !== undefined) headers["x-vichar-daily-limit"] = String(decision.dailyLimit);
@@ -172,5 +175,18 @@ function generationErrorResponse(err: GenerationError): Response {
       return errorResponse(502, "invalid_provider_response", "The generation service returned an unusable response. Please try again.");
     case "upstream_error":
       return errorResponse(502, "upstream_error", "The generation service failed. Please try again.");
+  }
+}
+
+
+/** Best-effort global count: stats trouble must never turn a successful generation into a failure. */
+async function recordSuccessfulGeneration(env: Env): Promise<void> {
+  const namespace = (env as unknown as { VICHAR_USAGE?: DurableObjectNamespace<VicharUsage> }).VICHAR_USAGE;
+  if (!namespace) return;
+  try {
+    const globalStats = namespace.get(namespace.idFromName("global-vichar-stats"));
+    await globalStats.recordGlobalGeneration();
+  } catch {
+    // Keep generation available even if the non-critical public counter is unavailable.
   }
 }

@@ -41,6 +41,12 @@ export class VicharUsage extends DurableObject {
           amount INTEGER NOT NULL CHECK (amount > 0), status TEXT NOT NULL DEFAULT 'created',
           created_at INTEGER NOT NULL, paid_at INTEGER
         )`);
+      this.ctx.storage.sql.exec(`
+        CREATE TABLE IF NOT EXISTS global_stats (
+          id INTEGER PRIMARY KEY CHECK (id = 1),
+          generation_count INTEGER NOT NULL CHECK (generation_count >= 0),
+          updated_at INTEGER NOT NULL
+        )`);
     });
   }
 
@@ -127,6 +133,26 @@ export class VicharUsage extends DurableObject {
   async consumeCredit(nowMs = Date.now()): Promise<{ consumed: boolean; balance: number | null }> {
     const updated = this.ctx.storage.sql.exec<{ balance: number }>("UPDATE licenses SET balance = balance - 1, updated_at = ? WHERE id = 1 AND balance > 0 RETURNING balance", nowMs).toArray()[0];
     return updated ? { consumed: true, balance: updated.balance } : { consumed: false, balance: this.getLicense()?.balance ?? null };
+  }
+
+  /** Read the shared generation total, initializing the public launch baseline once. */
+  getGlobalGenerationCount(baseline = 500): number {
+    return this.ctx.storage.transactionSync(() => {
+      this.ctx.storage.sql.exec("INSERT INTO global_stats (id, generation_count, updated_at) VALUES (1, ?, ?) ON CONFLICT(id) DO NOTHING", baseline, Date.now());
+      const row = this.ctx.storage.sql.exec<{ generation_count: number }>("SELECT generation_count FROM global_stats WHERE id = 1").toArray()[0];
+      if (!row) throw new Error("Global Vichar statistics could not be initialized.");
+      return row.generation_count;
+    });
+  }
+
+  /** Atomically count one successful generation on the shared global Durable Object. */
+  recordGlobalGeneration(baseline = 500, nowMs = Date.now()): number {
+    return this.ctx.storage.transactionSync(() => {
+      this.ctx.storage.sql.exec("INSERT INTO global_stats (id, generation_count, updated_at) VALUES (1, ?, ?) ON CONFLICT(id) DO NOTHING", baseline, nowMs);
+      const row = this.ctx.storage.sql.exec<{ generation_count: number }>("UPDATE global_stats SET generation_count = generation_count + 1, updated_at = ? WHERE id = 1 RETURNING generation_count", nowMs).toArray()[0];
+      if (!row) throw new Error("Global Vichar generation could not be recorded.");
+      return row.generation_count;
+    });
   }
 }
 
