@@ -123,6 +123,26 @@ describe("POST /v1/tweet/generate - success", () => {
   });
 });
 
+describe("POST /v1/tweet/generate - language validation", () => {
+  it.each(["en", "hi", "ta"])("accepts supported language %s", async (language) => {
+    const result = validateGenerateTweetRequest({ topic: "Photography", language });
+    expect(result.ok).toBe(true);
+    if (result.ok) expect(result.value.language).toBe(language);
+  });
+
+  it("defaults omitted language to English", () => {
+    const result = validateGenerateTweetRequest({ topic: "Photography" });
+    expect(result.ok).toBe(true);
+    if (result.ok) expect(result.value.language).toBe("en");
+  });
+
+  it.each(["fr", "", 123, null, true])("rejects unsupported language %j", (language) => {
+    const result = validateGenerateTweetRequest({ topic: "Photography", language });
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.message).toContain("language");
+  });
+});
+
 describe("POST /v1/tweet/generate - topic validation", () => {
   it("rejects a missing topic", async () => {
     await expectError(
