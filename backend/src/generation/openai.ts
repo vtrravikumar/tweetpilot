@@ -284,11 +284,21 @@ interface PromptParts {
 
 function buildPrompt({ input, maxLength, link, feedback, newsContext }: PromptParts): string {
   const language = input.language ?? "en";
-  const languageInstruction = language === "hi"
-    ? "Hindi (हिन्दी)"
-    : language === "ta"
-      ? "Tamil (தமிழ்)"
-      : "English";
+  const languageNames: Record<string, string> = {
+    en: "English",
+    hi: "Hindi (हिन्दी)",
+    ta: "Tamil (தமிழ்)",
+    es: "Spanish (Español)",
+    ja: "Japanese (日本語)",
+    "pt-BR": "Brazilian Portuguese (Português brasileiro)",
+    id: "Indonesian (Bahasa Indonesia)",
+    ar: "Arabic (العربية)",
+    fr: "French (Français)",
+    tr: "Turkish (Türkçe)",
+    ko: "Korean (한국어)",
+    de: "German (Deutsch)",
+  };
+  const languageInstruction = languageNames[language] ?? `the language identified by BCP 47 tag "${language}"`;
   const lines = [
     `Output language: ${languageInstruction}.`,
     language === "en"
