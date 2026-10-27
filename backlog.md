@@ -336,9 +336,10 @@ Extend `POST /v1/tweet/generate` with an optional `language` field. Supported va
 
 #### VICHAR-LANG-EXT-001 — Add language selection to the Chrome extension
 
-- Priority: P2
-- Status: Planned
+- Priority: P3
+- Status: Parked
 - Area: Chrome extension UI and API integration
 - Consumers: Chrome extension
+- Scheduling: Low priority; pick up when higher-priority work is clear.
 
-Add English, Hindi, and Tamil selection to the extension and send the selected `language` to the existing generation API. Preserve English as the default for older extension builds and keep the manual review/post workflow. Do not implement this item as part of VICHAR-LANG-001.
+Add English, Hindi, and Tamil selection to the extension and send the selected `language` to the existing generation API. Preserve English as the default for older extension builds and keep the manual review/post workflow. The backend already supports the optional `language` field; this is a deferred extension-only UI/integration change. Keep the Chrome extension unchanged until this item is explicitly resumed.
