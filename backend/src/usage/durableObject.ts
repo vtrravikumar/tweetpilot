@@ -46,7 +46,7 @@ export class VicharUsage extends DurableObject {
           id INTEGER PRIMARY KEY CHECK (id = 1),
           generation_count INTEGER NOT NULL CHECK (generation_count >= 0),
           updated_at INTEGER NOT NULL
-        `);
+        )`);
     });
   }
 
