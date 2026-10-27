@@ -58,7 +58,8 @@ export function validateGenerateTweetRequest(body: unknown): ValidationResult {
     return fail(`maxLength must be an integer of at least ${MIN_VICHAR_MAX_LENGTH} characters when supplied.`);
   }
 
-  const value: GenerateTweetInput = { topic: topic.trim(), language: language ?? "en" };
+  const value: GenerateTweetInput = { topic: topic.trim() };
+  if (language !== undefined) value.language = language;
   if (location.value !== undefined) value.location = location.value;
   if (style.value !== undefined) value.style = style.value;
   if (maxLength !== undefined) value.maxLength = maxLength;
