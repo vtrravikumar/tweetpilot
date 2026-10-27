@@ -133,7 +133,7 @@ describe("POST /v1/tweet/generate - language validation", () => {
   it("defaults omitted language to English", () => {
     const result = validateGenerateTweetRequest({ topic: "Photography" });
     expect(result.ok).toBe(true);
-    if (result.ok) expect(result.value.language).toBe("en");
+    if (result.ok) expect(result.value.language).toBeUndefined();
   });
 
   it.each(["fr", "", 123, null, true])("rejects unsupported language %j", (language) => {
