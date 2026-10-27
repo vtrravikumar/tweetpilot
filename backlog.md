@@ -326,11 +326,11 @@ The 48-hour threshold is the initial product default, subject to review after re
 ## VICHAR-LANG-001 — Generate Vichar directly in the requested language
 
 - Priority: P1
-- Status: Implemented on feature branch; CI and production deployment pending
+- Status: Done
 - Area: Backend/API generation contract
-- Consumers: Website
+- Consumers: Website and Chrome extension API compatibility
 
-Extend `POST /v1/tweet/generate` with an optional `language` field. Supported values are `en`, `hi`, and `ta`; omitted values default to `en`. Validate the allowlist and include concise language-specific instructions in the existing OpenAI generation prompt so the thought is composed directly in the requested language and native script. Do not call a translation API or add a second generation request. Preserve current model selection, output caps, attribution, authentication, usage/credit accounting, rate limiting, and News-mode behaviour. Test supported/unsupported values, English default compatibility, prompt language, and one-call generation.
+The existing `POST /v1/tweet/generate` optional `language` field now accepts valid BCP 47 language tags, canonicalizes tags such as `pt-br` to `pt-BR`, and instructs the model to compose directly in the requested language in one generation call. English remains the default when omitted. The change was merged in [PR #38](https://github.com/vtrravikumar/tweetpilot/pull/38); backend tests and type-check passed, and Ravi confirmed Cloudflare deployment. The website selector now includes additional languages. The Chrome extension remains unchanged until its separately tracked language-selector work is resumed.
 
 ### Deferred extension follow-up
 
@@ -343,3 +343,22 @@ Extend `POST /v1/tweet/generate` with an optional `language` field. Supported va
 - Scheduling: Low priority; pick up when higher-priority work is clear.
 
 Add English, Hindi, and Tamil selection to the extension and send the selected `language` to the existing generation API. Preserve English as the default for older extension builds and keep the manual review/post workflow. The backend already supports the optional `language` field; this is a deferred extension-only UI/integration change. Keep the Chrome extension unchanged until this item is explicitly resumed.
+
+
+## VICHAR-SOCIAL-001 — Explore multi-platform Vichar generation and assisted sharing
+
+- Priority: P4
+- Status: Parked
+- Area: Product discovery / shared generation contract
+- Consumers: Website (initial); Chrome extension impact to be assessed
+- Website counterpart: [vtrravikumar/vtrrk.in — VICHAR-WEB-006](https://github.com/vtrravikumar/vtrrk.in/blob/main/backlog.md)
+
+Explore making Vichar a thought-to-post companion for X, Facebook, and WhatsApp Status. Generate distinct platform-appropriate drafts from one original thought, with editable output and explicit user approval before sharing. Do not add autonomous posting.
+
+- Keep language selection based on standard BCP 47 tags and reuse the existing generation endpoint where possible; assess whether a platform/style field is needed before changing the API contract.
+- Facebook personal-profile posting is not assumed to be available through the official API. Assess official publishing for Facebook Pages separately, including Meta permissions and app review.
+- WhatsApp Status should initially use assisted sharing: text copy and optional portrait image-card generation followed by user-controlled publishing. Avoid unofficial automation.
+- Keep the website free and separate from extension licensing/credits. If extension support is later approved, document consumer scope and licensing implications.
+- Verify platform policies, current APIs, media requirements, and mobile/desktop sharing behaviour before implementation.
+
+This is a parked product idea, not approval to change the API or extension now. Coordinate implementation scope with the website item VICHAR-WEB-006.
