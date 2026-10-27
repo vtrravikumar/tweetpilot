@@ -340,9 +340,9 @@ The existing `POST /v1/tweet/generate` optional `language` field now accepts val
 - Status: Parked
 - Area: Chrome extension UI and API integration
 - Consumers: Chrome extension
-- Scheduling: Low priority; pick up when higher-priority work is clear.
+- Scheduling: Defer until the extension has a larger installed user base; review adoption/download numbers before scheduling. Agree on a practical activation threshold at that review rather than inventing one now.
 
-Add English, Hindi, and Tamil selection to the extension and send the selected `language` to the existing generation API. Preserve English as the default for older extension builds and keep the manual review/post workflow. The backend already supports the optional `language` field; this is a deferred extension-only UI/integration change. Keep the Chrome extension unchanged until this item is explicitly resumed.
+Add language selection to the extension and send the selected BCP 47 `language` tag to the existing generation API. Include the languages supported by the Vichar website where practical, preserve English as the default for existing users, and keep the manual review/post workflow. The backend now accepts valid BCP 47 tags; this is an extension-only UI/integration change. Because implementation requires coding, regression testing, packaging, and a Chrome Web Store submission/review cycle, keep the extension unchanged until the adoption-based decision to resume this item is explicit.
 
 
 ## VICHAR-SOCIAL-001 — Explore multi-platform Vichar generation and assisted sharing
