@@ -283,7 +283,19 @@ interface PromptParts {
 }
 
 function buildPrompt({ input, maxLength, link, feedback, newsContext }: PromptParts): string {
-  const lines = [`Topic: ${clip(input.topic)}`];
+  const language = input.language ?? "en";
+  const languageInstruction = language === "hi"
+    ? "Hindi (हिन्दी)"
+    : language === "ta"
+      ? "Tamil (தமிழ்)"
+      : "English";
+  const lines = [
+    `Output language: ${languageInstruction}.`,
+    language === "en"
+      ? "Compose the thought directly in natural English."
+      : `Compose the thought originally and naturally in ${languageInstruction}; do not write it in English first or translate an English draft. Use the native script.`,
+    `Topic: ${clip(input.topic)}`,
+  ];
   if (input.location) lines.push(`Location: ${clip(input.location)}`);
   if (input.style) {
     const style = clip(input.style).toLowerCase();

@@ -321,3 +321,24 @@ The 48-hour threshold is the initial product default, subject to review after re
 - Keep extension rate/burst limits independent of credits. Current production burst setting is 30 requests/minute; the free credit allowance remains 10 total generations. Rate-limit policy is shared/configured separately today, not yet license-aware. Paid credits do not imply unlimited request speed.
 - Credit expiry/refund/service-shutdown policies still need to be decided before live sales.
 - Keep generation telemetry privacy-preserving; do not log prompts, locations or generated posts as part of the financial ledger.
+
+
+## VICHAR-LANG-001 — Generate Vichar directly in the requested language
+
+- Priority: P1
+- Status: Implemented on feature branch; CI and production deployment pending
+- Area: Backend/API generation contract
+- Consumers: Website
+
+Extend `POST /v1/tweet/generate` with an optional `language` field. Supported values are `en`, `hi`, and `ta`; omitted values default to `en`. Validate the allowlist and include concise language-specific instructions in the existing OpenAI generation prompt so the thought is composed directly in the requested language and native script. Do not call a translation API or add a second generation request. Preserve current model selection, output caps, attribution, authentication, usage/credit accounting, rate limiting, and News-mode behaviour. Test supported/unsupported values, English default compatibility, prompt language, and one-call generation.
+
+### Deferred extension follow-up
+
+#### VICHAR-LANG-EXT-001 — Add language selection to the Chrome extension
+
+- Priority: P2
+- Status: Planned
+- Area: Chrome extension UI and API integration
+- Consumers: Chrome extension
+
+Add English, Hindi, and Tamil selection to the extension and send the selected `language` to the existing generation API. Preserve English as the default for older extension builds and keep the manual review/post workflow. Do not implement this item as part of VICHAR-LANG-001.

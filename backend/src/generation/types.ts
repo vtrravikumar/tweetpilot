@@ -11,6 +11,8 @@ export interface GenerateTweetInput {
   topic: string;
   /** Optional free-text context, not precise location tracking. */
   location?: string;
+  /** Requested output language. Defaults to English for backwards compatibility. */
+  language?: "en" | "hi" | "ta";
   /** Optional style hint, e.g. "thoughtful". News is a separate content-source option. */
   style?: string;
   /** Explicitly request recent-news-grounded generation. Omitted/false preserves normal generation. */

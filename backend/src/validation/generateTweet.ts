@@ -32,6 +32,11 @@ export function validateGenerateTweetRequest(body: unknown): ValidationResult {
   const location = optionalString(input, "location");
   if (!location.ok) return location;
 
+  const language = input.language;
+  if (language !== undefined && language !== "en" && language !== "hi" && language !== "ta") {
+    return fail("language must be one of: en, hi, ta.");
+  }
+
   const style = optionalString(input, "style");
   if (!style.ok) return style;
   if (style.value?.toLowerCase() === "news") {
@@ -54,6 +59,7 @@ export function validateGenerateTweetRequest(body: unknown): ValidationResult {
   }
 
   const value: GenerateTweetInput = { topic: topic.trim() };
+  if (language !== undefined) value.language = language;
   if (location.value !== undefined) value.location = location.value;
   if (style.value !== undefined) value.style = style.value;
   if (maxLength !== undefined) value.maxLength = maxLength;

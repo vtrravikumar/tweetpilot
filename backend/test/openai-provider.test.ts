@@ -62,6 +62,19 @@ describe("OpenAIProvider - interface and configuration", () => {
     expect(call.body.store).toBe(false);
   });
 
+  it.each([
+    ["hi", "Hindi (हिन्दी)"],
+    ["ta", "Tamil (தமிழ்)"],
+  ] as const)("asks the model to compose directly in %s without translation", async (language, label) => {
+    const fetchMock = queueFetch(openaiOk("தமிழ் அல்லது हिन्दी output"));
+    await provider(fetchMock).generate({ topic: "Life and observations", language });
+    const call = capture(fetchMock);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(String(call.body.input)).toContain(label);
+    expect(String(call.body.input)).toContain("do not write it in English first or translate an English draft");
+    expect(String(call.body.input)).toContain("Use the native script");
+  });
+
   it("keeps the API key only in the authorization header, never in the request body", async () => {
     const fetchMock = queueFetch(openaiOk("hi"));
     await provider(fetchMock).generate({
