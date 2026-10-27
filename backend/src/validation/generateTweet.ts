@@ -33,8 +33,17 @@ export function validateGenerateTweetRequest(body: unknown): ValidationResult {
   if (!location.ok) return location;
 
   const language = input.language;
-  if (language !== undefined && language !== "en" && language !== "hi" && language !== "ta") {
-    return fail("language must be one of: en, hi, ta.");
+  let normalizedLanguage: string | undefined;
+  if (language !== undefined) {
+    if (typeof language !== "string" || language.trim() === "" || language.length > 35) {
+      return fail("language must be a valid BCP 47 language tag.");
+    }
+    try {
+      normalizedLanguage = Intl.getCanonicalLocales(language.trim())[0];
+    } catch {
+      return fail("language must be a valid BCP 47 language tag.");
+    }
+    if (!normalizedLanguage) return fail("language must be a valid BCP 47 language tag.");
   }
 
   const style = optionalString(input, "style");
@@ -59,7 +68,7 @@ export function validateGenerateTweetRequest(body: unknown): ValidationResult {
   }
 
   const value: GenerateTweetInput = { topic: topic.trim() };
-  if (language !== undefined) value.language = language;
+  if (normalizedLanguage !== undefined) value.language = normalizedLanguage;
   if (location.value !== undefined) value.location = location.value;
   if (style.value !== undefined) value.style = style.value;
   if (maxLength !== undefined) value.maxLength = maxLength;
