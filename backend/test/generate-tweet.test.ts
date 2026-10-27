@@ -124,10 +124,18 @@ describe("POST /v1/tweet/generate - success", () => {
 });
 
 describe("POST /v1/tweet/generate - language validation", () => {
-  it.each(["en", "hi", "ta"])("accepts supported language %s", async (language) => {
-    const result = validateGenerateTweetRequest({ topic: "Photography", language });
-    expect(result.ok).toBe(true);
-    if (result.ok) expect(result.value.language).toBe(language);
+  it.each(["en", "hi", "ta", "es", "ja", "pt-BR", "id", "ar", "fr", "tr", "ko", "de"])(
+    "accepts BCP 47 language tag %s",
+    (language) => {
+      const result = validateGenerateTweetRequest({ topic: "Photography", language });
+      expect(result.ok).toBe(true);
+      if (result.ok) expect(result.value.language).toBe(language);
+    },
+  );
+
+  it("canonicalizes language tags", () => {
+    const result = validateGenerateTweetRequest({ topic: "Photography", language: "pt-br" });
+    expect(result).toEqual({ ok: true, value: { topic: "Photography", language: "pt-BR" } });
   });
 
   it("defaults omitted language to English", () => {
@@ -136,7 +144,7 @@ describe("POST /v1/tweet/generate - language validation", () => {
     if (result.ok) expect(result.value.language).toBeUndefined();
   });
 
-  it.each(["fr", "", 123, null, true])("rejects unsupported language %j", (language) => {
+  it.each(["", "en_US", "not a language", "en--US", "a".repeat(36), 123, null, true])("rejects invalid language tag %j", (language) => {
     const result = validateGenerateTweetRequest({ topic: "Photography", language });
     expect(result.ok).toBe(false);
     if (!result.ok) expect(result.message).toContain("language");

@@ -65,6 +65,11 @@ describe("OpenAIProvider - interface and configuration", () => {
   it.each([
     ["hi", "Hindi (हिन्दी)"],
     ["ta", "Tamil (தமிழ்)"],
+    ["es", "Spanish (Español)"],
+    ["ja", "Japanese (日本語)"],
+    ["pt-BR", "Brazilian Portuguese (Português brasileiro)"],
+    ["id", "Indonesian (Bahasa Indonesia)"],
+    ["ar", "Arabic (العربية)"],
   ] as const)("asks the model to compose directly in %s without translation", async (language, label) => {
     const fetchMock = queueFetch(openaiOk("தமிழ் அல்லது हिन्दी output"));
     await provider(fetchMock).generate({ topic: "Life and observations", language });
