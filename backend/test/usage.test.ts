@@ -66,6 +66,8 @@ describe("VicharUsage Durable Object", () => {
 
     const analytics = await stub.getCustomTopicAnalytics(now + 2);
     expect(analytics.totalEvents).toBe(2);
+    expect(analytics.uniqueTopicCount).toBe(1);
+    expect(analytics.topTopics).toEqual(analytics.topics.slice(0, 10));
     expect(analytics.windowDays).toBe(90);
     expect(analytics.topics).toEqual([{
       topic: "photography ideas", count: 2,
