@@ -1,5 +1,5 @@
 import { env } from "cloudflare:workers";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 describe("VicharUsage Durable Object", () => {
   it("allows requests until the burst limit, then blocks the next request", async () => {
@@ -78,6 +78,29 @@ describe("VicharUsage Durable Object", () => {
       { sourceApp: "vichar-web", count: 1 }, { sourceApp: "future-app", count: 1 },
     ]));
     expect(JSON.stringify(analytics)).not.toMatch(/created_at|session|licenseKey|ipAddress/i);
+  });
+
+  it("physically removes expired topic events when the Durable Object alarm runs", async () => {
+    const stub = env.VICHAR_USAGE.getByName("custom-topic-analytics-alarm-retention");
+    const now = Date.UTC(2026, 9, 29, 12, 0, 0);
+    vi.useFakeTimers();
+    try {
+      vi.setSystemTime(now);
+      await stub.recordCustomTopicEvent({
+        schemaVersion: 1, topic: "alarm retention topic", language: "en",
+        sourceApp: "vichar-web",
+      });
+
+      vi.setSystemTime(now + 91 * 24 * 60 * 60 * 1000);
+      await stub.alarm();
+
+      // Query at the original time: a query-time expiry alone would still include the row.
+      const afterAlarm = await stub.getCustomTopicAnalytics(now + 1);
+      expect(afterAlarm.totalEvents).toBe(0);
+      expect(afterAlarm.topics).toEqual([]);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("excludes and deletes topic events outside the 90-day analytics window", async () => {
