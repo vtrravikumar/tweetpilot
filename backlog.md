@@ -379,7 +379,7 @@ Architecture and cost constraints:
 - Use the Worker execution context's `waitUntil` for best-effort asynchronous event writes, so generation does not await analytics and analytics failures cannot affect a generated draft.
 - Preserve the existing `/v1/tweet/generate` and `/v2/tweet/generate` contracts, auth, usage limits, attribution, credits and response shapes. The new request hint is optional and ignored by existing extension behaviour.
 - Persist only a versioned event containing normalized topic, language, server-derived source application and timestamp. Do not store generated text, location, user/account IDs, IP addresses, request headers, licence keys or session tokens.
-- Keep raw event retention to a 90-day window; expired rows are filtered from queries and opportunistically deleted on inserts/analytics reads, avoiding a scheduled cleanup job.
+- Keep raw event retention to a 90-day window. Use an alarm on the existing Durable Object to physically delete expired rows, with query-time filtering/cleanup as a fallback; no separate Worker cron trigger or service.
 - Provide aggregate-only analytics behind the existing owner license secret. Never expose raw event rows or analytics through the public generation counter.
 - Verify Cloudflare incremental usage against the existing plan after deployment; no additional paid resource is introduced, but asynchronous writes and SQL/storage still consume existing limits.
 
