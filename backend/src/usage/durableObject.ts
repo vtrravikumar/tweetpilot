@@ -47,6 +47,17 @@ export class VicharUsage extends DurableObject {
           generation_count INTEGER NOT NULL CHECK (generation_count >= 0),
           updated_at INTEGER NOT NULL
         )`);
+      this.ctx.storage.sql.exec(`
+        CREATE TABLE IF NOT EXISTS custom_topic_events (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          schema_version INTEGER NOT NULL CHECK (schema_version = 1),
+          topic TEXT NOT NULL,
+          language TEXT NOT NULL,
+          source_app TEXT NOT NULL,
+          created_at INTEGER NOT NULL
+        )`);
+      this.ctx.storage.sql.exec("CREATE INDEX IF NOT EXISTS custom_topic_events_created_at_idx ON custom_topic_events(created_at)");
+      this.ctx.storage.sql.exec("CREATE INDEX IF NOT EXISTS custom_topic_events_topic_idx ON custom_topic_events(topic, language, source_app)");
     });
   }
 
@@ -152,6 +163,70 @@ export class VicharUsage extends DurableObject {
       const row = this.ctx.storage.sql.exec<{ generation_count: number }>("UPDATE global_stats SET generation_count = generation_count + 1, updated_at = ? WHERE id = 1 RETURNING generation_count", nowMs).toArray()[0];
       if (!row) throw new Error("Global Vichar generation could not be recorded.");
       return row.generation_count;
+    });
+  }
+
+  /** Store a minimal, versioned topic event with no user or request identifiers. */
+  recordCustomTopicEvent(event: {
+    schemaVersion: 1;
+    topic: string;
+    language: string;
+    sourceApp: string;
+    createdAt: number;
+  }): void {
+    const topic = event.topic.trim().replace(/\\s+/g, " ").toLowerCase();
+    const language = event.language.trim().slice(0, 35) || "und";
+    const sourceApp = event.sourceApp.trim();
+    if (event.schemaVersion !== 1 || !topic || topic.length > 160 || !/^[a-z0-9][a-z0-9._-]{0,63}$/.test(sourceApp)) {
+      throw new Error("Invalid custom topic analytics event.");
+    }
+    const nowMs = Number.isSafeInteger(event.createdAt) && event.createdAt > 0 ? event.createdAt : Date.now();
+    const cutoff = nowMs - 90 * 24 * 60 * 60 * 1000;
+    this.ctx.storage.transactionSync(() => {
+      this.ctx.storage.sql.exec("DELETE FROM custom_topic_events WHERE created_at < ?", cutoff);
+      this.ctx.storage.sql.exec(
+        "INSERT INTO custom_topic_events (schema_version, topic, language, source_app, created_at) VALUES (1, ?, ?, ?, ?)",
+        topic, language, sourceApp, nowMs,
+      );
+    });
+  }
+
+  /** Return aggregates only; never expose individual event rows or identifiers. */
+  getCustomTopicAnalytics(nowMs = Date.now()): {
+    windowDays: 90;
+    totalEvents: number;
+    topics: Array<{ topic: string; count: number; languages: string[]; sourceApps: string[] }>;
+    languages: Array<{ language: string; count: number }>;
+    sourceApps: Array<{ sourceApp: string; count: number }>;
+    weekly: Array<{ week: string; count: number }>;
+  } {
+    const cutoff = nowMs - 90 * 24 * 60 * 60 * 1000;
+    return this.ctx.storage.transactionSync(() => {
+      this.ctx.storage.sql.exec("DELETE FROM custom_topic_events WHERE created_at < ?", cutoff);
+      const totalEvents = this.ctx.storage.sql.exec<{ count: number }>(
+        "SELECT COUNT(*) AS count FROM custom_topic_events WHERE created_at >= ?", cutoff,
+      ).toArray()[0]?.count ?? 0;
+      const topics = this.ctx.storage.sql.exec<{ topic: string; count: number; languages: string; source_apps: string }>(
+        "SELECT topic, COUNT(*) AS count, GROUP_CONCAT(DISTINCT language) AS languages, GROUP_CONCAT(DISTINCT source_app) AS source_apps FROM custom_topic_events WHERE created_at >= ? GROUP BY topic ORDER BY count DESC, topic ASC LIMIT 100",
+        cutoff,
+      ).toArray().map((row) => ({
+        topic: row.topic, count: row.count,
+        languages: row.languages ? row.languages.split(",") : [],
+        sourceApps: row.source_apps ? row.source_apps.split(",") : [],
+      }));
+      const languages = this.ctx.storage.sql.exec<{ language: string; count: number }>(
+        "SELECT language, COUNT(*) AS count FROM custom_topic_events WHERE created_at >= ? GROUP BY language ORDER BY count DESC, language ASC",
+        cutoff,
+      ).toArray().map((row) => ({ language: row.language, count: row.count }));
+      const sourceApps = this.ctx.storage.sql.exec<{ source_app: string; count: number }>(
+        "SELECT source_app, COUNT(*) AS count FROM custom_topic_events WHERE created_at >= ? GROUP BY source_app ORDER BY count DESC, source_app ASC",
+        cutoff,
+      ).toArray().map((row) => ({ sourceApp: row.source_app, count: row.count }));
+      const weekly = this.ctx.storage.sql.exec<{ week: string; count: number }>(
+        "SELECT strftime('%Y-W%W', created_at / 1000, 'unixepoch') AS week, COUNT(*) AS count FROM custom_topic_events WHERE created_at >= ? GROUP BY week ORDER BY week ASC",
+        cutoff,
+      ).toArray().map((row) => ({ week: row.week, count: row.count }));
+      return { windowDays: 90, totalEvents, topics, languages, sourceApps, weekly };
     });
   }
 }
