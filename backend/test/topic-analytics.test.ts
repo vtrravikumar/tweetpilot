@@ -117,7 +117,7 @@ describe("generic custom-topic analytics", () => {
       body: JSON.stringify({ topic: "Photography", topicSource: "custom" }),
     }), env, ctx);
     expect(response.status).toBe(200);
-    expect((await response.json()).tweet).toBe("Still generated.");
+    expect((await response.json() as { tweet: string }).tweet).toBe("Still generated.");
     await Promise.all(promises);
   });
 
