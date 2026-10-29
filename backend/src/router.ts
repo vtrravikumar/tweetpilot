@@ -9,6 +9,7 @@ import { freeLicenseRoute } from "./routes/freeLicense";
 import { activateLicenseRoute } from "./routes/activateLicense";
 import { createPaymentLinkRoute, razorpayWebhookRoute, verifyPaymentRoute } from "./routes/payment";
 import { statsRoute } from "./routes/stats";
+import { customTopicAnalyticsRoute } from "./routes/customTopicAnalytics";
 
 export type Handler = (request: Request, env: Env, ctx: ExecutionContext) => Response | Promise<Response>;
 export interface Route { method: string; path: string; handler: Handler }
@@ -16,6 +17,7 @@ export interface Route { method: string; path: string; handler: Handler }
 export const routes: readonly Route[] = [
   healthRoute,
   statsRoute,
+  customTopicAnalyticsRoute,
   webSessionRoute,
   freeLicenseRoute,
   activateLicenseRoute,
