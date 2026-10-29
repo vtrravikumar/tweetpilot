@@ -88,7 +88,6 @@ export function createGenerateTweetRoute(
                 topic: validation.value.topic.trim().replace(/\s+/g, " ").toLowerCase(),
                 language: validation.value.language ?? "en",
                 sourceApp: "vichar-web",
-                createdAt: Date.now(),
               });
             }
             const headers = { "x-vichar-access": "owner", "x-vichar-remaining": "unlimited" };
