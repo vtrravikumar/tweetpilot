@@ -25,7 +25,7 @@ export const routes: readonly Route[] = [
   verifyPaymentRoute,
   razorpayWebhookRoute,
   createGenerateTweetRoute((env) => createTweetGenerator(env), { usageGuard: createUsageGuard() }),
-  createGenerateTweetRoute((env) => createTweetGenerator(env), { usageGuard: createUsageGuard(), path: "/v2/tweet/generate", includeStyle: true }),
+  createGenerateTweetRoute((env) => createTweetGenerator(env), { usageGuard: createUsageGuard(), path: "/v2/tweet/generate", includeStyle: true, topicAnalyticsSourceApp: "vichar-web" }),
 ];
 
 export async function handleRequest(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
