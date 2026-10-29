@@ -174,7 +174,7 @@ export class VicharUsage extends DurableObject {
     sourceApp: string;
     createdAt: number;
   }): void {
-    const topic = event.topic.trim().replace(/\\s+/g, " ").toLowerCase();
+    const topic = event.topic.trim().replace(/\s+/g, " ").toLowerCase();
     const language = event.language.trim().slice(0, 35) || "und";
     const sourceApp = event.sourceApp.trim();
     if (event.schemaVersion !== 1 || !topic || topic.length > 160 || !/^[a-z0-9][a-z0-9._-]{0,63}$/.test(sourceApp)) {
