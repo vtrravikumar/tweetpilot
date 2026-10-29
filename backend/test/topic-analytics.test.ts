@@ -48,7 +48,7 @@ describe("generic custom-topic analytics", () => {
     const token = await issueVicharWebToken(WEB_SECRET);
     const route = createGenerateTweetRoute(
       { generate: async () => ({ tweet: "A short draft." }) },
-      { path: "/v2/tweet/generate", includeStyle: true },
+      { path: "/v2/tweet/generate", includeStyle: true, topicAnalyticsSourceApp: "vichar-web" },
     );
     const response = await route.handler(new Request("https://example.com/v2/tweet/generate", {
       method: "POST",
