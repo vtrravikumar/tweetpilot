@@ -1,5 +1,6 @@
 import { env } from "cloudflare:workers";
-import { describe, expect, it, vi } from "vitest";
+import { runInDurableObject, runDurableObjectAlarm } from "cloudflare:test";
+import { describe, expect, it } from "vitest";
 
 describe("VicharUsage Durable Object", () => {
   it("allows requests until the burst limit, then blocks the next request", async () => {
@@ -82,25 +83,27 @@ describe("VicharUsage Durable Object", () => {
 
   it("physically removes expired topic events when the Durable Object alarm runs", async () => {
     const stub = env.VICHAR_USAGE.getByName("custom-topic-analytics-alarm-retention");
-    const now = Date.UTC(2026, 9, 29, 12, 0, 0);
-    vi.useFakeTimers();
-    try {
-      vi.setSystemTime(now);
-      await stub.recordCustomTopicEvent({
-        schemaVersion: 1, topic: "alarm retention topic", language: "en",
-        sourceApp: "vichar-web",
-      });
+    await stub.recordCustomTopicEvent({
+      schemaVersion: 1, topic: "alarm retention topic", language: "en",
+      sourceApp: "vichar-web",
+    });
 
-      vi.setSystemTime(now + 91 * 24 * 60 * 60 * 1000);
-      await stub.alarm();
+    // Make the row older than the retention window without exposing a production RPC method.
+    await runInDurableObject(stub, async (_instance, state) => {
+      state.storage.sql.exec(
+        "UPDATE custom_topic_events SET created_at = ?",
+        Date.now() - 91 * 24 * 60 * 60 * 1000,
+      );
+    });
 
-      // Query at the original time: a query-time expiry alone would still include the row.
-      const afterAlarm = await stub.getCustomTopicAnalytics(now + 1);
-      expect(afterAlarm.totalEvents).toBe(0);
-      expect(afterAlarm.topics).toEqual([]);
-    } finally {
-      vi.useRealTimers();
-    }
+    expect(await runDurableObjectAlarm(stub)).toBe(true);
+    const remainingRows = await runInDurableObject(stub, async (_instance, state) =>
+      state.storage.sql.exec<{ count: number }>(
+        "SELECT COUNT(*) AS count FROM custom_topic_events",
+      ).toArray()[0]?.count ?? 0,
+    );
+    expect(remainingRows).toBe(0);
+    expect(await runDurableObjectAlarm(stub)).toBe(false);
   });
 
   it("excludes and deletes topic events outside the 90-day analytics window", async () => {
