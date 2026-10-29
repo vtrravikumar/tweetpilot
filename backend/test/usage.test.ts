@@ -56,11 +56,11 @@ describe("VicharUsage Durable Object", () => {
     const now = Date.now();
     await stub.recordCustomTopicEvent({
       schemaVersion: 1, topic: "  Photography   Ideas ", language: "en",
-      sourceApp: "vichar-web", createdAt: now,
+      sourceApp: "vichar-web",
     });
     await stub.recordCustomTopicEvent({
       schemaVersion: 1, topic: "photography ideas", language: "ta",
-      sourceApp: "future-app", createdAt: now + 1,
+      sourceApp: "future-app",
     });
 
     const analytics = await stub.getCustomTopicAnalytics(now + 2);
@@ -85,7 +85,7 @@ describe("VicharUsage Durable Object", () => {
     const now = Date.now();
     await stub.recordCustomTopicEvent({
       schemaVersion: 1, topic: "temporary topic", language: "en",
-      sourceApp: "vichar-web", createdAt: now,
+      sourceApp: "vichar-web",
     });
     const expired = await stub.getCustomTopicAnalytics(now + 91 * 24 * 60 * 60 * 1000);
     expect(expired.totalEvents).toBe(0);
