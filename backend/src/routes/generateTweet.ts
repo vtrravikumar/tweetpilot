@@ -18,6 +18,8 @@ export interface GenerateTweetRouteOptions {
   path?: string;
   /** Include the selected style in the response for V2 web clients. */
   includeStyle?: boolean;
+  /** Trusted server-side source identifier; setting this opts the route into custom-topic analytics. */
+  topicAnalyticsSourceApp?: string;
 }
 
 export function createGenerateTweetRoute(
@@ -82,12 +84,12 @@ export function createGenerateTweetRoute(
             const generator = typeof source === "function" ? source(env) : source;
             const result = await generator.generate({ ...validation.value, includeAttribution: false });
             await recordSuccessfulGeneration(env);
-            if (webAccess && options.path === "/v2/tweet/generate" && customTopicRequested) {
+            if (webAccess && options.topicAnalyticsSourceApp && customTopicRequested) {
               scheduleCustomTopicAnalytics(ctx, env, {
                 schemaVersion: 1,
                 topic: validation.value.topic.trim().replace(/\s+/g, " ").toLowerCase(),
                 language: validation.value.language ?? "en",
-                sourceApp: "vichar-web",
+                sourceApp: options.topicAnalyticsSourceApp,
               });
             }
             const headers = { "x-vichar-access": "owner", "x-vichar-remaining": "unlimited" };
