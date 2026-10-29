@@ -167,7 +167,7 @@ export class VicharUsage extends DurableObject {
   }
 
   /** Store a minimal, versioned topic event with no user or request identifiers. */
-  recordCustomTopicEvent(event: {
+  async recordCustomTopicEvent(event: {
     schemaVersion: 1;
     topic: string;
     language: string;
@@ -183,12 +183,39 @@ export class VicharUsage extends DurableObject {
     const nowMs = Number.isSafeInteger(event.createdAt) && event.createdAt > 0 ? event.createdAt : Date.now();
     const cutoff = nowMs - 90 * 24 * 60 * 60 * 1000;
     this.ctx.storage.transactionSync(() => {
-      this.ctx.storage.sql.exec("DELETE FROM custom_topic_events WHERE created_at < ?", cutoff);
+      this.ctx.storage.sql.exec("DELETE FROM custom_topic_events WHERE created_at <= ?", cutoff);
       this.ctx.storage.sql.exec(
         "INSERT INTO custom_topic_events (schema_version, topic, language, source_app, created_at) VALUES (1, ?, ?, ?, ?)",
         topic, language, sourceApp, nowMs,
       );
     });
+    // One alarm on this existing Durable Object enforces physical 90-day expiry
+    // without adding a Worker cron trigger or a separate scheduled service.
+    const oldest = this.ctx.storage.sql.exec<{ created_at: number }>(
+      "SELECT MIN(created_at) AS created_at FROM custom_topic_events",
+    ).toArray()[0]?.created_at;
+    if (oldest !== undefined && oldest !== null) {
+      const nextExpiry = oldest + 90 * 24 * 60 * 60 * 1000 + 1;
+      const currentAlarm = await this.ctx.storage.getAlarm();
+      if (currentAlarm === null || nextExpiry < currentAlarm) await this.ctx.storage.setAlarm(nextExpiry);
+    }
+  }
+
+  /** Cloudflare Durable Object alarm: remove expired topic events and schedule the next expiry. */
+  async alarm(): Promise<void> {
+    const nowMs = Date.now();
+    const cutoff = nowMs - 90 * 24 * 60 * 60 * 1000;
+    this.ctx.storage.transactionSync(() => {
+      this.ctx.storage.sql.exec("DELETE FROM custom_topic_events WHERE created_at <= ?", cutoff);
+    });
+    const oldest = this.ctx.storage.sql.exec<{ created_at: number }>(
+      "SELECT MIN(created_at) AS created_at FROM custom_topic_events",
+    ).toArray()[0]?.created_at;
+    if (oldest === undefined || oldest === null) {
+      await this.ctx.storage.deleteAlarm();
+      return;
+    }
+    await this.ctx.storage.setAlarm(oldest + 90 * 24 * 60 * 60 * 1000 + 1);
   }
 
   /** Return aggregates only; never expose individual event rows or identifiers. */
@@ -202,9 +229,9 @@ export class VicharUsage extends DurableObject {
   } {
     const cutoff = nowMs - 90 * 24 * 60 * 60 * 1000;
     return this.ctx.storage.transactionSync(() => {
-      this.ctx.storage.sql.exec("DELETE FROM custom_topic_events WHERE created_at < ?", cutoff);
+      this.ctx.storage.sql.exec("DELETE FROM custom_topic_events WHERE created_at <= ?", cutoff);
       const totalEvents = this.ctx.storage.sql.exec<{ count: number }>(
-        "SELECT COUNT(*) AS count FROM custom_topic_events WHERE created_at >= ?", cutoff,
+        "SELECT COUNT(*) AS count FROM custom_topic_events WHERE created_at > ?", cutoff,
       ).toArray()[0]?.count ?? 0;
       const topics = this.ctx.storage.sql.exec<{ topic: string; count: number; languages: string; source_apps: string }>(
         "SELECT topic, COUNT(*) AS count, GROUP_CONCAT(DISTINCT language) AS languages, GROUP_CONCAT(DISTINCT source_app) AS source_apps FROM custom_topic_events WHERE created_at >= ? GROUP BY topic ORDER BY count DESC, topic ASC LIMIT 100",
