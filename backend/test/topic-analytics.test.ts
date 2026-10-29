@@ -57,7 +57,7 @@ describe("generic custom-topic analytics", () => {
         origin: "https://vtrrk.in",
         authorization: "Bearer " + token,
       },
-      body: JSON.stringify({ topic: "  Photography   Ideas ", topicSource: "custom", language: "en" }),
+      body: JSON.stringify({ topic: "  Photography   Ideas ", topicSource: "custom", sourceApp: "client-spoof", language: "en" }),
     }), env, ctx);
 
     expect(response.status).toBe(200);
@@ -108,7 +108,7 @@ describe("generic custom-topic analytics", () => {
     const token = await issueVicharWebToken(WEB_SECRET);
     const route = createGenerateTweetRoute(
       { generate: async () => ({ tweet: "Still generated." }) },
-      { path: "/v2/tweet/generate", includeStyle: true },
+      { path: "/v2/tweet/generate", includeStyle: true, topicAnalyticsSourceApp: "vichar-web" },
     );
     const response = await route.handler(new Request("https://example.com/v2/tweet/generate", {
       method: "POST",
