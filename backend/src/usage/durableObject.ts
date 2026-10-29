@@ -223,6 +223,8 @@ export class VicharUsage extends DurableObject {
   getCustomTopicAnalytics(nowMs = Date.now()): {
     windowDays: 90;
     totalEvents: number;
+    uniqueTopicCount: number;
+    topTopics: Array<{ topic: string; count: number; languages: string[]; sourceApps: string[] }>;
     topics: Array<{ topic: string; count: number; languages: string[]; sourceApps: string[] }>;
     languages: Array<{ language: string; count: number }>;
     sourceApps: Array<{ sourceApp: string; count: number }>;
@@ -233,6 +235,9 @@ export class VicharUsage extends DurableObject {
       this.ctx.storage.sql.exec("DELETE FROM custom_topic_events WHERE created_at <= ?", cutoff);
       const totalEvents = this.ctx.storage.sql.exec<{ count: number }>(
         "SELECT COUNT(*) AS count FROM custom_topic_events WHERE created_at > ?", cutoff,
+      ).toArray()[0]?.count ?? 0;
+      const uniqueTopicCount = this.ctx.storage.sql.exec<{ count: number }>(
+        "SELECT COUNT(DISTINCT topic) AS count FROM custom_topic_events WHERE created_at > ?", cutoff,
       ).toArray()[0]?.count ?? 0;
       const topics = this.ctx.storage.sql.exec<{ topic: string; count: number; languages: string; source_apps: string }>(
         "SELECT topic, COUNT(*) AS count, GROUP_CONCAT(DISTINCT language) AS languages, GROUP_CONCAT(DISTINCT source_app) AS source_apps FROM custom_topic_events WHERE created_at >= ? GROUP BY topic ORDER BY count DESC, topic ASC LIMIT 100",
@@ -254,7 +259,7 @@ export class VicharUsage extends DurableObject {
         "SELECT strftime('%Y-W%W', created_at / 1000, 'unixepoch') AS week, COUNT(*) AS count FROM custom_topic_events WHERE created_at >= ? GROUP BY week ORDER BY week ASC",
         cutoff,
       ).toArray().map((row) => ({ week: row.week, count: row.count }));
-      return { windowDays: 90, totalEvents, topics, languages, sourceApps, weekly };
+      return { windowDays: 90, totalEvents, uniqueTopicCount, topTopics: topics.slice(0, 10), topics, languages, sourceApps, weekly };
     });
   }
 }
