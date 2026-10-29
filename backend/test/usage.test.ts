@@ -83,6 +83,27 @@ describe("VicharUsage Durable Object", () => {
     expect(JSON.stringify(analytics)).not.toMatch(/created_at|session|licenseKey|ipAddress/i);
   });
 
+  it("reports unique topic totals and ranks only the top ten topics", async () => {
+    const stub = env.VICHAR_USAGE.getByName("custom-topic-analytics-top-ten");
+    for (let i = 0; i < 12; i++) {
+      await stub.recordCustomTopicEvent({
+        schemaVersion: 1, topic: `topic-${String(i).padStart(2, "0")}`, language: "en",
+        sourceApp: "vichar-web",
+      });
+    }
+    await stub.recordCustomTopicEvent({
+      schemaVersion: 1, topic: "topic-00", language: "en",
+      sourceApp: "vichar-web",
+    });
+
+    const analytics = await stub.getCustomTopicAnalytics();
+    expect(analytics.totalEvents).toBe(13);
+    expect(analytics.uniqueTopicCount).toBe(12);
+    expect(analytics.topTopics).toHaveLength(10);
+    expect(analytics.topTopics[0]).toMatchObject({ topic: "topic-00", count: 2 });
+    expect(analytics.topics).toHaveLength(12);
+  });
+
   it("physically removes expired topic events when the Durable Object alarm runs", async () => {
     const stub = env.VICHAR_USAGE.getByName("custom-topic-analytics-alarm-retention");
     await stub.recordCustomTopicEvent({
