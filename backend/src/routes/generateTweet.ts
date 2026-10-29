@@ -6,7 +6,7 @@ import { allowAllUsageGuard, type UsageGuard } from "../usage/guard";
 import { validateGenerateTweetRequest } from "../validation/generateTweet";
 import { isValidVicharWebToken } from "../webAuth";
 import { hashLicenseKey } from "../usage/licenseKeys";
-import { VicharUsage } from "../usage/durableObject";
+import { VicharUsage, type TopicAnalyticsEventV1 } from "../usage/durableObject";
 
 export type GeneratorSource = TweetGenerator | ((env: Env) => TweetGenerator);
 
@@ -194,7 +194,7 @@ function generationErrorResponse(err: GenerationError): Response {
 function scheduleCustomTopicAnalytics(
   ctx: ExecutionContext,
   env: Env,
-  event: { schemaVersion: 1; topic: string; language: string; sourceApp: string; createdAt: number },
+  event: TopicAnalyticsEventV1,
 ): void {
   const namespace = (env as unknown as { VICHAR_USAGE?: DurableObjectNamespace<VicharUsage> }).VICHAR_USAGE;
   if (!namespace || typeof ctx?.waitUntil !== "function") return;
