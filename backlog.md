@@ -367,7 +367,7 @@ This is a parked product idea, not approval to change the API or extension now. 
 ## VICHAR-ANALYTICS-001 — Generic, asynchronous custom-topic analytics
 
 - Priority: P2
-- Status: In progress — implementation on branch `feat/custom-topic-analytics`
+- Status: Done — deployed 2026-10-29
 - Area: Backend/API / Product analytics / Privacy
 - Consumers: Website initially; backend capability designed for future authenticated applications
 - Website counterpart: [`vtrravikumar/vtrrk.in` — VICHAR-WEB-010, Integrate generic custom-topic analytics](https://github.com/vtrravikumar/vtrrk.in/blob/main/backlog.md)
@@ -377,7 +377,7 @@ Create a generic, versioned topic-event capability that can be reused by future 
 Architecture and cost constraints:
 - Reuse the existing Worker and SQLite Durable Object; do not add a new service, queue product, paid vendor, or scheduled trigger.
 - Use the Worker execution context's `waitUntil` for best-effort asynchronous event writes, so generation does not await analytics and analytics failures cannot affect a generated draft.
-- Expose product metrics through the private owner-protected aggregate endpoint: total custom-topic uses, unique normalized topic count, top 10 topics with counts, and individual topic counts (up to the existing aggregate cap), alongside the separate generation counter. Keep the 90-day retention window and do not add user-identifying dimensions.
+- Expose product metrics through the private owner-protected aggregate endpoint: total custom-topic uses, unique normalized topic count, top 10 topics with counts, and individual topic counts (up to the existing aggregate cap), alongside the separate generation counter. Keep the 90-day retention window and do not add user-identifying dimensions. The separate public endpoint `GET /v1/stats/custom-topics` returns only `totalEvents` and `periodDays: 90`; it never returns topic names or raw events.
 - Preserve the existing `/v1/tweet/generate` and `/v2/tweet/generate` contracts, auth, usage limits, attribution, credits and response shapes. The new request hint is optional and ignored by existing extension behaviour.
 - Persist only a versioned event containing normalized topic, language, server-derived source application and timestamp. Do not store generated text, location, user/account IDs, IP addresses, request headers, licence keys or session tokens.
 - Keep raw event retention to a 90-day window. Use an alarm on the existing Durable Object to physically delete expired rows, with query-time filtering/cleanup as a fallback; no separate Worker cron trigger or service.
@@ -385,11 +385,21 @@ Architecture and cost constraints:
 - Verify Cloudflare incremental usage against the existing plan after deployment; no additional paid resource is introduced, but asynchronous writes and SQL/storage still consume existing limits.
 
 Acceptance criteria:
-- [ ] Successful custom-topic website generation schedules a versioned event asynchronously.
-- [ ] Preset topics, unauthenticated/extension-style requests and failed generations are not captured.
-- [ ] Event-write failures do not delay/fail generation or alter its response.
-- [ ] Owner-only endpoint returns aggregate topic, language, source-app and weekly counts only.
-- [ ] Retention and normalization are covered by tests; no user identifiers are stored with topics.
-- [ ] Backend tests and typecheck pass; website CI/build passes; review the API diff for backward compatibility.
-- [ ] No extension source, package, manifest or store release changes.
-- [ ] API paths remain unchanged; backend package patch version is updated without changing the public API version.
+- [x] Successful custom-topic website generation schedules a versioned event asynchronously.
+- [x] Preset topics, unauthenticated/extension-style requests and failed generations are not captured.
+- [x] Event-write failures do not delay/fail generation or alter its response.
+- [x] Owner-only endpoint returns aggregate topic, language, source-app and weekly counts only.
+- [x] Retention and normalization are covered by tests; no user identifiers are stored with topics.
+- [x] Backend tests and typecheck pass; website CI/build passes; API compatibility is covered by tests.
+- [x] No extension source, package, manifest or store release changes.
+- [x] Existing generation API paths/contracts remain unchanged; the additive stats endpoint does not change the public generation API version.
+
+
+## VICHAR-ANALYTICS-002 — Review aggregate custom-topic trends after data accumulation
+
+- Priority: P3
+- Status: Parked
+- Area: Product analytics / Discovery
+- Website counterpart: [`vtrravikumar/vtrrk.in` — VICHAR-WEB-011, Review custom-topic trends](https://github.com/vtrravikumar/vtrrk.in/blob/main/backlog.md)
+
+After several weeks of additional events accumulate, review owner-only aggregate analytics for useful recurring themes. Consider whether frequent normalized words/topics could inform a future tag cloud or promotion/editorial ideas. This is discovery only, not approval to build a new public analytics view. Preserve the 90-day retention window, existing Worker/Durable Object resources and zero-additional-service-cost constraint. The public endpoint must remain count-only unless a separate product/privacy decision explicitly approves a change.
