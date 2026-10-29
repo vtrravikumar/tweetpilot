@@ -51,6 +51,47 @@ describe("VicharUsage Durable Object", () => {
     expect((await b.check(now + 1_000, 1, 10)).allowed).toBe(true);
   });
 
+  it("stores normalized topic events and returns aggregate-only analytics", async () => {
+    const stub = env.VICHAR_USAGE.getByName("custom-topic-analytics");
+    const now = Date.now();
+    await stub.recordCustomTopicEvent({
+      schemaVersion: 1, topic: "  Photography   Ideas ", language: "en",
+      sourceApp: "vichar-web", createdAt: now,
+    });
+    await stub.recordCustomTopicEvent({
+      schemaVersion: 1, topic: "photography ideas", language: "ta",
+      sourceApp: "future-app", createdAt: now + 1,
+    });
+
+    const analytics = await stub.getCustomTopicAnalytics(now + 2);
+    expect(analytics.totalEvents).toBe(2);
+    expect(analytics.windowDays).toBe(90);
+    expect(analytics.topics).toEqual([{
+      topic: "photography ideas", count: 2,
+      languages: expect.arrayContaining(["en", "ta"]),
+      sourceApps: expect.arrayContaining(["vichar-web", "future-app"]),
+    }]);
+    expect(analytics.languages).toEqual(expect.arrayContaining([
+      { language: "en", count: 1 }, { language: "ta", count: 1 },
+    ]));
+    expect(analytics.sourceApps).toEqual(expect.arrayContaining([
+      { sourceApp: "vichar-web", count: 1 }, { sourceApp: "future-app", count: 1 },
+    ]));
+    expect(JSON.stringify(analytics)).not.toMatch(/created_at|session|licenseKey|ipAddress/i);
+  });
+
+  it("excludes and deletes topic events outside the 90-day analytics window", async () => {
+    const stub = env.VICHAR_USAGE.getByName("custom-topic-analytics-retention");
+    const now = Date.now();
+    await stub.recordCustomTopicEvent({
+      schemaVersion: 1, topic: "temporary topic", language: "en",
+      sourceApp: "vichar-web", createdAt: now,
+    });
+    const expired = await stub.getCustomTopicAnalytics(now + 91 * 24 * 60 * 60 * 1000);
+    expect(expired.totalEvents).toBe(0);
+    expect(expired.topics).toEqual([]);
+  });
+
   it("creates a license once without resetting its balance", async () => {
     const stub = env.VICHAR_USAGE.getByName("license-create-once");
     expect(await stub.createLicense(50, 1_000)).toEqual({ created: true, balance: 50 });
