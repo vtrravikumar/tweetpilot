@@ -173,7 +173,7 @@ export class VicharUsage extends DurableObject {
     language: string;
     sourceApp: string;
     createdAt: number;
-  }): void {
+  }): Promise<void> {
     const topic = event.topic.trim().replace(/\s+/g, " ").toLowerCase();
     const language = event.language.trim().slice(0, 35) || "und";
     const sourceApp = event.sourceApp.trim();
