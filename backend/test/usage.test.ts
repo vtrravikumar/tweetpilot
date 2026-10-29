@@ -1,4 +1,5 @@
 import { env } from "cloudflare:workers";
+import { runInDurableObject, runDurableObjectAlarm } from "cloudflare:test";
 import { describe, expect, it } from "vitest";
 
 describe("VicharUsage Durable Object", () => {
@@ -49,6 +50,95 @@ describe("VicharUsage Durable Object", () => {
     expect((await a.check(now, 1, 10)).allowed).toBe(true);
     expect((await a.check(now + 1_000, 1, 10)).allowed).toBe(false);
     expect((await b.check(now + 1_000, 1, 10)).allowed).toBe(true);
+  });
+
+  it("stores normalized topic events and returns aggregate-only analytics", async () => {
+    const stub = env.VICHAR_USAGE.getByName("custom-topic-analytics");
+    const now = Date.now();
+    await stub.recordCustomTopicEvent({
+      schemaVersion: 1, topic: "  Photography   Ideas ", language: "en",
+      sourceApp: "vichar-web",
+    });
+    await stub.recordCustomTopicEvent({
+      schemaVersion: 1, topic: "photography ideas", language: "ta",
+      sourceApp: "future-app",
+    });
+
+    const analytics = await stub.getCustomTopicAnalytics(now + 2);
+    expect(analytics.totalEvents).toBe(2);
+    expect(analytics.uniqueTopicCount).toBe(1);
+    expect(analytics.topTopics).toEqual(analytics.topics.slice(0, 10));
+    expect(analytics.windowDays).toBe(90);
+    expect(analytics.topics).toEqual([{
+      topic: "photography ideas", count: 2,
+      languages: expect.arrayContaining(["en", "ta"]),
+      sourceApps: expect.arrayContaining(["vichar-web", "future-app"]),
+    }]);
+    expect(analytics.languages).toEqual(expect.arrayContaining([
+      { language: "en", count: 1 }, { language: "ta", count: 1 },
+    ]));
+    expect(analytics.sourceApps).toEqual(expect.arrayContaining([
+      { sourceApp: "vichar-web", count: 1 }, { sourceApp: "future-app", count: 1 },
+    ]));
+    expect(JSON.stringify(analytics)).not.toMatch(/created_at|session|licenseKey|ipAddress/i);
+  });
+
+  it("reports unique topic totals and ranks only the top ten topics", async () => {
+    const stub = env.VICHAR_USAGE.getByName("custom-topic-analytics-top-ten");
+    for (let i = 0; i < 12; i++) {
+      await stub.recordCustomTopicEvent({
+        schemaVersion: 1, topic: `topic-${String(i).padStart(2, "0")}`, language: "en",
+        sourceApp: "vichar-web",
+      });
+    }
+    await stub.recordCustomTopicEvent({
+      schemaVersion: 1, topic: "topic-00", language: "en",
+      sourceApp: "vichar-web",
+    });
+
+    const analytics = await stub.getCustomTopicAnalytics();
+    expect(analytics.totalEvents).toBe(13);
+    expect(analytics.uniqueTopicCount).toBe(12);
+    expect(analytics.topTopics).toHaveLength(10);
+    expect(analytics.topTopics[0]).toMatchObject({ topic: "topic-00", count: 2 });
+    expect(analytics.topics).toHaveLength(12);
+  });
+
+  it("physically removes expired topic events when the Durable Object alarm runs", async () => {
+    const stub = env.VICHAR_USAGE.getByName("custom-topic-analytics-alarm-retention");
+    await stub.recordCustomTopicEvent({
+      schemaVersion: 1, topic: "alarm retention topic", language: "en",
+      sourceApp: "vichar-web",
+    });
+
+    // Make the row older than the retention window without exposing a production RPC method.
+    await runInDurableObject(stub, async (_instance, state) => {
+      state.storage.sql.exec(
+        "UPDATE custom_topic_events SET created_at = ?",
+        Date.now() - 91 * 24 * 60 * 60 * 1000,
+      );
+    });
+
+    expect(await runDurableObjectAlarm(stub)).toBe(true);
+    const remainingRows = await runInDurableObject(stub, async (_instance, state) =>
+      state.storage.sql.exec<{ count: number }>(
+        "SELECT COUNT(*) AS count FROM custom_topic_events",
+      ).toArray()[0]?.count ?? 0,
+    );
+    expect(remainingRows).toBe(0);
+    expect(await runDurableObjectAlarm(stub)).toBe(false);
+  });
+
+  it("excludes and deletes topic events outside the 90-day analytics window", async () => {
+    const stub = env.VICHAR_USAGE.getByName("custom-topic-analytics-retention");
+    const now = Date.now();
+    await stub.recordCustomTopicEvent({
+      schemaVersion: 1, topic: "temporary topic", language: "en",
+      sourceApp: "vichar-web",
+    });
+    const expired = await stub.getCustomTopicAnalytics(now + 91 * 24 * 60 * 60 * 1000);
+    expect(expired.totalEvents).toBe(0);
+    expect(expired.topics).toEqual([]);
   });
 
   it("creates a license once without resetting its balance", async () => {

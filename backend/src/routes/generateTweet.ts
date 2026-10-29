@@ -6,7 +6,7 @@ import { allowAllUsageGuard, type UsageGuard } from "../usage/guard";
 import { validateGenerateTweetRequest } from "../validation/generateTweet";
 import { isValidVicharWebToken } from "../webAuth";
 import { hashLicenseKey } from "../usage/licenseKeys";
-import { VicharUsage } from "../usage/durableObject";
+import { VicharUsage, type TopicAnalyticsEventV1 } from "../usage/durableObject";
 
 export type GeneratorSource = TweetGenerator | ((env: Env) => TweetGenerator);
 
@@ -18,6 +18,8 @@ export interface GenerateTweetRouteOptions {
   path?: string;
   /** Include the selected style in the response for V2 web clients. */
   includeStyle?: boolean;
+  /** Trusted server-side source identifier; setting this opts the route into custom-topic analytics. */
+  topicAnalyticsSourceApp?: string;
 }
 
 export function createGenerateTweetRoute(
@@ -29,7 +31,7 @@ export function createGenerateTweetRoute(
   return {
     method: "POST",
     path: options.path ?? "/v1/tweet/generate",
-    handler: async (request, env) => {
+    handler: async (request, env, ctx) => {
       const contentLength = request.headers.get("content-length");
       if (contentLength !== null) {
         const declaredLength = Number.parseInt(contentLength, 10);
@@ -53,6 +55,8 @@ export function createGenerateTweetRoute(
       if (!validation.ok) {
         return errorResponse(400, "invalid_request", validation.message);
       }
+      const requestBody = body as Record<string, unknown>;
+      const customTopicRequested = requestBody.topicSource === "custom";
 
       const bag = env as unknown as Record<string, unknown>;
       const webSecret = typeof bag.VICHAR_WEB_SECRET === "string" ? bag.VICHAR_WEB_SECRET.trim() : "";
@@ -80,6 +84,14 @@ export function createGenerateTweetRoute(
             const generator = typeof source === "function" ? source(env) : source;
             const result = await generator.generate({ ...validation.value, includeAttribution: false });
             await recordSuccessfulGeneration(env);
+            if (webAccess && options.topicAnalyticsSourceApp && customTopicRequested) {
+              scheduleCustomTopicAnalytics(ctx, env, {
+                schemaVersion: 1,
+                topic: validation.value.topic.trim().replace(/\s+/g, " ").toLowerCase(),
+                language: validation.value.language ?? "en",
+                sourceApp: options.topicAnalyticsSourceApp,
+              });
+            }
             const headers = { "x-vichar-access": "owner", "x-vichar-remaining": "unlimited" };
             const newsMetadata = validation.value.useNews ? { mode: result.mode ?? "normal_fallback", ...(result.mode === "normal_fallback" ? { fallbackReason: result.fallbackReason ?? "news_unavailable" } : {}), ...(result.mode === "news" && result.sources ? { sources: result.sources } : {}) } : {};
             const payload = options.includeStyle ? { tweet: result.tweet, style: validation.value.style ?? null, ...newsMetadata } : { tweet: result.tweet, ...newsMetadata };
@@ -178,6 +190,25 @@ function generationErrorResponse(err: GenerationError): Response {
   }
 }
 
+
+/** Queue analytics after the response path; generation never awaits this write. */
+function scheduleCustomTopicAnalytics(
+  ctx: ExecutionContext,
+  env: Env,
+  event: TopicAnalyticsEventV1,
+): void {
+  const namespace = (env as unknown as { VICHAR_USAGE?: DurableObjectNamespace<VicharUsage> }).VICHAR_USAGE;
+  if (!namespace || typeof ctx?.waitUntil !== "function") return;
+  const write = (async () => {
+    try {
+      const globalStats = namespace.get(namespace.idFromName("global-vichar-stats"));
+      await globalStats.recordCustomTopicEvent(event);
+    } catch {
+      // Analytics is non-critical and must never affect the generated draft.
+    }
+  })();
+  ctx.waitUntil(write);
+}
 
 /** Best-effort global count: stats trouble must never turn a successful generation into a failure. */
 async function recordSuccessfulGeneration(env: Env): Promise<void> {

@@ -362,3 +362,34 @@ Explore making Vichar a thought-to-post companion for X, Facebook, and WhatsApp 
 - Verify platform policies, current APIs, media requirements, and mobile/desktop sharing behaviour before implementation.
 
 This is a parked product idea, not approval to change the API or extension now. Coordinate implementation scope with the website item VICHAR-WEB-006.
+
+
+## VICHAR-ANALYTICS-001 — Generic, asynchronous custom-topic analytics
+
+- Priority: P2
+- Status: In progress — implementation on branch `feat/custom-topic-analytics`
+- Area: Backend/API / Product analytics / Privacy
+- Consumers: Website initially; backend capability designed for future authenticated applications
+- Website counterpart: [`vtrravikumar/vtrrk.in` — VICHAR-WEB-010, Integrate generic custom-topic analytics](https://github.com/vtrravikumar/vtrrk.in/blob/main/backlog.md)
+
+Create a generic, versioned topic-event capability that can be reused by future applications without coupling analytics storage to one frontend. For the first consumer, capture only successful, signed Vichar website requests that explicitly identify a custom topic. The source application is derived by the backend from the authenticated request context, not trusted from a client-supplied application label.
+
+Architecture and cost constraints:
+- Reuse the existing Worker and SQLite Durable Object; do not add a new service, queue product, paid vendor, or scheduled trigger.
+- Use the Worker execution context's `waitUntil` for best-effort asynchronous event writes, so generation does not await analytics and analytics failures cannot affect a generated draft.
+- Expose product metrics through the private owner-protected aggregate endpoint: total custom-topic uses, unique normalized topic count, top 10 topics with counts, and individual topic counts (up to the existing aggregate cap), alongside the separate generation counter. Keep the 90-day retention window and do not add user-identifying dimensions.
+- Preserve the existing `/v1/tweet/generate` and `/v2/tweet/generate` contracts, auth, usage limits, attribution, credits and response shapes. The new request hint is optional and ignored by existing extension behaviour.
+- Persist only a versioned event containing normalized topic, language, server-derived source application and timestamp. Do not store generated text, location, user/account IDs, IP addresses, request headers, licence keys or session tokens.
+- Keep raw event retention to a 90-day window. Use an alarm on the existing Durable Object to physically delete expired rows, with query-time filtering/cleanup as a fallback; no separate Worker cron trigger or service.
+- Provide aggregate-only analytics behind the existing owner license secret. Never expose raw event rows or analytics through the public generation counter.
+- Verify Cloudflare incremental usage against the existing plan after deployment; no additional paid resource is introduced, but asynchronous writes and SQL/storage still consume existing limits.
+
+Acceptance criteria:
+- [ ] Successful custom-topic website generation schedules a versioned event asynchronously.
+- [ ] Preset topics, unauthenticated/extension-style requests and failed generations are not captured.
+- [ ] Event-write failures do not delay/fail generation or alter its response.
+- [ ] Owner-only endpoint returns aggregate topic, language, source-app and weekly counts only.
+- [ ] Retention and normalization are covered by tests; no user identifiers are stored with topics.
+- [ ] Backend tests and typecheck pass; website CI/build passes; review the API diff for backward compatibility.
+- [ ] No extension source, package, manifest or store release changes.
+- [ ] API paths remain unchanged; backend package patch version is updated without changing the public API version.
