@@ -85,7 +85,7 @@ export function createGenerateTweetRoute(
             if (webAccess && options.path === "/v2/tweet/generate" && customTopicRequested) {
               scheduleCustomTopicAnalytics(ctx, env, {
                 schemaVersion: 1,
-                topic: validation.value.topic.trim().replace(/\\s+/g, " ").toLowerCase(),
+                topic: validation.value.topic.trim().replace(/\s+/g, " ").toLowerCase(),
                 language: validation.value.language ?? "en",
                 sourceApp: "vichar-web",
                 createdAt: Date.now(),
