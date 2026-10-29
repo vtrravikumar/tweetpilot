@@ -68,7 +68,7 @@ describe("generic custom-topic analytics", () => {
     expect(calls).toHaveLength(1);
     expect(calls[0]?.args[0]).toEqual({
       schemaVersion: 1,
-      topic: "Photography   Ideas",
+      topic: "photography ideas",
       language: "en",
       sourceApp: "vichar-web",
       createdAt: expect.any(Number),
@@ -90,6 +90,15 @@ describe("generic custom-topic analytics", () => {
     expect(preset.status).toBe(200);
     expect(promises).toHaveLength(0);
     expect(calls).toHaveLength(0);
+    expect(stub.recordCustomTopicEvent).not.toHaveBeenCalled();
+
+    const extensionStyle = await route.handler(new Request("https://example.com/v2/tweet/generate", {
+      method: "POST",
+      headers: { "content-type": "application/json", authorization: "Bearer test-extension-usage-key-1234567890" },
+      body: JSON.stringify({ topic: "Photography", topicSource: "custom" }),
+    }), env, ctx);
+    expect(extensionStyle.status).toBe(200);
+    expect(promises).toHaveLength(0);
     expect(stub.recordCustomTopicEvent).not.toHaveBeenCalled();
   });
 
