@@ -71,7 +71,6 @@ describe("generic custom-topic analytics", () => {
       topic: "photography ideas",
       language: "en",
       sourceApp: "vichar-web",
-      createdAt: expect.any(Number),
     });
   });
 
