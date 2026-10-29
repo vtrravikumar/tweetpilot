@@ -377,6 +377,7 @@ Create a generic, versioned topic-event capability that can be reused by future 
 Architecture and cost constraints:
 - Reuse the existing Worker and SQLite Durable Object; do not add a new service, queue product, paid vendor, or scheduled trigger.
 - Use the Worker execution context's `waitUntil` for best-effort asynchronous event writes, so generation does not await analytics and analytics failures cannot affect a generated draft.
+- Expose product metrics through the private owner-protected aggregate endpoint: total custom-topic uses, unique normalized topic count, top 10 topics with counts, and individual topic counts (up to the existing aggregate cap), alongside the separate generation counter. Keep the 90-day retention window and do not add user-identifying dimensions.
 - Preserve the existing `/v1/tweet/generate` and `/v2/tweet/generate` contracts, auth, usage limits, attribution, credits and response shapes. The new request hint is optional and ignored by existing extension behaviour.
 - Persist only a versioned event containing normalized topic, language, server-derived source application and timestamp. Do not store generated text, location, user/account IDs, IP addresses, request headers, licence keys or session tokens.
 - Keep raw event retention to a 90-day window. Use an alarm on the existing Durable Object to physically delete expired rows, with query-time filtering/cleanup as a fallback; no separate Worker cron trigger or service.
