@@ -15,6 +15,8 @@ function setup(overrides: Record<string, unknown> = {}) {
     getCustomTopicAnalytics: vi.fn(async () => ({
       windowDays: 90,
       totalEvents: 1,
+      uniqueTopicCount: 1,
+      topTopics: [{ topic: "photography", count: 1, languages: ["en"], sourceApps: ["vichar-web"] }],
       topics: [{ topic: "photography", count: 1, languages: ["en"], sourceApps: ["vichar-web"] }],
       languages: [{ language: "en", count: 1 }],
       sourceApps: [{ sourceApp: "vichar-web", count: 1 }],
