@@ -14,6 +14,14 @@ export interface LicenseBalance {
 export interface LicenseCreation { created: boolean; balance: number }
 export interface PaymentLinkRecord { id: string; credits: number; amount: number; status: "created" | "paid"; createdAt: number; paidAt: number | null }
 export interface PaymentFulfilment { fulfilled: boolean; balance: number | null }
+/** Versioned, frontend-agnostic topic event. sourceApp is assigned by trusted server context. */
+export interface TopicAnalyticsEventV1 {
+  schemaVersion: 1;
+  topic: string;
+  language: string;
+  sourceApp: string;
+  createdAt: number;
+}
 
 export class VicharUsage extends DurableObject {
   constructor(ctx: DurableObjectState, env: Env) {
@@ -167,13 +175,7 @@ export class VicharUsage extends DurableObject {
   }
 
   /** Store a minimal, versioned topic event with no user or request identifiers. */
-  async recordCustomTopicEvent(event: {
-    schemaVersion: 1;
-    topic: string;
-    language: string;
-    sourceApp: string;
-    createdAt: number;
-  }): Promise<void> {
+  async recordCustomTopicEvent(event: TopicAnalyticsEventV1): Promise<void> {
     const topic = event.topic.trim().replace(/\s+/g, " ").toLowerCase();
     const language = event.language.trim().slice(0, 35) || "und";
     const sourceApp = event.sourceApp.trim();
