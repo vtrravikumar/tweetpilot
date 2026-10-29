@@ -20,7 +20,6 @@ export interface TopicAnalyticsEventV1 {
   topic: string;
   language: string;
   sourceApp: string;
-  createdAt: number;
 }
 
 export class VicharUsage extends DurableObject {
@@ -182,7 +181,7 @@ export class VicharUsage extends DurableObject {
     if (event.schemaVersion !== 1 || !topic || topic.length > 160 || !/^[a-z0-9][a-z0-9._-]{0,63}$/.test(sourceApp)) {
       throw new Error("Invalid custom topic analytics event.");
     }
-    const nowMs = Number.isSafeInteger(event.createdAt) && event.createdAt > 0 ? event.createdAt : Date.now();
+    const nowMs = Date.now();
     const cutoff = nowMs - 90 * 24 * 60 * 60 * 1000;
     this.ctx.storage.transactionSync(() => {
       this.ctx.storage.sql.exec("DELETE FROM custom_topic_events WHERE created_at <= ?", cutoff);
