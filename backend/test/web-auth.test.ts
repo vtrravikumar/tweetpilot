@@ -18,6 +18,14 @@ function webRequest(origin: string, token?: string): Request {
   });
 }
 
+async function signedToken(payload: Record<string, unknown>): Promise<string> {
+  const encoded = btoa(JSON.stringify(payload)).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
+  const key = await crypto.subtle.importKey("raw", new TextEncoder().encode(SECRET), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+  const signature = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(encoded));
+  const bytes = String.fromCharCode(...new Uint8Array(signature));
+  return `${encoded}.${btoa(bytes).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "")}`;
+}
+
 describe("Vichar web origin validation", () => {
   it("allows the production website origin", () => {
     expect(isVicharWebOrigin(webRequest("https://vtrrk.in"))).toBe(true);
@@ -83,5 +91,16 @@ describe("Vichar web authentication", () => {
       SECRET,
       NOW + 10 * 60 * 1000,
     )).resolves.toBe(false);
+  });
+
+  it("rejects a token issued in the future", async () => {
+    const token = await issueVicharWebToken(SECRET, NOW + 1_000);
+    await expect(isValidVicharWebToken(webRequest("https://vtrrk.in", token), SECRET, NOW)).resolves.toBe(false);
+  });
+
+  it("rejects a signed token whose lifetime exceeds the maximum", async () => {
+    const iat = Math.floor(NOW / 1000);
+    const token = await signedToken({ aud: "vichar-web", iat, exp: iat + 601 });
+    await expect(isValidVicharWebToken(webRequest("https://vtrrk.in", token), SECRET, NOW)).resolves.toBe(false);
   });
 });

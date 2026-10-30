@@ -104,8 +104,10 @@ export async function isValidVicharWebToken(
       payload.aud === "vichar-web" &&
       Number.isSafeInteger(payload.iat) &&
       Number.isSafeInteger(payload.exp) &&
+      payload.iat! <= Math.floor(nowMs / 1000) &&
       payload.exp! > Math.floor(nowMs / 1000) &&
-      payload.exp! > payload.iat!
+      payload.exp! > payload.iat! &&
+      payload.exp! - payload.iat! <= TOKEN_TTL_SECONDS
     );
   } catch {
     return false;

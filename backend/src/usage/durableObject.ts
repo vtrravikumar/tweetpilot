@@ -65,6 +65,33 @@ export class VicharUsage extends DurableObject {
         )`);
       this.ctx.storage.sql.exec("CREATE INDEX IF NOT EXISTS custom_topic_events_created_at_idx ON custom_topic_events(created_at)");
       this.ctx.storage.sql.exec("CREATE INDEX IF NOT EXISTS custom_topic_events_topic_idx ON custom_topic_events(topic, language, source_app)");
+      this.ctx.storage.sql.exec(`CREATE TABLE IF NOT EXISTS web_session_rates (
+        ip_hash TEXT PRIMARY KEY, minute INTEGER NOT NULL, minute_count INTEGER NOT NULL
+      )`);
+      this.ctx.storage.sql.exec(`CREATE TABLE IF NOT EXISTS web_session_global_rate (
+        id INTEGER PRIMARY KEY CHECK (id = 1), minute INTEGER NOT NULL, minute_count INTEGER NOT NULL
+      )`);
+      this.ctx.storage.sql.exec(`CREATE TABLE IF NOT EXISTS web_turnstile_tokens (
+        token_hash TEXT PRIMARY KEY, expires_at INTEGER NOT NULL
+      )`);
+      this.ctx.storage.sql.exec(`CREATE TABLE IF NOT EXISTS web_global_usage (
+        id INTEGER PRIMARY KEY CHECK (id = 1), day TEXT NOT NULL, day_count INTEGER NOT NULL
+      )`);
+      this.ctx.storage.sql.exec(`CREATE TABLE IF NOT EXISTS web_ip_usage (
+        ip_hash TEXT PRIMARY KEY, day TEXT NOT NULL, day_count INTEGER NOT NULL,
+        minute INTEGER NOT NULL, minute_count INTEGER NOT NULL
+      )`);
+      this.ctx.storage.sql.exec(`CREATE TABLE IF NOT EXISTS free_trial_global_usage (
+        id INTEGER PRIMARY KEY CHECK (id = 1), day TEXT NOT NULL, day_count INTEGER NOT NULL,
+        minute INTEGER NOT NULL, minute_count INTEGER NOT NULL
+      )`);
+      this.ctx.storage.sql.exec(`CREATE TABLE IF NOT EXISTS free_trial_ip_usage (
+        ip_hash TEXT PRIMARY KEY, day TEXT NOT NULL, day_count INTEGER NOT NULL
+      )`);
+      this.ctx.storage.sql.exec("CREATE INDEX IF NOT EXISTS web_session_rates_minute_idx ON web_session_rates(minute)");
+      this.ctx.storage.sql.exec("CREATE INDEX IF NOT EXISTS web_turnstile_tokens_expiry_idx ON web_turnstile_tokens(expires_at)");
+      this.ctx.storage.sql.exec("CREATE INDEX IF NOT EXISTS web_ip_usage_day_idx ON web_ip_usage(day)");
+      this.ctx.storage.sql.exec("CREATE INDEX IF NOT EXISTS free_trial_ip_usage_day_idx ON free_trial_ip_usage(day)");
     });
   }
 
@@ -82,12 +109,68 @@ export class VicharUsage extends DurableObject {
     return { allowed: true, remaining: Math.max(0, dailyLimit - dayCount), dailyLimit };
   }
 
-  async claimFreeTrial(day: string): Promise<boolean> {
-    const row = this.ctx.storage.sql.exec<{ day: string; claim_count: number }>("SELECT day, claim_count FROM trial_claims WHERE id = 1").toArray()[0];
-    if (row?.day === day && row.claim_count >= 1) return false;
-    const count = row?.day === day ? row.claim_count + 1 : 1;
-    this.ctx.storage.sql.exec("INSERT INTO trial_claims (id, day, claim_count) VALUES (1, ?, ?) ON CONFLICT(id) DO UPDATE SET day=excluded.day, claim_count=excluded.claim_count", day, count);
-    return true;
+  async claimFreeTrial(ipHash: string, nowMs: number, dailyLimit: number, burstLimit: number): Promise<boolean> {
+    const day = new Date(nowMs).toISOString().slice(0, 10), minute = Math.floor(nowMs / 60_000);
+    return this.ctx.storage.transactionSync(() => {
+      this.ctx.storage.sql.exec("DELETE FROM free_trial_ip_usage WHERE day < ?", day);
+      const global = this.ctx.storage.sql.exec<{ day: string; day_count: number; minute: number; minute_count: number }>("SELECT day, day_count, minute, minute_count FROM free_trial_global_usage WHERE id = 1").toArray()[0];
+      const globalDayCount = global?.day === day ? global.day_count : 0;
+      const globalMinuteCount = global?.minute === minute ? global.minute_count : 0;
+      const ip = this.ctx.storage.sql.exec<{ day: string; day_count: number }>("SELECT day, day_count FROM free_trial_ip_usage WHERE ip_hash = ?", ipHash).toArray()[0];
+      if (globalDayCount >= dailyLimit || globalMinuteCount >= burstLimit || (ip?.day === day && ip.day_count >= 1)) return false;
+      this.ctx.storage.sql.exec("INSERT INTO free_trial_global_usage (id, day, day_count, minute, minute_count) VALUES (1, ?, 1, ?, 1) ON CONFLICT(id) DO UPDATE SET day=excluded.day, day_count=?, minute=excluded.minute, minute_count=?", day, minute, globalDayCount + 1, globalMinuteCount + 1);
+      this.ctx.storage.sql.exec("INSERT INTO free_trial_ip_usage (ip_hash, day, day_count) VALUES (?, ?, 1) ON CONFLICT(ip_hash) DO UPDATE SET day=excluded.day, day_count=1", ipHash, day);
+      return true;
+    });
+  }
+
+  async releaseFreeTrial(ipHash: string, nowMs: number): Promise<void> {
+    const day = new Date(nowMs).toISOString().slice(0, 10);
+    this.ctx.storage.transactionSync(() => {
+      this.ctx.storage.sql.exec("DELETE FROM free_trial_ip_usage WHERE ip_hash = ? AND day = ?", ipHash, day);
+      const removed = this.ctx.storage.sql.exec<{ changes: number }>("SELECT changes() AS changes").toArray()[0]?.changes ?? 0;
+      if (removed === 1) this.ctx.storage.sql.exec("UPDATE free_trial_global_usage SET day_count = MAX(0, day_count - 1) WHERE id = 1 AND day = ?", day);
+    });
+  }
+
+  async checkWebSessionRate(ipHash: string, nowMs: number, limit: number, globalLimit: number): Promise<boolean> {
+    const minute = Math.floor(nowMs / 60_000);
+    return this.ctx.storage.transactionSync(() => {
+      this.ctx.storage.sql.exec("DELETE FROM web_session_rates WHERE minute < ?", minute - 1);
+      const row = this.ctx.storage.sql.exec<{ minute: number; minute_count: number }>("SELECT minute, minute_count FROM web_session_rates WHERE ip_hash = ?", ipHash).toArray()[0];
+      const count = row?.minute === minute ? row.minute_count : 0;
+      const global = this.ctx.storage.sql.exec<{ minute: number; minute_count: number }>("SELECT minute, minute_count FROM web_session_global_rate WHERE id = 1").toArray()[0];
+      const globalCount = global?.minute === minute ? global.minute_count : 0;
+      if (count >= limit || globalCount >= globalLimit) return false;
+      this.ctx.storage.sql.exec("INSERT INTO web_session_rates (ip_hash, minute, minute_count) VALUES (?, ?, 1) ON CONFLICT(ip_hash) DO UPDATE SET minute=excluded.minute, minute_count=?", ipHash, minute, count + 1);
+      this.ctx.storage.sql.exec("INSERT INTO web_session_global_rate (id, minute, minute_count) VALUES (1, ?, 1) ON CONFLICT(id) DO UPDATE SET minute=excluded.minute, minute_count=?", minute, globalCount + 1);
+      return true;
+    });
+  }
+
+  async useTurnstileToken(tokenHash: string, expiresAt: number, nowMs = Date.now()): Promise<boolean> {
+    return this.ctx.storage.transactionSync(() => {
+      this.ctx.storage.sql.exec("DELETE FROM web_turnstile_tokens WHERE expires_at <= ?", nowMs);
+      this.ctx.storage.sql.exec("INSERT INTO web_turnstile_tokens (token_hash, expires_at) VALUES (?, ?) ON CONFLICT(token_hash) DO NOTHING", tokenHash, expiresAt);
+      return (this.ctx.storage.sql.exec<{ changes: number }>("SELECT changes() AS changes").toArray()[0]?.changes ?? 0) === 1;
+    });
+  }
+
+  async consumeWebGeneration(ipHash: string, nowMs: number, ipDailyLimit: number, ipBurstLimit: number, globalDailyLimit: number): Promise<{ allowed: boolean; reason?: "daily" | "burst"; retryAfterSeconds?: number }> {
+    const day = new Date(nowMs).toISOString().slice(0, 10), minute = Math.floor(nowMs / 60_000);
+    return this.ctx.storage.transactionSync(() => {
+      const global = this.ctx.storage.sql.exec<{ day: string; day_count: number }>("SELECT day, day_count FROM web_global_usage WHERE id = 1").toArray()[0];
+      const globalCount = global?.day === day ? global.day_count : 0;
+      this.ctx.storage.sql.exec("DELETE FROM web_ip_usage WHERE day < ?", day);
+      const ip = this.ctx.storage.sql.exec<{ day: string; day_count: number; minute: number; minute_count: number }>("SELECT day, day_count, minute, minute_count FROM web_ip_usage WHERE ip_hash = ?", ipHash).toArray()[0];
+      const ipCount = ip?.day === day ? ip.day_count : 0;
+      const minuteCount = ip?.minute === minute ? ip.minute_count : 0;
+      if (globalCount >= globalDailyLimit || ipCount >= ipDailyLimit) return { allowed: false, reason: "daily" as const, retryAfterSeconds: secondsUntilNextUtcDay(nowMs) };
+      if (minuteCount >= ipBurstLimit) return { allowed: false, reason: "burst" as const, retryAfterSeconds: secondsUntilNextMinute(nowMs) };
+      this.ctx.storage.sql.exec("INSERT INTO web_global_usage (id, day, day_count) VALUES (1, ?, 1) ON CONFLICT(id) DO UPDATE SET day=excluded.day, day_count=?", day, globalCount + 1);
+      this.ctx.storage.sql.exec("INSERT INTO web_ip_usage (ip_hash, day, day_count, minute, minute_count) VALUES (?, ?, 1, ?, 1) ON CONFLICT(ip_hash) DO UPDATE SET day=excluded.day, day_count=?, minute=excluded.minute, minute_count=?", ipHash, day, minute, ipCount + 1, minuteCount + 1);
+      return { allowed: true };
+    });
   }
 
   async checkBurst(nowMs: number, burstLimit: number): Promise<{ allowed: boolean; retryAfterSeconds?: number }> {

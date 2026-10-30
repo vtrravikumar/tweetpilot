@@ -10,6 +10,7 @@ function setup(overrides: Record<string, unknown> = {}) {
   const calls: Array<{ name: string; args: unknown[] }> = [];
   const stub = {
     checkBurst: vi.fn(async () => ({ allowed: true })),
+    consumeWebGeneration: vi.fn(async () => ({ allowed: true })),
     recordGlobalGeneration: vi.fn(async () => 501),
     recordCustomTopicEvent: vi.fn(async (event: unknown) => { calls.push({ name: "recordCustomTopicEvent", args: [event] }); }),
     getCustomTopicAnalytics: vi.fn(async () => ({
@@ -58,6 +59,7 @@ describe("generic custom-topic analytics", () => {
         "content-type": "application/json",
         origin: "https://vtrrk.in",
         authorization: "Bearer " + token,
+        "CF-Connecting-IP": "203.0.113.100",
       },
       body: JSON.stringify({ topic: "  Photography   Ideas ", topicSource: "custom", sourceApp: "client-spoof", language: "en" }),
     }), env, ctx);
@@ -114,7 +116,7 @@ describe("generic custom-topic analytics", () => {
     );
     const response = await route.handler(new Request("https://example.com/v2/tweet/generate", {
       method: "POST",
-      headers: { "content-type": "application/json", origin: "https://vtrrk.in", authorization: "Bearer " + token },
+      headers: { "content-type": "application/json", origin: "https://vtrrk.in", authorization: "Bearer " + token, "CF-Connecting-IP": "203.0.113.101" },
       body: JSON.stringify({ topic: "Photography", topicSource: "custom" }),
     }), env, ctx);
     expect(response.status).toBe(200);
