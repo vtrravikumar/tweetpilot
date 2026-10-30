@@ -1,4 +1,4 @@
-import { errorResponse, jsonResponse } from "../http/json";
+import { errorResponse, jsonResponse, readBoundedRequestText } from "../http/json";
 import type { Route } from "../router";
 import { hashLicenseKey } from "../usage/licenseKeys";
 import { VicharUsage } from "../usage/durableObject";
@@ -9,10 +9,8 @@ export const activateLicenseRoute: Route = {
   handler: async (request, env) => {
     let body: unknown;
     try {
-      const raw = await request.text();
-      if (new TextEncoder().encode(raw).byteLength > 2_048) {
-        return errorResponse(413, "request_too_large", "Request body is too large.");
-      }
+      const raw = await readBoundedRequestText(request, 2_048);
+      if (raw === null) return errorResponse(413, "request_too_large", "Request body is too large.");
       body = JSON.parse(raw);
     } catch {
       return errorResponse(400, "invalid_json", "Request body must be valid JSON.");

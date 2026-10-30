@@ -27,6 +27,26 @@ describe("Vichar Razorpay credit purchases", () => {
     expect(await response.json()).toMatchObject({ error: { code: "invalid_webhook_signature" } });
   });
 
+  it("rejects oversized payment-link requests while reading the body", async () => {
+    const response = await createPaymentLinkRoute.handler(new Request("https://api.example/v1/payment/link", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: "x".repeat(8_193),
+    }), { ...env, RAZORPAY_KEY_ID: "test_key", RAZORPAY_KEY_SECRET: "test_secret" } as Env, ctx);
+    expect(response.status).toBe(413);
+    expect(await response.json()).toMatchObject({ error: { code: "request_too_large" } });
+  });
+
+  it("rejects oversized webhook payloads before signature processing", async () => {
+    const response = await razorpayWebhookRoute.handler(new Request("https://api.example/v1/payment/webhook", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: "x".repeat(65_537),
+    }), { ...env, RAZORPAY_KEY_ID: "test_key", RAZORPAY_KEY_SECRET: "test_secret", RAZORPAY_WEBHOOK_SECRET: "webhook_secret" } as Env, ctx);
+    expect(response.status).toBe(413);
+    expect(await response.json()).toMatchObject({ error: { code: "request_too_large" } });
+  });
+
   it("credits a registered payment once, even when verification and webhook race or retry", async () => {
     const key = generateLicenseKey();
     const hash = await hashLicenseKey(key);

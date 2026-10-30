@@ -57,4 +57,14 @@ describe("Vichar license issuance and activation", () => {
     }), env, ctx);
     expect(response.status).toBe(401);
   });
+
+  it("rejects an oversized activation body before JSON parsing", async () => {
+    const response = await activateLicenseRoute.handler(new Request("https://api.example/v1/license/activate", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: "x".repeat(2_049),
+    }), env, ctx);
+    expect(response.status).toBe(413);
+    expect(await response.json()).toMatchObject({ error: { code: "request_too_large" } });
+  });
 });
