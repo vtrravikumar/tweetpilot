@@ -1,4 +1,5 @@
 const WEB_ORIGIN = "https://vtrrk.in";
+const PREVIEW_ORIGIN_PATTERN = /^https:\/\/[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.vtrrk-in\.pages\.dev$/i;
 const TOKEN_TTL_SECONDS = 10 * 60;
 
 interface WebTokenPayload {
@@ -52,7 +53,20 @@ async function verify(value: string, signature: string, secret: string): Promise
 }
 
 export function isVicharWebOrigin(request: Request): boolean {
-  return request.headers.get("origin") === WEB_ORIGIN;
+  const origin = request.headers.get("origin");
+  if (origin === WEB_ORIGIN) return true;
+  if (!origin || !PREVIEW_ORIGIN_PATTERN.test(origin)) return false;
+
+  try {
+    const parsed = new URL(origin);
+    return parsed.origin === origin &&
+      parsed.protocol === "https:" &&
+      parsed.pathname === "/" &&
+      !parsed.search &&
+      !parsed.hash;
+  } catch {
+    return false;
+  }
 }
 
 export async function issueVicharWebToken(secret: string, nowMs = Date.now()): Promise<string> {
