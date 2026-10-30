@@ -5,6 +5,8 @@ import { handleRequest } from "../src/router";
 const ctx = {} as ExecutionContext;
 const EXTENSION_ORIGIN = "chrome-extension://abcdefghijklmnopabcdefghijklmnop";
 const X_ORIGIN = "https://x.com";
+const PREVIEW_ALLOWLIST = "https://*.vtrrk-in.pages.dev";
+const PREVIEW_ORIGIN = "https://a2d436ef.vtrrk-in.pages.dev";
 
 function env(values: Record<string, string> = {}): Env {
   return values as unknown as Env;
@@ -53,22 +55,58 @@ describe("CORS", () => {
     expect(response.headers.get("access-control-allow-origin")).toBe(EXTENSION_ORIGIN);
   });
 
-  it("answers valid preflight requests for configured origins and methods", async () => {
+  it("allows Cloudflare Pages preview and feature-branch origins", async () => {
+    for (const origin of [
+      PREVIEW_ORIGIN,
+      "https://feature-branch.vtrrk-in.pages.dev",
+    ]) {
+      const response = await handleRequest(
+        request("/health", { headers: { origin } }),
+        env({ CORS_ALLOWED_ORIGINS: `https://vtrrk.in,${PREVIEW_ALLOWLIST}` }),
+        ctx,
+      );
+
+      expect(response.status).toBe(200);
+      expect(response.headers.get("access-control-allow-origin")).toBe(origin);
+      expect(response.headers.get("vary")).toBe("Origin");
+    }
+  });
+
+  it("rejects unrelated, deceptive, nested, and non-HTTPS preview origins", async () => {
+    for (const origin of [
+      "https://vtrrk-in.pages.dev",
+      "https://vtrrk-in.pages.dev.attacker.com",
+      "https://feature.vtrrk-in.pages.dev.attacker.com",
+      "https://nested.feature.vtrrk-in.pages.dev",
+      "http://feature-branch.vtrrk-in.pages.dev",
+      "https://feature-branch.vtrrk-in.pages.dev:8443",
+    ]) {
+      const response = await handleRequest(
+        request("/health", { headers: { origin } }),
+        env({ CORS_ALLOWED_ORIGINS: PREVIEW_ALLOWLIST }),
+        ctx,
+      );
+
+      expect(response.headers.get("access-control-allow-origin")).toBeNull();
+    }
+  });
+
+  it("answers valid preview preflight requests and reflects the exact origin", async () => {
     const response = await handleRequest(
       request("/v1/tweet/generate", {
         method: "OPTIONS",
         headers: {
-          origin: EXTENSION_ORIGIN,
+          origin: PREVIEW_ORIGIN,
           "access-control-request-method": "POST",
           "access-control-request-headers": "content-type, authorization",
         },
       }),
-      env({ CORS_ALLOWED_ORIGINS: EXTENSION_ORIGIN }),
+      env({ CORS_ALLOWED_ORIGINS: PREVIEW_ALLOWLIST }),
       ctx,
     );
 
     expect(response.status).toBe(204);
-    expect(response.headers.get("access-control-allow-origin")).toBe(EXTENSION_ORIGIN);
+    expect(response.headers.get("access-control-allow-origin")).toBe(PREVIEW_ORIGIN);
     expect(response.headers.get("access-control-allow-methods")).toBe("POST, OPTIONS");
     expect(response.headers.get("access-control-allow-headers")).toBe("content-type, authorization");
   });
@@ -140,6 +178,7 @@ describe("CORS", () => {
           X_ORIGIN,
           `${EXTENSION_ORIGIN}/`,
           "*",
+          PREVIEW_ALLOWLIST,
           "https://x.com/path",
           "javascript:alert(1)",
           "chrome-extension://short",
