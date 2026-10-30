@@ -1,4 +1,4 @@
-import { errorResponse, jsonResponse } from "../http/json";
+import { errorResponse, jsonResponse, readBoundedRequestText } from "../http/json";
 import type { Route } from "../router";
 import { hashLicenseKey } from "../usage/licenseKeys";
 import { VicharUsage } from "../usage/durableObject";
@@ -35,12 +35,12 @@ async function razorpayRequest<T>(cfg: { keyId: string; keySecret: string }, pat
   return await response.json() as T;
 }
 
-async function readBody(request: Request): Promise<Record<string, unknown> | null> {
+async function readBody(request: Request): Promise<{ body: Record<string, unknown> } | { tooLarge: true } | null> {
   try {
-    const raw = await request.text();
-    if (new TextEncoder().encode(raw).byteLength > 8_192) return null;
+    const raw = await readBoundedRequestText(request, 8_192);
+    if (raw === null) return { tooLarge: true };
     const parsed: unknown = JSON.parse(raw);
-    return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed as Record<string, unknown> : null;
+    return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? { body: parsed as Record<string, unknown> } : null;
   } catch { return null; }
 }
 
@@ -51,8 +51,10 @@ type LicenseResult =
 async function getLicense(request: Request, env: Env): Promise<LicenseResult> {
   const body = await readBody(request);
   if (!body) return { ok: false, response: errorResponse(400, "invalid_json", "Request body must be valid JSON.") };
-  if (typeof body.licenseKey !== "string") return { ok: false, response: errorResponse(400, "invalid_request", "A licenseKey is required.") };
-  const hash = await hashLicenseKey(body.licenseKey);
+  if ("tooLarge" in body) return { ok: false, response: errorResponse(413, "request_too_large", "Request body is too large.") };
+  const parsedBody = body.body;
+  if (typeof parsedBody.licenseKey !== "string") return { ok: false, response: errorResponse(400, "invalid_request", "A licenseKey is required.") };
+  const hash = await hashLicenseKey(parsedBody.licenseKey);
   if (!hash) return { ok: false, response: errorResponse(401, "invalid_license_key", "This Vichar license key is invalid.") };
   const bag = env as unknown as EnvBag;
   const ownerKey = typeof bag.VICHAR_OWNER_LICENSE_KEY === "string" ? bag.VICHAR_OWNER_LICENSE_KEY.trim() : "";
@@ -62,7 +64,7 @@ async function getLicense(request: Request, env: Env): Promise<LicenseResult> {
   if (!namespace) return { ok: false, response: errorResponse(503, "license_service_unavailable", "License service is temporarily unavailable.") };
   const stub = namespace.get(namespace.idFromName("license:" + hash));
   if (!await stub.getLicense()) return { ok: false, response: errorResponse(401, "invalid_license_key", "This Vichar license key is invalid.") };
-  return { ok: true, hash, stub, body };
+  return { ok: true, hash, stub, body: parsedBody };
 }
 
 export const createPaymentLinkRoute: Route = {
@@ -158,8 +160,10 @@ export const razorpayWebhookRoute: Route = {
     const cfg = config(env);
     if (!cfg?.webhookSecret) return errorResponse(503, "webhook_not_configured", "Payment webhook is not configured.");
     const signature = request.headers.get("x-razorpay-signature") ?? "";
-    const raw = await request.text();
-    if (new TextEncoder().encode(raw).byteLength > 65_536) return errorResponse(413, "request_too_large", "Webhook payload is too large.");
+    let raw: string | null;
+    try { raw = await readBoundedRequestText(request, 65_536); }
+    catch { return errorResponse(400, "invalid_json", "Webhook payload must be valid JSON."); }
+    if (raw === null) return errorResponse(413, "request_too_large", "Webhook payload is too large.");
     const expected = await hmacHex(cfg.webhookSecret, raw);
     if (!constantTimeEqual(signature, expected)) return errorResponse(401, "invalid_webhook_signature", "Webhook signature is invalid.");
     let event: { event?: string; payload?: { payment_link?: { entity?: PaymentLink } } };

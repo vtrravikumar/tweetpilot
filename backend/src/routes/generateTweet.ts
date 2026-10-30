@@ -7,6 +7,8 @@ import { validateGenerateTweetRequest } from "../validation/generateTweet";
 import { isValidVicharWebToken } from "../webAuth";
 import { hashLicenseKey } from "../usage/licenseKeys";
 import { VicharUsage, type TopicAnalyticsEventV1 } from "../usage/durableObject";
+import { checkWebUsage } from "../usage/webGuard";
+import { readBoundedRequestText } from "../http/json";
 
 export type GeneratorSource = TweetGenerator | ((env: Env) => TweetGenerator);
 
@@ -33,17 +35,16 @@ export function createGenerateTweetRoute(
     path: options.path ?? "/v1/tweet/generate",
     handler: async (request, env, ctx) => {
       const contentLength = request.headers.get("content-length");
-      if (contentLength !== null) {
-        const declaredLength = Number.parseInt(contentLength, 10);
+      if (contentLength !== null && /^\d+$/.test(contentLength)) {
+        const declaredLength = Number(contentLength);
         if (Number.isSafeInteger(declaredLength) && declaredLength > MAX_REQUEST_BODY_BYTES) {
           return errorResponse(413, "request_too_large", "Request body is too large.");
         }
       }
-
       let body: unknown;
       try {
-        const rawBody = await request.text();
-        if (new TextEncoder().encode(rawBody).byteLength > MAX_REQUEST_BODY_BYTES) {
+        const rawBody = await readBoundedRequestText(request, MAX_REQUEST_BODY_BYTES);
+        if (rawBody === null) {
           return errorResponse(413, "request_too_large", "Request body is too large.");
         }
         body = JSON.parse(rawBody);
@@ -75,6 +76,18 @@ export function createGenerateTweetRoute(
         // the owner key: the secret stays on the Worker and is never exposed to browser code.
         if (ownerHash && (webAccess || (keyHash !== null && keyHash === ownerHash))) {
           if (!namespace) return errorResponse(503, "license_service_unavailable", "License service is temporarily unavailable.");
+          if (webAccess) {
+            let webUsage;
+            try {
+              webUsage = await checkWebUsage(request, env);
+            } catch {
+              return errorResponse(503, "web_usage_unavailable", "Website generation is temporarily unavailable.");
+            }
+            if (!webUsage.allowed) {
+              if (webUsage.reason === "unavailable") return errorResponse(503, "web_usage_unavailable", "Website generation is temporarily unavailable.");
+              return errorResponse(429, "rate_limited", webUsage.reason === "daily" ? "The website generation limit has been reached. Please try again tomorrow." : "Too many generation requests. Please try again shortly.", webUsage.retryAfterSeconds ? { "retry-after": String(webUsage.retryAfterSeconds) } : {});
+            }
+          }
           const burstRaw = Number.parseInt(String(bag.VICHAR_BURST_PER_MINUTE ?? "3"), 10);
           const burstLimit = Number.isSafeInteger(burstRaw) && burstRaw > 0 ? burstRaw : 3;
           const burstStub = namespace.get(namespace.idFromName("owner-burst:" + ownerHash));
@@ -92,7 +105,7 @@ export function createGenerateTweetRoute(
                 sourceApp: options.topicAnalyticsSourceApp,
               });
             }
-            const headers = { "x-vichar-access": "owner", "x-vichar-remaining": "unlimited" };
+            const headers = { "x-vichar-access": "owner", ...(!webAccess ? { "x-vichar-remaining": "unlimited" } : {}) };
             const newsMetadata = validation.value.useNews ? { mode: result.mode ?? "normal_fallback", ...(result.mode === "normal_fallback" ? { fallbackReason: result.fallbackReason ?? "news_unavailable" } : {}), ...(result.mode === "news" && result.sources ? { sources: result.sources } : {}) } : {};
             const payload = options.includeStyle ? { tweet: result.tweet, style: validation.value.style ?? null, ...newsMetadata } : { tweet: result.tweet, ...newsMetadata };
             return jsonResponse(payload, 200, headers);

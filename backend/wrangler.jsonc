@@ -9,7 +9,14 @@
   "vars": {
     "CORS_ALLOWED_ORIGINS": "https://vtrrk.in,https://www.vtrrk.in,https://*.vtrrk-in.pages.dev",
     "VICHAR_DAILY_LIMIT": "10",
-    "VICHAR_BURST_PER_MINUTE": "30"
+    "VICHAR_BURST_PER_MINUTE": "30",
+    "VICHAR_WEB_IP_DAILY_LIMIT": "20",
+    "VICHAR_WEB_IP_BURST_PER_MINUTE": "3",
+    "VICHAR_WEB_GLOBAL_DAILY_LIMIT": "1000",
+    "VICHAR_WEB_SESSION_PER_MINUTE": "10",
+    "VICHAR_WEB_SESSION_GLOBAL_PER_MINUTE": "1000",
+    "VICHAR_FREE_TRIAL_GLOBAL_DAILY_LIMIT": "500",
+    "VICHAR_FREE_TRIAL_GLOBAL_BURST_PER_MINUTE": "30"
   },
   "durable_objects": {
     "bindings": [

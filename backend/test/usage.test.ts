@@ -169,4 +169,41 @@ describe("VicharUsage Durable Object", () => {
     expect(await stub.consumeCredit()).toEqual({ consumed: false, balance: null });
     expect(await stub.getLicense()).toBeNull();
   });
+
+  it("enforces per-IP and global website generation limits atomically under concurrency", async () => {
+    const stub = env.VICHAR_USAGE.getByName(`web-budget-${crypto.randomUUID()}`);
+    const now = Date.UTC(2029, 0, 2, 12, 0, 0);
+    const outcomes = await Promise.all(Array.from({ length: 25 }, (_, i) =>
+      stub.consumeWebGeneration(`ip-${i}`, now, 20, 20, 7)));
+    expect(outcomes.filter((result) => result.allowed)).toHaveLength(7);
+    expect(outcomes.filter((result) => !result.allowed && result.reason === "daily")).toHaveLength(18);
+
+    const ipLimited = await stub.consumeWebGeneration("one-ip", now + 1, 1, 1, 100);
+    const dailyBlocked = await stub.consumeWebGeneration("one-ip", now + 2, 1, 1, 100);
+    expect(ipLimited.allowed).toBe(true);
+    expect(dailyBlocked).toMatchObject({ allowed: false, reason: "daily" });
+  });
+
+  it("rejects reused Turnstile response hashes", async () => {
+    const stub = env.VICHAR_USAGE.getByName(`web-token-${crypto.randomUUID()}`);
+    const now = Date.UTC(2029, 0, 3, 12, 0, 0);
+    expect(await stub.useTurnstileToken("hashed-turnstile-token", now + 300_000, now)).toBe(true);
+    expect(await stub.useTurnstileToken("hashed-turnstile-token", now + 300_000, now + 1)).toBe(false);
+  });
+
+  it("applies a global session issuance rate limit across IPs", async () => {
+    const stub = env.VICHAR_USAGE.getByName(`web-session-global-rate-${crypto.randomUUID()}`);
+    const now = Date.UTC(2029, 0, 5, 12, 0, 0);
+    expect(await stub.checkWebSessionRate("hashed-ip-a", now, 10, 1)).toBe(true);
+    expect(await stub.checkWebSessionRate("hashed-ip-b", now + 1, 10, 1)).toBe(false);
+  });
+
+  it("limits free trials globally and releases a failed issuance claim", async () => {
+    const stub = env.VICHAR_USAGE.getByName(`free-trial-${crypto.randomUUID()}`);
+    const now = Date.UTC(2029, 0, 4, 12, 0, 0);
+    expect(await stub.claimFreeTrial("ip-a", now, 1, 10)).toBe(true);
+    expect(await stub.claimFreeTrial("ip-b", now, 1, 10)).toBe(false);
+    await stub.releaseFreeTrial("ip-a", now);
+    expect(await stub.claimFreeTrial("ip-b", now, 1, 10)).toBe(true);
+  });
 });

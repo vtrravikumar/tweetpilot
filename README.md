@@ -107,12 +107,12 @@ The web client lives in the separate **vtrrk.in** Astro repository.
 
 The website does not ask visitors for a license key and does not store one in browser storage.
 
-1. The frontend requests `POST /v1/web/session` from the exact allowed origin `https://vtrrk.in`.
-2. The Worker requires `VICHAR_WEB_SECRET` and issues a signed HMAC-SHA-256 token with audience `vichar-web` and a 10-minute lifetime. The response is marked `Cache-Control: no-store`.
+1. The frontend obtains a Cloudflare Turnstile Managed token for the `vichar_web_session` action and sends it to `POST /v1/web/session` from an allowed production or Pages preview origin.
+2. The Worker checks the origin policy, rate limits the IP, verifies the response with Siteverify, checks its hostname/action, and rejects reuse before issuing a signed HMAC-SHA-256 session with a 10-minute maximum lifetime. The response is marked `Cache-Control: no-store`.
 3. The frontend keeps the token in memory and sends it as a Bearer token to `POST /v1/tweet/generate`; it refreshes the session when close to expiry and clears it after an authentication failure.
-4. The generation route verifies the signature, expiry, audience and first-party origin.
-5. A valid web token maps to the existing owner entitlement. The Worker requires `VICHAR_OWNER_LICENSE_KEY` to be configured, uses its hash for the owner burst-control namespace, and returns owner headers including `x-vichar-access: owner` and `x-vichar-remaining: unlimited`.
-6. Owner generation omits the free-tier attribution and does not consume extension credits. The shared owner burst guard still applies.
+4. The generation route verifies the signature, issue time, maximum lifetime, audience and first-party origin.
+5. A valid web token maps to the existing owner entitlement. The Worker requires `VICHAR_OWNER_LICENSE_KEY` to be configured and applies per-IP burst/daily budgets and an atomic global daily website budget before generation.
+6. Owner generation omits the free-tier attribution and does not consume extension credits. Existing extension authentication and credit handling are unchanged.
 7. If the owner key is missing, website generation fails closed with `503 owner_entitlement_unavailable`; it does not fall back to the extension's anonymous/free usage path.
 
 The owner key and web-signing secret are Worker-side secrets. Neither is sent to website JavaScript. The website token is not a license key and is not persisted in localStorage.
@@ -133,7 +133,7 @@ POST /v1/web/session
 Origin: https://vtrrk.in
 Content-Type: application/json
 
-{}
+{"turnstileToken":"<single-use-Turnstile-response>"}
 ```
 
 Successful response (token redacted):
@@ -145,7 +145,7 @@ Successful response (token redacted):
 }
 ```
 
-A disallowed/missing origin receives `403 forbidden_origin`. Missing `VICHAR_WEB_SECRET` returns `503 web_session_unavailable`.
+A disallowed/missing origin receives `403 forbidden_origin`. Missing secrets or Durable Object bindings fail closed. Missing/invalid/expired/reused Turnstile responses do not issue a session.
 
 ### Generate a tweet
 
@@ -222,6 +222,7 @@ Production values are configured through Cloudflare Worker secrets/variables, no
 |---|---|---|
 | `OPENAI_API_KEY` | Yes | Server-side OpenAI credential |
 | `VICHAR_WEB_SECRET` | Yes for website session access | Signs short-lived first-party web tokens |
+| `TURNSTILE_SECRET_KEY` | Yes for website sessions | Cloudflare Turnstile Siteverify secret; configure with `wrangler secret put`, never as a public variable |
 | `VICHAR_OWNER_LICENSE_KEY` | Yes for owner entitlement | Server-side owner key used to identify owner entitlement; never expose it to the browser |
 | `CORS_ALLOWED_ORIGINS` | Yes for browser access | Exact allowed browser origins, including `https://vtrrk.in` and the production extension origin as appropriate |
 | `OPENAI_MODEL` | No | Override the default model |
@@ -229,9 +230,16 @@ Production values are configured through Cloudflare Worker secrets/variables, no
 | `VTRRK_LINKS` | No | JSON configuration of topic-specific VTRRK links |
 | `VICHAR_DAILY_LIMIT` | No | Extension per-installation daily limit |
 | `VICHAR_BURST_PER_MINUTE` | No | Per-minute burst protection setting (production currently 30; free trial allowance remains 10 total generations) |
+| `VICHAR_WEB_IP_DAILY_LIMIT` | No | Website generations per IP per UTC day (default 20) |
+| `VICHAR_WEB_IP_BURST_PER_MINUTE` | No | Website generations per IP per minute (default 3) |
+| `VICHAR_WEB_GLOBAL_DAILY_LIMIT` | No | Atomic hard limit for website generation reservations per UTC day (default 1000) |
+| `VICHAR_WEB_SESSION_PER_MINUTE` | No | Website session attempts per IP per minute (default 10) |
+| `VICHAR_WEB_SESSION_GLOBAL_PER_MINUTE` | No | Website session attempts across all IPs per minute (default 1000) |
+| `VICHAR_FREE_TRIAL_GLOBAL_DAILY_LIMIT` | No | Free extension trial issuance across all IPs per UTC day (default 500) |
+| `VICHAR_FREE_TRIAL_GLOBAL_BURST_PER_MINUTE` | No | Free extension trial issuance across all IPs per minute (default 30) |
 | `TWEETPILOT_GENERATOR` | No | Set to `placeholder` only for offline/test generation |
 
-Do not commit secrets, API keys, or `backend/.dev.vars`. Never add `VICHAR_OWNER_LICENSE_KEY` or `VICHAR_WEB_SECRET` to Astro frontend environment variables or client-side bundles.
+Set the website's public `PUBLIC_TURNSTILE_SITE_KEY` in its Cloudflare Pages build environment. The site key is public; `TURNSTILE_SECRET_KEY` remains a Worker secret. See [`docs/security/vichar-abuse-controls.md`](docs/security/vichar-abuse-controls.md) for setup and thresholds. Do not commit secrets, API keys, or `backend/.dev.vars`. Never add `VICHAR_OWNER_LICENSE_KEY`, `VICHAR_WEB_SECRET`, or `TURNSTILE_SECRET_KEY` to Astro frontend variables or client-side bundles.
 
 ## Local development
 

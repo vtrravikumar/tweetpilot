@@ -15,10 +15,18 @@
  *   TWEETPILOT_GENERATOR      optional. "placeholder" selects the offline stub
  *                             (used by the test suite); anything else = OpenAI.
  *   VICHAR_DAILY_LIMIT        optional positive integer; default 10.
- *   VICHAR_BURST_PER_MINUTE   optional positive integer; default 3.\n *   VICHAR_OWNER_LICENSE_KEY  secret; permanent owner entitlement key, never commit it.
+ *   VICHAR_BURST_PER_MINUTE   optional positive integer; default 3.
+ *   VICHAR_OWNER_LICENSE_KEY  secret; permanent owner entitlement key, never commit it.
+ *   VICHAR_WEB_IP_DAILY_LIMIT, VICHAR_WEB_IP_BURST_PER_MINUTE and
+ *   VICHAR_WEB_GLOBAL_DAILY_LIMIT bound public website generation.
+ *   VICHAR_WEB_SESSION_PER_MINUTE limits session challenges per IP.
+ *   VICHAR_WEB_SESSION_GLOBAL_PER_MINUTE caps verification calls across IPs.
+ *   VICHAR_FREE_TRIAL_GLOBAL_DAILY_LIMIT and
+ *   VICHAR_FREE_TRIAL_GLOBAL_BURST_PER_MINUTE bound free trial issuance.
+ *   TURNSTILE_SECRET_KEY is a Cloudflare Turnstile secret (Worker secret).
  *
- * VICHAR_WEB_SECRET is a secret used by the web-session token and the
- * anonymous web usage guard; it is intentionally not part of TweetPilotConfig.
+ * VICHAR_WEB_SECRET is a secret used to sign web-session tokens; it is
+ * intentionally not part of TweetPilotConfig.
 
  *
  * Values are read defensively (strings only) because Wrangler's generated Env
@@ -33,6 +41,13 @@ export interface TweetPilotConfig {
   generatorMode: string | undefined;
   vicharDailyLimit: number;
   vicharBurstPerMinute: number;
+  webIpDailyLimit: number;
+  webIpBurstPerMinute: number;
+  webGlobalDailyLimit: number;
+  webSessionPerMinute: number;
+  webSessionGlobalPerMinute: number;
+  freeTrialGlobalDailyLimit: number;
+  freeTrialGlobalBurstPerMinute: number;
 }
 
 function positiveInt(value: string | undefined, fallback: number): number {
@@ -55,5 +70,12 @@ export function readConfig(env: Env): TweetPilotConfig {
     generatorMode: str("TWEETPILOT_GENERATOR"),
     vicharDailyLimit: positiveInt(str("VICHAR_DAILY_LIMIT"), 10),
     vicharBurstPerMinute: positiveInt(str("VICHAR_BURST_PER_MINUTE"), 3),
+    webIpDailyLimit: positiveInt(str("VICHAR_WEB_IP_DAILY_LIMIT"), 20),
+    webIpBurstPerMinute: positiveInt(str("VICHAR_WEB_IP_BURST_PER_MINUTE"), 3),
+    webGlobalDailyLimit: positiveInt(str("VICHAR_WEB_GLOBAL_DAILY_LIMIT"), 1000),
+    webSessionPerMinute: positiveInt(str("VICHAR_WEB_SESSION_PER_MINUTE"), 10),
+    webSessionGlobalPerMinute: positiveInt(str("VICHAR_WEB_SESSION_GLOBAL_PER_MINUTE"), 1000),
+    freeTrialGlobalDailyLimit: positiveInt(str("VICHAR_FREE_TRIAL_GLOBAL_DAILY_LIMIT"), 500),
+    freeTrialGlobalBurstPerMinute: positiveInt(str("VICHAR_FREE_TRIAL_GLOBAL_BURST_PER_MINUTE"), 30),
   };
 }

@@ -47,7 +47,7 @@ describe("Vichar website owner entitlement", () => {
 
     expect(response.status).toBe(200);
     expect(response.headers.get("x-vichar-access")).toBe("owner");
-    expect(response.headers.get("x-vichar-remaining")).toBe("unlimited");
+    expect(response.headers.get("x-vichar-remaining")).toBeNull();
     expect(await response.json()).toEqual({ tweet: "owner tweet" });
     expect(generate).toHaveBeenCalledWith(expect.objectContaining({
       topic: "Photography",
@@ -84,5 +84,34 @@ describe("Vichar website owner entitlement", () => {
     expect(await response.json()).toMatchObject({
       error: { code: "owner_entitlement_unavailable" },
     });
+  });
+
+  it("reserves per-IP daily usage before the generator is called", async () => {
+    const generate = vi.fn(async () => ({ tweet: "limited draft" }));
+    const route = createGenerateTweetRoute({ generate });
+    const token = await issueVicharWebToken(WEB_SECRET);
+    const ip = "203.0.113.250";
+    const settings = routeEnv({ VICHAR_WEB_IP_DAILY_LIMIT: "1" });
+
+    const first = await route.handler(await webRequest(ip, token), settings, ctx);
+    const second = await route.handler(await webRequest(ip, token), settings, ctx);
+    expect(first.status).toBe(200);
+    expect(second.status).toBe(429);
+    expect(generate).toHaveBeenCalledTimes(1);
+  });
+
+  it("fails closed without calling the generator when web usage accounting is unavailable", async () => {
+    const generate = vi.fn(async () => ({ tweet: "must not run" }));
+    const route = createGenerateTweetRoute({ generate });
+    const token = await issueVicharWebToken(WEB_SECRET);
+    const settings = {
+      ...routeEnv(),
+      VICHAR_USAGE: { idFromName: (id: string) => id, get: () => ({}) },
+    } as unknown as Env;
+
+    const response = await route.handler(await webRequest("203.0.113.249", token), settings, ctx);
+    expect(response.status).toBe(503);
+    expect(await response.json()).toMatchObject({ error: { code: "web_usage_unavailable" } });
+    expect(generate).not.toHaveBeenCalled();
   });
 });
