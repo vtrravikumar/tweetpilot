@@ -2,6 +2,8 @@ import { readConfig } from "../env";
 
 const ALLOWED_REQUEST_HEADERS = ["content-type", "authorization"] as const;
 const PREFLIGHT_MAX_AGE_SECONDS = "86400";
+const PREVIEW_ORIGIN_PATTERN = /^https:\/\/[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.vtrrk-in\.pages\.dev$/i;
+const PREVIEW_ORIGIN_ALLOWLIST_ENTRY = "https://*.vtrrk-in.pages.dev";
 
 export function withCors(
   response: Response,
@@ -58,9 +60,33 @@ export function parseCorsAllowedOrigins(raw: string | undefined): Set<string> {
 function allowedOrigin(request: Request, env: Env): string | undefined {
   const origin = request.headers.get("origin");
   if (!origin) return undefined;
-  return parseCorsAllowedOrigins(readConfig(env).corsAllowedOrigins).has(origin)
+
+  const config = readConfig(env).corsAllowedOrigins;
+  if (!config) return undefined;
+
+  if (parseCorsAllowedOrigins(config).has(origin)) return origin;
+  if (!isCanonicalHttpsOrigin(origin)) return undefined;
+
+  const allowsPreviewOrigins = config
+    .split(",")
+    .some((item) => item.trim().toLowerCase() === PREVIEW_ORIGIN_ALLOWLIST_ENTRY);
+
+  return allowsPreviewOrigins && PREVIEW_ORIGIN_PATTERN.test(origin)
     ? origin
     : undefined;
+}
+
+function isCanonicalHttpsOrigin(origin: string): boolean {
+  try {
+    const url = new URL(origin);
+    return url.protocol === "https:" &&
+      url.origin === origin &&
+      url.pathname === "/" &&
+      !url.search &&
+      !url.hash;
+  } catch {
+    return false;
+  }
 }
 
 function requestedHeadersAllowed(request: Request): boolean {
@@ -88,7 +114,7 @@ function appendVary(current: string | null, value: string): string {
 
 function normalizeOrigin(value: string): string | undefined {
   const trimmed = value.trim().replace(/\/+$/, "");
-  if (!trimmed || trimmed === "*") return undefined;
+  if (!trimmed || trimmed === "*" || trimmed.toLowerCase() === PREVIEW_ORIGIN_ALLOWLIST_ENTRY) return undefined;
 
   if (trimmed.startsWith("chrome-extension://")) {
     return /^chrome-extension:\/\/[a-z]{32}$/i.test(trimmed) ? trimmed : undefined;
