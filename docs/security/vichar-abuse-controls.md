@@ -1,6 +1,6 @@
 # Vichar public access and abuse controls
 
-Vichar remains publicly accessible without accounts. The Worker verifies a Cloudflare Turnstile token before issuing a short-lived web session, then applies atomic per-IP and global generation budgets in the `global-vichar-stats` Durable Object. Browser Origin is used only for CORS/origin policy; it is not authentication.
+Vichar remains publicly accessible without accounts. The Worker verifies a Cloudflare Turnstile token before issuing a short-lived web session, then applies atomic per-IP and global generation budgets in the `global-vichar-stats` Durable Object. Browser Origin is used only for CORS/origin policy; it is not authentication. Request bodies are size-bounded, session and generation attempts are rate-limited, and client errors are sanitized.
 
 ## Operator configuration
 
@@ -23,7 +23,7 @@ The existing `VICHAR_BURST_PER_MINUTE` continues to apply to owner/extension bur
 ## Cloudflare Turnstile setup
 
 1. Create a Turnstile widget in Managed mode. Allow `vtrrk.in` and the specific Cloudflare Pages preview hostnames that should use website access.
-2. Configure the widget action as `vichar_web_session`.
+2. The website requests a token with action `vichar_web_session`; the Worker requires that exact action in the Siteverify response.
 3. Set the returned **site key** as the public frontend build variable `PUBLIC_TURNSTILE_SITE_KEY`. It is intentionally public and must only be used by the browser widget.
 4. Store the **secret key** as a Worker secret, never as a `vars` entry or frontend variable:
 
@@ -32,10 +32,16 @@ The existing `VICHAR_BURST_PER_MINUTE` continues to apply to owner/extension bur
    npx wrangler secret put TURNSTILE_SECRET_KEY
    ```
 
-5. The website must render the Turnstile widget, obtain its response token, and send JSON `{ "turnstileToken": "..." }` to `POST /v1/web/session`. It must handle verification errors by asking Turnstile for a fresh token. The Worker verifies the token with Siteverify, requires the returned hostname to match the request origin hostname and action to match `vichar_web_session`, and rejects token reuse.
+5. The website renders the Turnstile widget, obtains its response token, and sends JSON `{ "turnstileToken": "..." }` to `POST /v1/web/session`. It handles verification errors by requesting a fresh token. The Worker verifies the token with Siteverify, requires the returned hostname to match the request origin hostname and action to match `vichar_web_session`, and rejects token reuse.
 6. Configure the existing Worker secret `VICHAR_WEB_SECRET` separately. Do not put either Worker secret in browser code, source control, logs, or API responses.
 
-**Frontend integration limitation:** `vtrravikumar/tweetpilot` contains the backend Worker and Chrome extension, but no source for the production website or its Cloudflare Pages project. This PR can secure the API gate and document the browser contract; the separate website project must add the widget using the public site key before deploying this Worker change, or ordinary website session creation will fail closed. No production settings or secrets were changed as part of this work.
+## Production rollout record
+
+As of 2026-10-30, website PR [#32](https://github.com/vtrravikumar/vtrrk.in/pull/32) and API PR [#44](https://github.com/vtrravikumar/tweetpilot/pull/44) are merged. The Pages build variable `PUBLIC_TURNSTILE_SITE_KEY` is set for Production and Preview; the Worker secret `TURNSTILE_SECRET_KEY` is configured as a secret. The website deployed before the API began enforcing Turnstile. Production verification observed the Turnstile human-check UI, a widget analytics event, and successful Vichar generation. The widget hostname allowlist includes production `vtrrk.in`; add the exact approved Pages preview hostnames before testing previews. Secret and site-key values are not recorded here.
+
+Pre-merge CI passed: backend typecheck and 353 tests; website 29 tests and production build.
+
+The backend package release is `0.1.2`. API contract paths remain unchanged; this security release does not introduce a new API contract version.
 
 ## Privacy and operations
 

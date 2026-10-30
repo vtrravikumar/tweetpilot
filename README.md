@@ -109,7 +109,7 @@ The website does not ask visitors for a license key and does not store one in br
 
 1. The frontend obtains a Cloudflare Turnstile Managed token for the `vichar_web_session` action and sends it to `POST /v1/web/session` from an allowed production or Pages preview origin.
 2. The Worker checks the origin policy, rate limits the IP, verifies the response with Siteverify, checks its hostname/action, and rejects reuse before issuing a signed HMAC-SHA-256 session with a 10-minute maximum lifetime. The response is marked `Cache-Control: no-store`.
-3. The frontend keeps the token in memory and sends it as a Bearer token to `POST /v1/tweet/generate`; it refreshes the session when close to expiry and clears it after an authentication failure.
+3. The frontend keeps the token in memory and sends it as a Bearer token to `POST /v2/tweet/generate`; it refreshes the session when close to expiry and clears it after an authentication failure.
 4. The generation route verifies the signature, issue time, maximum lifetime, audience and first-party origin.
 5. A valid web token maps to the existing owner entitlement. The Worker requires `VICHAR_OWNER_LICENSE_KEY` to be configured and applies per-IP burst/daily budgets and an atomic global daily website budget before generation.
 6. Owner generation omits the free-tier attribution and does not consume extension credits. Existing extension authentication and credit handling are unchanged.
@@ -119,7 +119,7 @@ The owner key and web-signing secret are Worker-side secrets. Neither is sent to
 
 ### Extension entitlement remains separate
 
-- Owner license key: unlimited generation, no free-tier attribution, owner burst protection.
+- Owner license key: no free-tier attribution; website use is bounded by per-IP and global budgets, while extension owner access retains its configured burst protection.
 - Free extension license: server-controlled free credit balance and required attribution.
 - Paid extension license: server-controlled purchased credit balance and the configured attribution policy.
 - A valid website session is treated as owner entitlement only on the website's allowed first-party origin; it does not change extension license credit handling.
