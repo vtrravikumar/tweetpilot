@@ -28,7 +28,7 @@ OWASP API Security Top 10 2023:
 
 ## Executive assessment
 
-**Current status: NOT CLEARED FOR “SECURITY COMPLETE” yet.**
+**Baseline status as of 2026-10-08: NOT CLEARED FOR “SECURITY COMPLETE”.** The remediation update below supersedes this baseline for the public website abuse-control findings; it does not claim that every broader extension abuse risk is eliminated.
 
 No evidence of an active compromise was found in the reviewed Cloudflare logs. The observed scanner/reconnaissance traffic is normal Internet background traffic. The Vichar generation endpoints themselves were returning successful responses in the supplied log sample, with no 5xx responses observed.
 
@@ -38,6 +38,20 @@ However, the source review found two important resource-abuse weaknesses:
 2. The extension's installation UUID is an identifier, not a secret credential. An attacker can generate unlimited new UUIDs and therefore bypass the per-installation 10/day quota unless another control limits the attacker.
 
 These are primarily **cost-abuse / resource-consumption risks**, not evidence that user data or secrets can currently be stolen.
+
+## Remediation update — 2026-10-30
+
+This update records the production rollout of website/API abuse controls. Website PR [#32](https://github.com/vtrravikumar/vtrrk.in/pull/32) and API PR [#44](https://github.com/vtrravikumar/tweetpilot/pull/44) were merged. The user confirmed successful production deployments, observed the Turnstile human-check UI and a widget analytics event, and generated Vichar successfully. See [Vichar abuse controls](security/vichar-abuse-controls.md) for configuration and rollout details. No secret values are recorded.
+
+| Finding | Updated status | Resolution / remaining scope |
+|---|---|---|
+| VICHAR-SEC-001 — Public web usage control | **Resolved for the website flow** | Turnstile Siteverify, action/hostname checks, one-use token handling, session rate limits, per-IP website budgets and a global daily website budget are deployed and production-verified. |
+| VICHAR-SEC-002 — Extension installation ID rotation | **Mitigated; residual risk remains** | Free-trial issuance now has per-IP and global caps, limiting simple ID rotation. Network rotation can still obtain additional trial eligibility within the global ceiling; an installation UUID is not an identity. |
+| VICHAR-SEC-003 — V2 route inventory | **Resolved by inventory** | V2 remains intentionally active because the production Vichar website uses it. Both generation contracts are documented and share the backend safeguards. |
+| VICHAR-SEC-004 — Independent global generation ceiling | **Resolved for website traffic; broader scope remains** | The website has an atomic global daily generation budget. This is not a single global cap across every extension/license generation path. |
+| VICHAR-SEC-005 — Health/inventory surface | **No change required** | Keep the existing minimal health response; retain this as an ongoing review item. |
+
+The public website security-remediation task is complete. The broader audit is not marked fully green because extension identity rotation and a global cross-client generation ceiling remain separate residual risks.
 
 ---
 
@@ -340,3 +354,7 @@ The security posture is therefore:
 **Target: GREEN — After SEC-001 and SEC-002 are remediated and tested.**
 
 This document is intended to become the living Vichar security findings register. Findings should remain here until the implementation, tests, and production behaviour are verified.
+
+## Current status — 2026-10-30
+
+The statement above describes the 2026-10-08 baseline and is superseded for the public website flow by the remediation update at the start of this document. The website abuse-control remediation is implemented, CI-verified, deployed in the coordinated order, and production-smoke-tested. The broader audit remains **PARTIALLY MITIGATED**, not globally green: extension ID rotation retains residual risk and the new global daily ceiling is scoped to website generation rather than every client path.

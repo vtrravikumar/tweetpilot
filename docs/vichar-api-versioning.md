@@ -12,10 +12,11 @@ The backend router currently registers:
 
 - `POST /v1/tweet/generate` — stable/default generation response used by the Chrome extension.
 - `POST /v2/tweet/generate` — generation route with the selected style included in the response.
+- `POST /v1/web/session` — website session issuance; requires a valid one-use Turnstile response.
 
-The branded API namespace `/vichar/*` maps to the same route handlers. The extension source currently calls `https://api.vtrrk.in/vichar/v1/tweet/generate`.
+The branded API namespace `/vichar/*` maps to the same route handlers. The extension calls `https://api.vtrrk.in/vichar/v1/tweet/generate`; the website calls `/vichar/v1/web/session` and `/vichar/v2/tweet/generate`.
 
-The website's exact current endpoint and the production Worker deployment/version still need to be verified before changing either client. Do not infer the deployed version from the presence of a route in source control.
+The backend package version is `0.1.2`. It identifies a backend release and is separate from API contract versions. Production rollout was verified on 2026-10-30; see [Vichar abuse controls](security/vichar-abuse-controls.md).
 
 ## Rollout policy
 
